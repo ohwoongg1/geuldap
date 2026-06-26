@@ -434,7 +434,7 @@
     </div>
   </div>
 
-  <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=25b433faf5d746c938cbcc7658f650b0"></script>
+  <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=25b433faf5d746c938cbcc7658f650b0&libraries=services"></script>
   <script>
     kakao.maps.load(function() {
       var container = document.getElementById('kakaoMap');
@@ -443,14 +443,21 @@
         level: 4
       };
       var map = new kakao.maps.Map(container, options);
+      var geocoder = new kakao.maps.services.Geocoder();
 
-      var markerPosition = new kakao.maps.LatLng(37.4637, 126.8240);
-      var marker = new kakao.maps.Marker({ position: markerPosition });
-      marker.setMap(map);
+      geocoder.addressSearch('경기 부천시 소사구 양지로 208', function(result, status) {
+        if (status === kakao.maps.services.Status.OK) {
+          var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+          map.setCenter(coords);
 
-      var iwContent = '<div style="padding:10px 14px; font-size:13px; font-weight:700; color:#0d1b4b; font-family:sans-serif; white-space:nowrap;">📍 글답국어독서논술<br><span style=\"font-size:11px; color:#666; font-weight:400;\">양지로 208 지음프라자 5층</span></div>';
-      var infowindow = new kakao.maps.InfoWindow({ content: iwContent });
-      infowindow.open(map, marker);
+          var marker = new kakao.maps.Marker({ position: coords });
+          marker.setMap(map);
+
+          var iwContent = '<div style="padding:10px 14px; font-size:13px; font-weight:700; color:#0d1b4b; font-family:sans-serif; white-space:nowrap;">📍 글답국어독서논술<br><span style="font-size:11px; color:#666; font-weight:400;">양지로 208 지음프라자 5층</span></div>';
+          var infowindow = new kakao.maps.InfoWindow({ content: iwContent });
+          infowindow.open(map, marker);
+        }
+      });
     });
   </script>
 
