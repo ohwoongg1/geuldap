@@ -411,33 +411,22 @@
     <div class="section-title">오시는 길</div>
     <div class="section-sub">부천시 소사구 지음프라자 5층에 위치한 글답국어독서논술입니다</div>
 
-    <div style="background:#f8f7f2; border:1px solid #e8e0cc; border-radius:16px; overflow:hidden;">
-      <!-- 지도 미리보기 이미지 영역 -->
-      <div style="background:linear-gradient(135deg,#0d1b4b,#1a2f6b); padding:48px 32px; text-align:center; position:relative;">
-        <div style="font-size:48px; margin-bottom:16px;">📍</div>
-        <div style="font-size:20px; font-weight:700; color:#fff; font-family:'Noto Serif KR',serif; margin-bottom:8px;">글답국어독서논술</div>
-        <div style="font-size:15px; color:rgba(255,255,255,0.75); margin-bottom:24px; font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;">경기 부천시 소사구 양지로 208</div>
-        <a href="https://map.naver.com/p/search/%EA%B8%80%EB%8B%B5%EA%B5%AD%EC%96%B4%EB%8F%85%EC%84%9C%EB%85%BC%EC%88%A0/place/2018853509?c=15.00,0,0,0,dh" target="_blank"
-          style="display:inline-block; background:linear-gradient(135deg,#c5a149,#e8c96a); color:#0d1b4b; font-weight:700; font-size:16px; padding:14px 32px; border-radius:8px; text-decoration:none; font-family:'Pretendard',sans-serif;">
-          🗺️ 네이버 지도에서 보기
-        </a>
-      </div>
-
-      <!-- 주소 + 교통 정보 -->
-      <div style="padding:24px 28px;">
+    <div style="border:1px solid #e8e0cc; border-radius:16px; overflow:hidden;">
+      <div id="kakaoMap" style="width:100%; height:380px;"></div>
+      <div style="padding:24px 28px; background:#f8f7f2;">
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
           <div style="display:flex; gap:12px; align-items:flex-start;">
-            <div style="width:36px; height:36px; background:#0d1b4b; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;">🏫</div>
+            <div style="width:40px; height:40px; background:#0d1b4b; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">🏫</div>
             <div>
-              <div style="font-size:12px; color:#c5a149; font-weight:700; letter-spacing:1px; margin-bottom:4px; font-family:'Pretendard',sans-serif;">학원 주소</div>
-              <div style="font-size:15px; color:#1a1a2e; font-weight:600; line-height:1.5; font-family:'Pretendard',sans-serif;">경기 부천시 소사구 양지로 208<br>글답국어독서논술</div>
+              <div style="font-size:13px; color:#c5a149; font-weight:700; letter-spacing:1px; margin-bottom:4px; font-family:'Pretendard',sans-serif;">학원 주소</div>
+              <div style="font-size:16px; color:#1a1a2e; font-weight:600; line-height:1.6; font-family:'Pretendard',sans-serif;">경기 부천시 소사구<br>양지로 208 5층 506호<br><span style="font-size:13px; color:#888;">(지음프라자 5층)</span></div>
             </div>
           </div>
           <div style="display:flex; gap:12px; align-items:flex-start;">
-            <div style="width:36px; height:36px; background:#0d1b4b; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;">📞</div>
+            <div style="width:40px; height:40px; background:#0d1b4b; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">📞</div>
             <div>
-              <div style="font-size:12px; color:#c5a149; font-weight:700; letter-spacing:1px; margin-bottom:4px; font-family:'Pretendard',sans-serif;">전화 문의</div>
-              <a href="tel:07043247175" style="font-size:15px; color:#0d1b4b; font-weight:700; text-decoration:none; font-family:'Pretendard',sans-serif;">070-4324-7175</a>
+              <div style="font-size:13px; color:#c5a149; font-weight:700; letter-spacing:1px; margin-bottom:4px; font-family:'Pretendard',sans-serif;">전화 문의</div>
+              <a href="tel:07043247175" style="font-size:18px; color:#0d1b4b; font-weight:700; text-decoration:none; font-family:'Pretendard',sans-serif;">070-4324-7175</a>
             </div>
           </div>
         </div>
@@ -445,8 +434,27 @@
     </div>
   </div>
 
-  <!-- CTA -->
-  <div class="cta-bottom">
+  <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=25b433faf5d746c938cbcc7658f650b0"></script>
+  <script>
+    kakao.maps.load(function() {
+      var container = document.getElementById('kakaoMap');
+      var options = {
+        center: new kakao.maps.LatLng(37.4637, 126.8240),
+        level: 4
+      };
+      var map = new kakao.maps.Map(container, options);
+
+      var markerPosition = new kakao.maps.LatLng(37.4637, 126.8240);
+      var marker = new kakao.maps.Marker({ position: markerPosition });
+      marker.setMap(map);
+
+      var iwContent = '<div style="padding:10px 14px; font-size:13px; font-weight:700; color:#0d1b4b; font-family:sans-serif; white-space:nowrap;">📍 글답국어독서논술<br><span style=\"font-size:11px; color:#666; font-weight:400;\">양지로 208 지음프라자 5층</span></div>';
+      var infowindow = new kakao.maps.InfoWindow({ content: iwContent });
+      infowindow.open(map, marker);
+    });
+  </script>
+
+    <div class="cta-bottom">
     <h2>지금 바로 상담해보세요</h2>
     <p>수업 방식, 학년별 커리큘럼, 시간표 등<br>궁금한 것은 전화로 편하게 물어보세요</p>
     <a class="phone-big" href="tel:07043247175">☎ 070-4324-7175</a>
