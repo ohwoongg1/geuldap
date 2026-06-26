@@ -1,274 +1,451 @@
 <!DOCTYPE html>
-<html lang="ko" style="scroll-behavior: smooth;">
+<html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>글답국어독서논술 — 옥길동 초등 국어 전문</title>
-  <meta name="description" content="22년 공교육 경력의 국어 전문가가 초등 3~6학년의 탄탄한 국어 실력을 만듭니다.">
-  <meta name="naver-site-verification" content="374402ceccb8d30f4365dd91bef5938a90e8f9f9" />
-  <meta name="google-site-verification" content="DXKxF_k6fwjGMh5yg_b01l4se-65lT5iZjs62M2MOYU" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    body {
-      background: #FDFBF7;
-      font-family: 'Pretendard', 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      text-rendering: optimizeLegibility;
-      color: #1a1a2e;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>글답국어독서논술 — 옥길동 초등 국어 전문</title>
+<meta name="description" content="22년 공교육 경력의 국어 전문가가 운영하는 초등 국어·독서·논술 전문 학원. 몰입독서, 긴글쓰기, 자기주도 퇴고로 중학 국어를 준비합니다.">
+<meta name="google-site-verification" content="DXKxF_k6fwjGMh5yg_b01l4se-65lT5iZjs62M2MOYU" />
+<meta name="naver-site-verification" content="a53c4babe83b2be64b0e0dc03dfe88e70f5b6e46" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=25b433faf5d746c938cbcc7658f650b0&libraries=services"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+body {
+  font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+  background: #FDFBF7;
+  color: #1a1a2e;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
-    /* ===== 네비바 ===== */
-    .navbar {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-      background: rgba(13,27,75,0.97); backdrop-filter: blur(10px);
-      padding: 10px 40px;
-      display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid rgba(197,161,73,0.2);
-      transition: all 0.3s;
-    }
-    .navbar.scrolled { box-shadow: 0 2px 20px rgba(0,0,0,0.3); }
-    .navbar-logo { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-    .navbar-logo img { width: 36px; height: 36px; object-fit: contain; background: #fff; border-radius: 6px; padding: 1px; border: 1.5px solid #c5a149; }
-    .navbar-logo span { font-size: 15px; font-weight: 700; color: #fff; font-family: 'Noto Serif KR', serif; white-space: nowrap; }
-    .navbar-menu { display: flex; align-items: center; gap: 24px; }
-    .navbar-menu a { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.8); text-decoration: none; white-space: nowrap; transition: color 0.2s; }
-    .navbar-menu a:hover { color: #e8c96a; }
-    .navbar-phone { background: linear-gradient(135deg, #c5a149, #e8c96a); color: #0d1b4b; font-weight: 700; font-size: 13px; padding: 8px 18px; border-radius: 8px; text-decoration: none; white-space: nowrap; flex-shrink: 0; }
-    .navbar-hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 4px; }
-    .navbar-hamburger span { display: block; width: 22px; height: 2px; background: #fff; border-radius: 2px; }
-    .navbar-dropdown { display: none; position: fixed; top: 56px; left: 0; right: 0; z-index: 999; background: rgba(13,27,75,0.98); border-bottom: 1px solid rgba(197,161,73,0.2); flex-direction: column; padding: 8px 0; }
-    .navbar-dropdown.open { display: flex; }
-    .navbar-dropdown a { font-size: 15px; font-weight: 600; color: rgba(255,255,255,0.85); text-decoration: none; padding: 13px 24px; border-bottom: 1px solid rgba(255,255,255,0.06); }
-    .navbar-dropdown a:last-child { color: #e8c96a; border-bottom: none; }
+/* ===== NAV ===== */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+  background: #0d1b3e;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 32px;
+  height: 64px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+.nav-brand {
+  display: flex; align-items: center; gap: 10px;
+  text-decoration: none;
+}
+.nav-logo {
+  width: 36px; height: 36px;
+  background: white; border: 2px solid #c9a84c; border-radius: 8px;
+  padding: 3px; object-fit: contain;
+}
+.nav-title {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 15px; font-weight: 700;
+  color: #f5d87a; white-space: nowrap;
+}
+.nav-menu {
+  display: flex; align-items: center; gap: 4px;
+}
+.nav-menu a {
+  color: rgba(255,255,255,0.85); text-decoration: none;
+  font-size: 13px; font-weight: 500;
+  padding: 6px 12px; border-radius: 6px;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.nav-menu a:hover { background: rgba(255,255,255,0.12); color: #f5d87a; }
+.nav-phone {
+  background: #c9a84c; color: #0d1b3e !important;
+  font-weight: 700 !important; border-radius: 20px !important;
+  padding: 6px 16px !important;
+}
+.nav-phone:hover { background: #e8c55a !important; color: #0d1b3e !important; }
+.hamburger {
+  display: none; background: none; border: none;
+  color: white; font-size: 24px; cursor: pointer; padding: 4px;
+}
+.mobile-menu {
+  display: none; position: fixed; top: 64px; left: 0; right: 0;
+  background: #0d1b3e; z-index: 999;
+  padding: 12px 0; border-bottom: 2px solid #c9a84c;
+}
+.mobile-menu.open { display: block; }
+.mobile-menu a {
+  display: block; color: rgba(255,255,255,0.9);
+  text-decoration: none; font-size: 15px;
+  padding: 12px 32px; border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.mobile-menu a:last-child { border-bottom: none; color: #f5d87a; font-weight: 700; }
 
-    /* ===== 플로팅 버튼 ===== */
-    .float-call { position: fixed; bottom: 28px; right: 24px; z-index: 999; width: 58px; height: 58px; border-radius: 50%; background: linear-gradient(135deg, #c5a149, #e8c96a); display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 4px 20px rgba(197,161,73,0.5); text-decoration: none; animation: pulse 2s infinite; }
-    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(197,161,73,0.6); } 70% { box-shadow: 0 0 0 14px rgba(197,161,73,0); } 100% { box-shadow: 0 0 0 0 rgba(197,161,73,0); } }
+/* ===== HERO ===== */
+.hero {
+  background: linear-gradient(135deg, #0d1b3e 0%, #1a2f5e 60%, #162548 100%);
+  color: white;
+  padding: 120px 40px 80px;
+  text-align: center;
+  position: relative; overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: radial-gradient(circle at 20% 50%, rgba(201,168,76,0.08) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 20%, rgba(201,168,76,0.06) 0%, transparent 40%);
+}
+.hero-inner { position: relative; max-width: 800px; margin: 0 auto; }
+.hero-logo-wrap {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: white; border: 2px solid #c9a84c; border-radius: 14px;
+  padding: 6px; margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(201,168,76,0.3);
+}
+.hero-logo { width: 64px; height: 64px; object-fit: contain; }
+.hero-badge {
+  display: inline-block;
+  background: rgba(201,168,76,0.15); border: 1px solid rgba(201,168,76,0.4);
+  color: #f5d87a; font-size: 13px; font-weight: 500;
+  padding: 5px 14px; border-radius: 20px; margin-bottom: 24px;
+}
+.hero h1 {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 52px; font-weight: 700; line-height: 1.25;
+  color: white; margin-bottom: 12px;
+}
+.hero h1 span { color: #f5d87a; }
+.hero-sub {
+  font-size: 18px; color: rgba(255,255,255,0.8);
+  line-height: 1.7; margin-bottom: 36px;
+}
+.hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.btn-primary {
+  background: #c9a84c; color: #0d1b3e;
+  font-size: 17px; font-weight: 700;
+  padding: 14px 32px; border-radius: 50px;
+  text-decoration: none; transition: all 0.2s;
+  box-shadow: 0 4px 16px rgba(201,168,76,0.4);
+}
+.btn-primary:hover { background: #e8c55a; transform: translateY(-2px); }
+.btn-secondary {
+  background: rgba(255,255,255,0.1); color: white;
+  font-size: 17px; font-weight: 500;
+  padding: 14px 32px; border-radius: 50px;
+  text-decoration: none; border: 1px solid rgba(255,255,255,0.3);
+  transition: all 0.2s;
+}
+.btn-secondary:hover { background: rgba(255,255,255,0.18); }
 
-    .lp { max-width: 100%; padding-top: 62px; }
+/* ===== SECTIONS ===== */
+section { padding: 80px 40px; }
+.section-label {
+  text-align: center; font-size: 12px; font-weight: 700; letter-spacing: 3px;
+  color: #c9a84c; text-transform: uppercase; margin-bottom: 12px;
+}
+.section-title {
+  font-family: 'Noto Serif KR', serif;
+  text-align: center; font-size: 36px; font-weight: 700;
+  color: #0d1b3e; margin-bottom: 12px;
+}
+.section-desc {
+  text-align: center; font-size: 17px; color: #555;
+  margin-bottom: 52px; line-height: 1.7;
+}
+.inner { max-width: 1000px; margin: 0 auto; }
 
-    /* ===== 히어로 ===== */
-    .hero {
-      background: linear-gradient(160deg, #0d1b4b 0%, #1a2f6b 60%, #0d1b4b 100%);
-      padding: 60px calc(50% - 480px) 64px;
-      text-align: center; position: relative; overflow: hidden;
-    }
-    .hero::before { content: ''; position: absolute; top: -60px; left: 50%; transform: translateX(-50%); width: 360px; height: 360px; background: radial-gradient(circle, rgba(197,161,73,0.12) 0%, transparent 70%); pointer-events: none; }
-    .hero::after { content: ''; position: absolute; inset: 0; background-image: radial-gradient(circle at 20% 50%, rgba(197,161,73,0.06) 0%, transparent 50%), url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); pointer-events: none; }
-    .hero-logo { margin-bottom: 22px; display: flex; align-items: center; justify-content: center; gap: 16px; position: relative; z-index: 1; }
-    .hero-logo img { width: 52px; height: 52px; object-fit: contain; background: #fff; border-radius: 10px; padding: 0; border: 2px solid #c5a149; box-shadow: 0 4px 20px rgba(197,161,73,0.35); }
-    .hero-logo-text { text-align: left; }
-    .hero-logo-text .name { font-size: 26px; font-weight: 700; color: #fff; letter-spacing: -0.5px; line-height: 1.2; font-family: 'Noto Serif KR', serif; }
-    .hero-logo-text .sub { font-size: 13px; color: rgba(255,255,255,0.55); letter-spacing: 0.5px; }
-    .hero-badge { display: inline-block; background: rgba(197,161,73,0.18); color: #e8c96a; font-size: 12px; letter-spacing: 2px; padding: 5px 14px; border-radius: 20px; border: 1px solid rgba(197,161,73,0.35); margin-bottom: 18px; position: relative; z-index: 1; }
-    .hero h1 { font-size: 52px; font-weight: 700; color: #fff; line-height: 1.4; margin-bottom: 16px; letter-spacing: -0.5px; font-family: 'Noto Serif KR', serif; position: relative; z-index: 1; }
-    .hero h1 span { color: #e8c96a; }
-    .hero p { font-size: 20px; color: rgba(255,255,255,0.75); line-height: 1.8; margin-bottom: 32px; position: relative; z-index: 1; }
-    .hero-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; position: relative; z-index: 1; }
-    .btn-gold { background: linear-gradient(135deg, #c5a149, #e8c96a); color: #0d1b4b; font-weight: 700; font-size: 18px; padding: 16px 36px; border-radius: 10px; border: none; cursor: pointer; text-decoration: none; }
-    .btn-outline { background: transparent; color: #e8c96a; font-size: 17px; padding: 16px 28px; border-radius: 10px; border: 1px solid rgba(197,161,73,0.5); cursor: pointer; text-decoration: none; }
-    .gold-line { height: 2px; background: linear-gradient(90deg, transparent, #c5a149, transparent); }
+/* ===== WHY ===== */
+.why-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.why-card {
+  background: white; border-radius: 16px;
+  padding: 28px 24px;
+  border: 1px solid #ede8db;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  transition: all 0.25s;
+  opacity: 0; transform: translateY(24px);
+}
+.why-card.visible { opacity: 1; transform: translateY(0); }
+.why-card:hover { box-shadow: 0 8px 28px rgba(201,168,76,0.15); transform: translateY(-4px); }
+.why-card .icon { font-size: 36px; margin-bottom: 14px; }
+.why-card h3 {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 17px; font-weight: 700; color: #0d1b3e; margin-bottom: 10px;
+}
+.why-card p { font-size: 15px; color: #555; line-height: 1.7; }
 
-    /* ===== 섹션 공통 ===== */
-    .section { padding: 60px calc(50% - 480px); }
-    .section-label { font-size: 13px; letter-spacing: 3px; color: #c5a149; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; }
-    .section-title { font-size: 36px; font-weight: 700; color: #0d1b4b; line-height: 1.35; margin-bottom: 8px; font-family: 'Noto Serif KR', serif; }
-    .section-sub { font-size: 18px; color: #666; line-height: 1.7; margin-bottom: 32px; }
+/* ===== METHOD ===== */
+.method-sec { background: #0d1b3e; }
+.method-sec .section-title { color: white; }
+.method-sec .section-desc { color: rgba(255,255,255,0.65); }
+.steps { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+.step {
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(201,168,76,0.25);
+  border-radius: 16px; padding: 28px 22px; flex: 1; min-width: 160px; max-width: 180px;
+  text-align: center;
+  opacity: 0; transform: translateY(24px); transition: all 0.4s;
+}
+.step.visible { opacity: 1; transform: translateY(0); }
+.step-num {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: #c9a84c; color: #0d1b3e;
+  font-size: 18px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 14px;
+}
+.step h3 { font-family: 'Noto Serif KR', serif; font-size: 16px; font-weight: 700; color: #f5d87a; margin-bottom: 10px; }
+.step p { font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.6; }
 
-    /* ===== WHY ===== */
-    .why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .why-card { background: #F5F1E8; border: 1px solid #e8e0cc; border-radius: 12px; padding: 20px; }
-    .why-card .icon { font-size: 24px; margin-bottom: 10px; }
-    .why-card h3 { font-size: 18px; font-weight: 700; color: #0d1b4b; margin-bottom: 6px; font-family: 'Noto Serif KR', serif; }
-    .why-card p { font-size: 15px; color: #666; line-height: 1.65; }
-    .why-card.highlight { background: #0d1b4b; border-color: #0d1b4b; grid-column: 1/-1; }
-    .why-card.highlight h3 { color: #e8c96a; font-size: 20px; }
-    .why-card.highlight p { color: rgba(255,255,255,0.78); }
+/* ===== CURRICULUM ===== */
+.tab-btns { display: flex; gap: 8px; justify-content: center; margin-bottom: 36px; }
+.tab-btn {
+  padding: 10px 28px; border-radius: 50px; font-size: 15px; font-weight: 600;
+  cursor: pointer; border: 2px solid #0d1b3e;
+  background: white; color: #0d1b3e; transition: all 0.2s;
+}
+.tab-btn.active { background: #0d1b3e; color: #f5d87a; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+.cur-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.cur-card {
+  background: white; border-radius: 14px;
+  padding: 24px 22px; border: 1px solid #ede8db;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.cur-card h3 {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 16px; font-weight: 700; color: #0d1b3e;
+  margin-bottom: 14px; padding-bottom: 10px;
+  border-bottom: 2px solid #f0e8d0;
+}
+.cur-card ul { list-style: none; }
+.cur-card li {
+  font-size: 15px; color: #444; padding: 5px 0;
+  padding-left: 16px; position: relative; line-height: 1.6;
+}
+.cur-card li::before {
+  content: '▸'; position: absolute; left: 0; color: #c9a84c;
+}
 
-    /* ===== 5단계 ===== */
-    .steps { display: flex; flex-direction: column; }
-    .step { display: flex; gap: 18px; align-items: flex-start; padding: 18px 0; border-bottom: 1px solid #f0ebe0; }
-    .step:last-child { border-bottom: none; }
-    .step-num { min-width: 40px; height: 40px; background: #0d1b4b; color: #e8c96a; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; flex-shrink: 0; }
-    .step-info h3 { font-size: 20px; font-weight: 700; color: #0d1b4b; margin-bottom: 5px; font-family: 'Noto Serif KR', serif; }
-    .step-info p { font-size: 16px; color: #666; line-height: 1.6; }
+/* ===== STUDENT ===== */
+.student-sec { background: #F5F1E8; }
+.student-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
+.student-card {
+  background: white; border-radius: 16px; padding: 28px 24px;
+  border: 1px solid #ede8db;
+  opacity: 0; transform: translateY(24px); transition: all 0.4s;
+}
+.student-card.visible { opacity: 1; transform: translateY(0); }
+.student-meta { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.badge {
+  font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px;
+  background: #0d1b3e; color: #f5d87a;
+}
+.badge-book {
+  font-size: 12px; padding: 4px 10px; border-radius: 20px;
+  background: #f0e8d0; color: #7a6020;
+}
+.student-card h3 {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 16px; font-weight: 700; color: #0d1b3e; margin-bottom: 12px;
+}
+.quote {
+  font-size: 14px; color: #555; line-height: 1.8;
+  background: #FDFBF7; border-left: 3px solid #c9a84c;
+  padding: 12px 14px; border-radius: 0 8px 8px 0;
+  margin-bottom: 12px; font-style: italic;
+}
+.student-card .comment { font-size: 13px; color: #888; line-height: 1.7; }
 
-    /* ===== 커리큘럼 ===== */
-    .grade-tabs { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
-    .grade-tab { padding: 8px 18px; border-radius: 20px; font-size: 14px; font-weight: 600; border: 1.5px solid #ddd; color: #888; cursor: pointer; background: #fff; transition: all 0.2s; }
-    .grade-tab.active { background: #0d1b4b; color: #e8c96a; border-color: #0d1b4b; }
-    .curriculum-box { background: #F5F1E8; border: 1px solid #e8e0cc; border-radius: 14px; padding: 24px; }
-    .curriculum-box h3 { font-size: 16px; font-weight: 700; color: #0d1b4b; margin-bottom: 14px; font-family: 'Noto Serif KR', serif; }
-    .curr-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; font-size: 16px; color: #444; line-height: 1.55; }
-    .curr-dot { width: 7px; height: 7px; background: #c5a149; border-radius: 50%; margin-top: 7px; flex-shrink: 0; }
-    .class-type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px; }
-    .class-type { background: #FFFEF9; border: 1px solid #e8e0cc; border-radius: 10px; padding: 18px; }
-    .class-type .tag { font-size: 11px; font-weight: 700; color: #c5a149; letter-spacing: 1px; margin-bottom: 6px; }
-    .class-type h4 { font-size: 17px; font-weight: 700; color: #0d1b4b; margin-bottom: 5px; font-family: 'Noto Serif KR', serif; }
-    .class-type p { font-size: 14px; color: #777; line-height: 1.55; }
+/* ===== ABOUT ===== */
+.about-card {
+  background: white; border-radius: 20px;
+  padding: 40px; display: flex; gap: 36px; align-items: flex-start;
+  border: 1px solid #ede8db; box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+  max-width: 760px; margin: 0 auto;
+}
+.about-avatar {
+  width: 100px; flex-shrink: 0; text-align: center;
+}
+.about-icon {
+  width: 100px; height: 100px; border-radius: 50%;
+  background: linear-gradient(135deg, #0d1b3e, #2a4080);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px; margin-bottom: 10px;
+}
+.about-name { font-size: 14px; font-weight: 700; color: #0d1b3e; }
+.about-role { font-size: 12px; color: #888; }
+.about-body h3 {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 22px; font-weight: 700; color: #0d1b3e; margin-bottom: 8px;
+}
+.about-body .role-tag {
+  display: inline-block; background: #f0e8d0; color: #7a6020;
+  font-size: 13px; font-weight: 600; padding: 4px 12px;
+  border-radius: 20px; margin-bottom: 14px;
+}
+.about-body p { font-size: 15px; color: #555; line-height: 1.8; margin-bottom: 20px; }
+.about-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+.tag {
+  background: #0d1b3e; color: white;
+  font-size: 13px; padding: 5px 14px; border-radius: 20px;
+}
 
-    /* ===== 학생 글 ===== */
-    .sample-bg { background: #F5F1E8; }
-    .sample-card { background: #FFFEF9; border: 1px solid #e8e0cc; border-radius: 14px; padding: 24px; margin-bottom: 18px; }
-    .sample-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
-    .sample-grade-badge { background: #0d1b4b; color: #e8c96a; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 12px; white-space: nowrap; }
-    .sample-book { font-size: 13px; color: #999; }
-    .sample-title { font-size: 18px; font-weight: 700; color: #0d1b4b; margin-bottom: 12px; font-family: 'Noto Serif KR', serif; border-left: 3px solid #c5a149; padding-left: 12px; }
-    .sample-quote { font-size: 17px; color: #333; line-height: 1.95; background: #F5F1E8; border-radius: 10px; padding: 18px 20px; margin-bottom: 12px; font-family: 'Noto Serif KR', serif; }
-    .sample-quote .ellipsis { color: #bbb; font-size: 13px; display: block; margin: 6px 0; }
-    .sample-comment { font-size: 15px; color: #777; line-height: 1.65; padding-top: 12px; border-top: 1px dashed #e8e0cc; }
-    .sample-comment strong { color: #0d1b4b; }
+/* ===== MAP ===== */
+.map-sec { background: #0d1b3e; }
+.map-sec .section-title { color: white; }
+.map-sec .section-desc { color: rgba(255,255,255,0.65); }
+#kakao-map {
+  width: 100%; max-width: 760px; height: 340px;
+  border-radius: 16px; margin: 0 auto 28px;
+  display: block; border: 2px solid rgba(201,168,76,0.3);
+}
+.location-info {
+  max-width: 760px; margin: 0 auto;
+  display: flex; gap: 24px; justify-content: center;
+}
+.loc-item { color: rgba(255,255,255,0.9); font-size: 15px; line-height: 1.7; }
+.loc-item strong { color: #f5d87a; display: block; font-size: 13px; letter-spacing: 1px; margin-bottom: 4px; }
 
-    /* ===== 원장 ===== */
-    .teacher-card { background: #0d1b4b; border-radius: 16px; padding: 32px 28px; display: flex; gap: 24px; align-items: flex-start; }
-    .teacher-avatar { width: 68px; height: 68px; border-radius: 50%; background: linear-gradient(135deg, #c5a149, #e8c96a); display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; }
-    .teacher-info h3 { font-size: 22px; font-weight: 700; color: #fff; margin-bottom: 5px; font-family: 'Noto Serif KR', serif; }
-    .teacher-info .sub { font-size: 14px; color: #e8c96a; margin-bottom: 14px; font-weight: 600; }
-    .teacher-info p { font-size: 16px; color: rgba(255,255,255,0.75); line-height: 1.8; }
-    .career-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-    .career-tag { background: rgba(197,161,73,0.18); color: #e8c96a; font-size: 12px; padding: 4px 12px; border-radius: 14px; border: 1px solid rgba(197,161,73,0.3); }
+/* ===== CTA ===== */
+.cta-sec {
+  background: linear-gradient(135deg, #c9a84c, #e8c55a);
+  text-align: center; padding: 72px 40px;
+}
+.cta-sec h2 {
+  font-family: 'Noto Serif KR', serif;
+  font-size: 34px; font-weight: 700; color: #0d1b3e; margin-bottom: 12px;
+}
+.cta-sec p { font-size: 17px; color: rgba(13,27,62,0.75); margin-bottom: 32px; line-height: 1.7; }
+.cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.cta-btn-main {
+  background: #0d1b3e; color: white;
+  font-size: 18px; font-weight: 700;
+  padding: 16px 36px; border-radius: 50px;
+  text-decoration: none; transition: all 0.2s;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+.cta-btn-main:hover { transform: translateY(-2px); background: #162548; }
+.cta-btn-sub {
+  background: rgba(13,27,62,0.1); color: #0d1b3e;
+  font-size: 16px; font-weight: 600;
+  padding: 16px 36px; border-radius: 50px;
+  text-decoration: none; border: 2px solid rgba(13,27,62,0.3);
+  transition: all 0.2s;
+}
+.cta-btn-sub:hover { background: rgba(13,27,62,0.18); }
+.cta-info { margin-top: 20px; font-size: 14px; color: rgba(13,27,62,0.6); }
 
-    /* ===== 지도 ===== */
-    .map-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+/* ===== FOOTER ===== */
+footer {
+  background: #080f20; color: rgba(255,255,255,0.5);
+  text-align: center; padding: 28px 40px; font-size: 13px; line-height: 1.8;
+}
 
-    /* ===== CTA ===== */
-    .cta-bottom { background: linear-gradient(160deg, #0d1b4b, #1a2f6b); padding: 52px 32px; text-align: center; }
-    .cta-bottom h2 { font-size: 32px; font-weight: 700; color: #fff; margin-bottom: 10px; font-family: 'Noto Serif KR', serif; }
-    .cta-bottom p { font-size: 18px; color: rgba(255,255,255,0.65); margin-bottom: 28px; line-height: 1.75; }
-    .phone-big { font-size: 42px; font-weight: 700; color: #e8c96a; letter-spacing: 1px; margin-bottom: 20px; display: block; text-decoration: none; }
-    .cta-links { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+/* ===== FLOAT BTN ===== */
+.float-btn {
+  position: fixed; bottom: 28px; right: 24px; z-index: 999;
+  width: 58px; height: 58px; border-radius: 50%;
+  background: #c9a84c; color: #0d1b3e;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; text-decoration: none;
+  box-shadow: 0 6px 24px rgba(201,168,76,0.5);
+  animation: pulse 2.5s infinite;
+}
+@keyframes pulse {
+  0%,100% { box-shadow: 0 6px 24px rgba(201,168,76,0.5); }
+  50% { box-shadow: 0 6px 32px rgba(201,168,76,0.8), 0 0 0 8px rgba(201,168,76,0.15); }
+}
 
-    /* ===== 푸터 ===== */
-    .footer { background: #0a1233; padding: 24px 32px; text-align: center; }
-    .footer p { font-size: 14px; color: rgba(255,255,255,0.35); line-height: 1.75; }
+/* ===== MOBILE ===== */
+@media (max-width: 768px) {
+  nav { padding: 0 16px; }
+  .nav-title { font-size: 13px; }
+  .nav-logo { width: 28px; height: 28px; }
+  .nav-menu { display: none; }
+  .hamburger { display: block; }
 
-    /* ===== 스크롤 애니메이션 ===== */
-    .fade-up { opacity: 0; transform: translateY(30px); transition: opacity 0.6s ease, transform 0.6s ease; }
-    .fade-up.visible { opacity: 1; transform: translateY(0); }
+  .hero { padding: 90px 20px 60px; }
+  .hero h1 { font-size: 28px; }
+  .hero-sub { font-size: 15px; }
+  .hero-logo { width: 48px; height: 48px; }
 
-    /* ===== 모바일 ===== */
-    @media (max-width: 768px) {
-      .navbar { padding: 8px 14px; }
-      .navbar-menu { display: none; }
-      .navbar-hamburger { display: flex; }
-      .navbar-phone { display: none; }
-      .navbar-logo span { font-size: 13px; }
-      .navbar-logo img { width: 30px; height: 30px; }
-      .lp { padding-top: 56px; }
+  section { padding: 56px 20px; }
+  .section-title { font-size: 26px; }
+  .section-desc { font-size: 15px; }
 
-      .hero { padding: 28px 18px 36px; }
-      .hero h1 { font-size: 28px; }
-      .hero p { font-size: 15px; }
-      .hero-logo-text .name { font-size: 16px; }
-      .hero-logo-text .sub { font-size: 10px; }
-      .btn-gold { font-size: 15px; padding: 13px 24px; }
-      .btn-outline { font-size: 14px; padding: 13px 18px; }
+  .why-grid { grid-template-columns: 1fr; }
+  .steps { gap: 10px; }
+  .step { min-width: 140px; }
+  .cur-grid { grid-template-columns: 1fr; }
+  .student-grid { grid-template-columns: 1fr; }
 
-      .section { padding: 32px 18px; }
-      .section-title { font-size: 24px; }
-      .section-sub { font-size: 15px; }
+  .about-card { flex-direction: column; align-items: center; padding: 28px 20px; gap: 20px; }
+  .about-avatar { text-align: center; }
 
-      .why-grid { grid-template-columns: 1fr; }
-      .why-card.highlight { grid-column: 1; }
-      .why-card h3 { font-size: 16px; }
-      .why-card p { font-size: 14px; }
+  .location-info { flex-direction: column; gap: 12px; }
+  #kakao-map { height: 240px; }
 
-      .step-info h3 { font-size: 17px; }
-      .step-info p { font-size: 14px; }
-
-      .class-type-grid { grid-template-columns: 1fr; }
-      .curr-item { font-size: 14px; }
-
-      .sample-title { font-size: 16px; }
-      .sample-quote { font-size: 15px; line-height: 1.8; }
-      .sample-comment { font-size: 13px; }
-
-      .teacher-card { flex-direction: column; align-items: center; text-align: center; padding: 24px 18px; }
-      .teacher-info h3 { font-size: 18px; }
-      .teacher-info p { font-size: 14px; }
-      .career-tags { justify-content: center; }
-
-      .map-info-grid { grid-template-columns: 1fr; gap: 16px; }
-      #kakaoMap { height: 260px; }
-
-      .cta-bottom { padding: 36px 20px; }
-      .cta-bottom h2 { font-size: 22px; }
-      .cta-bottom p { font-size: 15px; }
-      .phone-big { font-size: 28px; }
-
-      .float-call { width: 50px; height: 50px; font-size: 20px; bottom: 18px; right: 14px; }
-    }
-  </style>
+  .cta-sec h2 { font-size: 24px; }
+  .cta-sec p { font-size: 15px; }
+  .cta-btn-main, .cta-btn-sub { font-size: 15px; padding: 14px 28px; }
+}
+</style>
 </head>
 <body>
 
-<!-- 네비바 -->
-<nav class="navbar" id="navbar">
-  <div class="navbar-logo">
-    <img src="logo.png" alt="글답 로고">
-    <span>글답국어독서논술</span>
-  </div>
-  <div class="navbar-menu">
-    <a href="#why">글답이 다른 이유</a>
+<!-- NAV -->
+<nav>
+  <a href="#top" class="nav-brand">
+    <img src="logo.png" class="nav-logo" alt="글답 로고">
+    <span class="nav-title">글답국어독서논술</span>
+  </a>
+  <div class="nav-menu">
+    <a href="#why">왜 글답인가</a>
     <a href="#method">수업 방법론</a>
     <a href="#curriculum">커리큘럼</a>
-    <a href="#student">학생 글</a>
+    <a href="#students">학생 글</a>
     <a href="#location">오시는 길</a>
+    <a href="tel:07043247175" class="nav-phone">📞 상담 전화</a>
   </div>
-  <a class="navbar-phone" href="tel:07043247175">📞 상담 전화</a>
-  <div class="navbar-hamburger" id="hamburger" onclick="toggleMenu()">
-    <span></span><span></span><span></span>
-  </div>
+  <button class="hamburger" onclick="toggleMenu()">☰</button>
 </nav>
-
-<!-- 모바일 드롭다운 -->
-<div class="navbar-dropdown" id="dropdown">
+<div class="mobile-menu" id="mobileMenu">
   <a href="#why" onclick="closeMenu()">글답이 다른 이유</a>
   <a href="#method" onclick="closeMenu()">수업 방법론</a>
   <a href="#curriculum" onclick="closeMenu()">커리큘럼</a>
-  <a href="#student" onclick="closeMenu()">학생 글</a>
+  <a href="#students" onclick="closeMenu()">학생 글</a>
   <a href="#location" onclick="closeMenu()">오시는 길</a>
-  <a href="tel:07043247175" onclick="closeMenu()">📞 070-4324-7175</a>
+  <a href="tel:07043247175" onclick="closeMenu()">📞 070-4324-7175 전화 상담</a>
 </div>
 
-<!-- 플로팅 전화 버튼 -->
-<a class="float-call" href="tel:07043247175">📞</a>
-
-<div class="lp">
-
-  <!-- 히어로 -->
-  <div class="hero">
-    <div class="hero-logo">
-      <img src="logo.png" alt="글답국어독서논술 로고">
-      <div class="hero-logo-text">
-        <div class="name">글답국어독서논술</div>
-        <div class="sub">geuldap Reading &amp; Essay Academy</div>
-      </div>
+<!-- HERO -->
+<div id="top">
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-logo-wrap">
+      <img src="logo.png" class="hero-logo" alt="글답 로고">
     </div>
     <div class="hero-badge">✦ 옥길동 · 초등 국어 전문</div>
     <h1>읽고, 쓰고, 생각하는 힘<br><span>평생 흔들리지 않습니다</span></h1>
-    <p>22년 공교육 경력의 국어 전문가가<br>초등 3~6학년의 탄탄한 국어 실력을 만듭니다</p>
-    <div class="hero-cta">
-      <a class="btn-gold" href="tel:07043247175">📞 상담 전화하기</a>
-      <a class="btn-outline" href="https://blog.naver.com/guldap-edu" target="_blank">네이버 블로그 보기</a>
+    <p class="hero-sub">22년 공교육 경력의 국어 전문가가<br>초등 3~6학년의 탄탄한 국어 실력을 만듭니다</p>
+    <div class="hero-btns">
+      <a href="tel:07043247175" class="btn-primary">📞 상담 전화하기</a>
+      <a href="https://blog.naver.com/guldap-edu" target="_blank" class="btn-secondary">네이버 블로그 보기</a>
     </div>
   </div>
+</section>
+</div>
 
-  <div class="gold-line"></div>
-
-  <!-- WHY -->
-  <div class="section fade-up">
-    <div id="why" class="section-label">WHY GEULDAP</div>
-    <div class="section-title">글답이 다른 이유</div>
-    <div class="section-sub">단순 문제풀이가 아닌, 평생 쓰이는 언어 감각을 키웁니다</div>
+<!-- WHY -->
+<section id="why">
+  <div class="inner">
+    <div class="section-label">WHY GEULDAP</div>
+    <h2 class="section-title">글답이 다른 이유</h2>
+    <p class="section-desc">단순 문제풀이가 아닌, 평생 쓰이는 언어 감각을 키웁니다</p>
     <div class="why-grid">
-      <div class="why-card highlight">
+      <div class="why-card">
         <div class="icon">🎓</div>
         <h3>중학교 국어 교사 22년 경력</h3>
         <p>중학교 교과 흐름을 꿰뚫는 원장이 직접 설계한 커리큘럼. 초등 때 갖춰야 할 것이 무엇인지 정확히 압니다.</p>
@@ -284,14 +461,14 @@
         <p>직접 고쳐쓰며 글을 완성하는 자기주도 습관을 만듭니다.</p>
       </div>
       <div class="why-card">
-        <div class="icon">✏️</div>
-        <h3>A4 한 장 이상 긴글쓰기</h3>
-        <p>짧은 문장 나열이 아닌, 처음부터 끝까지 완결된 긴 글을 씁니다. 중학 서술형·논술의 핵심 기초입니다.</p>
-      </div>
-      <div class="why-card">
         <div class="icon">🔤</div>
         <h3>맞춤법·어휘 체계 지도</h3>
         <p>틀리기 쉬운 표현을 체계적으로 교정합니다.</p>
+      </div>
+      <div class="why-card">
+        <div class="icon">✏️</div>
+        <h3>A4 한 장 이상 긴글쓰기</h3>
+        <p>짧은 문장 나열이 아닌, 처음부터 끝까지 완결된 긴 글을 씁니다. 중학 서술형·논술의 핵심 기초입니다.</p>
       </div>
       <div class="why-card">
         <div class="icon">🏫</div>
@@ -300,232 +477,265 @@
       </div>
     </div>
   </div>
+</section>
 
-  <div class="gold-line"></div>
-
-  <!-- 5단계 -->
-  <div class="section fade-up">
-    <div id="method" class="section-label">METHODOLOGY</div>
-    <div class="section-title">글답 5단계 수업 방법론</div>
-    <div class="section-sub">모든 수업은 이 다섯 단계로 설계됩니다</div>
+<!-- METHOD -->
+<section id="method" class="method-sec">
+  <div class="inner">
+    <div class="section-label" style="color:#c9a84c;">METHODOLOGY</div>
+    <h2 class="section-title">글답 5단계 수업 방법론</h2>
+    <p class="section-desc">모든 수업은 이 다섯 단계로 설계됩니다</p>
     <div class="steps">
-      <div class="step"><div class="step-num">1</div><div class="step-info"><h3>몰입 독서</h3><p>40분간 방해 없이 깊게 읽습니다. 읽기의 근력이 생깁니다.</p></div></div>
-      <div class="step"><div class="step-num">2</div><div class="step-info"><h3>내용 이해 확인</h3><p>읽은 내용을 구조적으로 파악하고 핵심을 정리합니다.</p></div></div>
-      <div class="step"><div class="step-num">3</div><div class="step-info"><h3>생각 글쓰기</h3><p>자신의 언어로 생각을 정리하고 문장으로 표현합니다.</p></div></div>
-      <div class="step"><div class="step-num">4</div><div class="step-info"><h3>스스로 고쳐쓰기</h3><p>직접 글을 검토하고 수정합니다. 스스로 완성하는 훈련입니다.</p></div></div>
-      <div class="step"><div class="step-num">5</div><div class="step-info"><h3>맞춤법·어휘 정리</h3><p>매 수업 마무리에 틀린 표현과 어휘를 체계적으로 교정합니다.</p></div></div>
-    </div>
-  </div>
-
-  <div class="gold-line"></div>
-
-  <!-- 커리큘럼 -->
-  <div class="section fade-up">
-    <div id="curriculum" class="section-label">CURRICULUM</div>
-    <div class="section-title">학년별 커리큘럼</div>
-    <div class="section-sub">초등 3학년부터 6학년까지, 단계적으로 실력을 쌓습니다</div>
-    <div class="grade-tabs">
-      <div class="grade-tab active" onclick="switchCurr(0,this)">초등 3~4학년</div>
-      <div class="grade-tab" onclick="switchCurr(1,this)">초등 5~6학년</div>
-    </div>
-    <div class="curriculum-box" id="currBox">
-      <h3>📚 초등 3~4학년 — 기초 다지기</h3>
-      <div class="curr-item"><div class="curr-dot"></div>소리 내어 읽기 → 묵독으로 전환 훈련</div>
-      <div class="curr-item"><div class="curr-dot"></div>짧은 문단 쓰기 / 문장 구조 이해</div>
-      <div class="curr-item"><div class="curr-dot"></div>자주 틀리는 맞춤법 집중 교정</div>
-      <div class="curr-item"><div class="curr-dot"></div>독서 일지 작성 습관 형성</div>
-      <div class="curr-item"><div class="curr-dot"></div>어휘력 확장 — 반의어·유의어·속담</div>
-    </div>
-    <div class="class-type-grid">
-      <div class="class-type">
-        <div class="tag">주중 수업</div>
-        <h4>독서·글쓰기·논술 통합</h4>
-        <p>읽기-쓰기-고치기 3단계 완성 수업</p>
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>몰입 독서</h3>
+        <p>40분간 방해 없이 깊게 읽습니다. 읽기의 근력이 생깁니다.</p>
       </div>
-      <div class="class-type">
-        <div class="tag">토요 수업</div>
-        <h4>창의 글쓰기 심화</h4>
-        <p>서울대 국문과 · 서강대 경영학과 강사의 테마 글쓰기 수업</p>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>내용 이해 확인</h3>
+        <p>읽은 내용을 구조적으로 파악하고 핵심을 정리합니다.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>생각 글쓰기</h3>
+        <p>자신의 언어로 생각을 정리하고 문장으로 표현합니다.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <h3>스스로 고쳐쓰기</h3>
+        <p>직접 글을 검토하고 수정합니다. 스스로 완성하는 훈련입니다.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <h3>맞춤법·어휘 정리</h3>
+        <p>매 수업 마무리에 틀린 표현과 어휘를 체계적으로 교정합니다.</p>
       </div>
     </div>
   </div>
+</section>
 
-  <div class="gold-line"></div>
-
-  <!-- 학생 글 -->
-  <div class="section sample-bg fade-up">
-    <div id="student" class="section-label">STUDENT WORK</div>
-    <div class="section-title">학생 글 사례</div>
-    <div class="section-sub">아이들이 글답에서 직접 쓴 글입니다. 선생님이 대신 써주지 않습니다.</div>
-
-    <div class="sample-card">
-      <div class="sample-header">
-        <span class="sample-grade-badge">초등 5학년</span>
-        <span class="sample-book">장영희 수필 〈괜찮아〉</span>
-      </div>
-      <div class="sample-title">제목: 나랑 친구할래?</div>
-      <div class="sample-quote">
-        "나는 항상 이 말을 당연하게 여겨왔다. 하지만 나는 작년에 이 말이 나에게 무척 소중한 말이라는 것을 깨달았다.
-        <span class="ellipsis">(...)</span>
-        나는 이 말이 누군가에게 힘이 되고, 희망이 되는 이 말을 해준다는 것 자체가 기쁘고 행복하다. 사소한 것들이 나에게는 의미가 있는 것이다."
-      </div>
-      <div class="sample-comment"><strong>→ 수필을 읽고 자신의 경험으로 연결한 글입니다.</strong> 단순 줄거리 요약이 아닌, 책 속 이야기가 아이 자신의 삶과 만나는 순간을 만들어주는 것이 글답 수업의 방식입니다. 학부모님께서 "우리 아이가 이런 글을 썼다고요?"라며 놀라셨습니다.</div>
+<!-- CURRICULUM -->
+<section id="curriculum">
+  <div class="inner">
+    <div class="section-label">CURRICULUM</div>
+    <h2 class="section-title">학년별 커리큘럼</h2>
+    <p class="section-desc">초등 3학년부터 6학년까지, 단계적으로 실력을 쌓습니다</p>
+    <div class="tab-btns">
+      <button class="tab-btn active" onclick="showTab('low')">초등 3~4학년</button>
+      <button class="tab-btn" onclick="showTab('high')">초등 5~6학년</button>
     </div>
-
-    <div class="sample-card">
-      <div class="sample-header">
-        <span class="sample-grade-badge">초등 5학년</span>
-        <span class="sample-book">토요 주제글쓰기 · 내가 다른 사람이 된다면</span>
+    <div id="tab-low" class="tab-pane active">
+      <div class="cur-grid">
+        <div class="cur-card">
+          <h3>📚 초등 3~4학년 — 기초 다지기</h3>
+          <ul>
+            <li>소리 내어 읽기 → 묵독으로 전환 훈련</li>
+            <li>짧은 문단 쓰기 / 문장 구조 이해</li>
+            <li>자주 틀리는 맞춤법 집중 교정</li>
+            <li>독서 일지 작성 습관 형성</li>
+            <li>어휘력 확장 — 반의어·유의어·속담</li>
+          </ul>
+        </div>
+        <div class="cur-card">
+          <h3>🗓 주중 수업</h3>
+          <ul>
+            <li>독서·글쓰기·논술 통합</li>
+            <li>읽기-쓰기-고치기 3단계 완성 수업</li>
+          </ul>
+        </div>
+        <div class="cur-card">
+          <h3>📅 토요 수업</h3>
+          <ul>
+            <li>창의 글쓰기 심화</li>
+            <li>서울대 국문과 · 서강대 경영학과 강사의 테마 글쓰기 수업</li>
+          </ul>
+        </div>
       </div>
-      <div class="sample-title">제목: 내가 만약 일론 머스크가 된다면</div>
-      <div class="sample-quote">
-        "그가 가진 가장 큰 장점은 여러 사업(테슬라, 스타링크)들이 있어서 돈도 안정적으로 벌 수 있으며 세상에서 많이 유명한 사람이다.
-        <span class="ellipsis">(...)</span>
-        두 번째로 좋은 점은 살아가는 데 제약이 거의 없기 때문이다. 예를 들면: 돈이 부족해? 조금만 기다려봐. 사고 싶은 게 있어? 그냥 사!"
-      </div>
-      <div class="sample-comment"><strong>→ 위트 있는 표현 속에 주장-이유-예시 구조가 완벽하게 담겨 있습니다.</strong> 논리력과 유머 감각이 함께 자라는 것이 글답 글쓰기의 특징입니다.</div>
     </div>
-
-    <div class="sample-card">
-      <div class="sample-header">
-        <span class="sample-grade-badge">초등 4학년</span>
-        <span class="sample-book">《잘못 뽑은 반장》</span>
+    <div id="tab-high" class="tab-pane">
+      <div class="cur-grid">
+        <div class="cur-card">
+          <h3>📚 초등 5~6학년 — 심화 완성</h3>
+          <ul>
+            <li>논리적 독후 글쓰기 (주장-근거-예시)</li>
+            <li>A4 한 장 이상 긴글쓰기 완성</li>
+            <li>중학 서술형·논술 선행 대비</li>
+            <li>자기주도 글 고쳐쓰기 심화</li>
+            <li>어휘·한자어·관용 표현 심화</li>
+          </ul>
+        </div>
+        <div class="cur-card">
+          <h3>🗓 주중 수업</h3>
+          <ul>
+            <li>독서 토론 + 논술 글쓰기 통합</li>
+            <li>중등 내신 서술형 문항 대비</li>
+            <li>읽기-분석-쓰기-고치기 4단계</li>
+          </ul>
+        </div>
+        <div class="cur-card">
+          <h3>📅 토요 수업</h3>
+          <ul>
+            <li>심화 주제 논술 글쓰기</li>
+            <li>서울대 국문과 · 서강대 경영학과 강사의 테마 글쓰기 수업</li>
+          </ul>
+        </div>
       </div>
-      <div class="sample-title">제목: 로운이의 변화</div>
-      <div class="sample-quote">
-        "로운이처럼 처음에는 부족해도 봉사를 잘 하고 반장으로서 책임감을 가지면 좋겠다는 이야기이다.
-        <span class="ellipsis">(...)</span>
-        좋은 리더는 성실한 사람이다. 나도 학급과 사회에서 더 차분하고 성실하고 싶다. '지금부터 노력하자!'"
-      </div>
-      <div class="sample-comment"><strong>→ 독후활동지 10문항 → 글쓰기 개요 → 완성 독후감의 3단계 과정을 거친 글입니다.</strong> 책 읽기가 삶의 다짐으로 연결되는 것, 이것이 글답이 추구하는 독서의 방향입니다.</div>
     </div>
   </div>
+</section>
 
-  <div class="gold-line"></div>
+<!-- STUDENTS -->
+<section id="students" class="student-sec">
+  <div class="inner">
+    <div class="section-label">STUDENT WORK</div>
+    <h2 class="section-title">학생 글 사례</h2>
+    <p class="section-desc">아이들이 글답에서 직접 쓴 글입니다. 선생님이 대신 써주지 않습니다.</p>
+    <div class="student-grid">
+      <div class="student-card">
+        <div class="student-meta">
+          <span class="badge">초등 5학년</span>
+          <span class="badge-book">장영희 수필 〈괜찮아〉</span>
+        </div>
+        <h3>나랑 친구할래?</h3>
+        <div class="quote">"나는 항상 이 말을 당연하게 여겨왔다. 하지만 나는 작년에 이 말이 나에게 무척 소중한 말이라는 것을 깨달았다. (...) 나는 이 말이 누군가에게 힘이 되고, 희망이 되는 이 말을 해준다는 것 자체가 기쁘고 행복하다."</div>
+        <p class="comment">수필을 읽고 자신의 경험으로 연결한 글입니다. 단순 줄거리 요약이 아닌, 책 속 이야기가 아이 자신의 삶과 만나는 순간을 만들어주는 것이 글답 수업의 방식입니다.</p>
+      </div>
+      <div class="student-card">
+        <div class="student-meta">
+          <span class="badge">초등 5학년</span>
+          <span class="badge-book">토요 주제글쓰기</span>
+        </div>
+        <h3>내가 만약 일론 머스크가 된다면</h3>
+        <div class="quote">"그가 가진 가장 큰 장점은 여러 사업들이 있어서 돈도 안정적으로 벌 수 있으며 세상에서 많이 유명한 사람이다. (...) 두 번째로 좋은 점은 살아가는 데 제약이 거의 없기 때문이다. 사고 싶은 게 있어? 그냥 사!"</div>
+        <p class="comment">위트 있는 표현 속에 주장-이유-예시 구조가 완벽하게 담겨 있습니다. 논리력과 유머 감각이 함께 자라는 것이 글답 글쓰기의 특징입니다.</p>
+      </div>
+      <div class="student-card">
+        <div class="student-meta">
+          <span class="badge">초등 4학년</span>
+          <span class="badge-book">《잘못 뽑은 반장》</span>
+        </div>
+        <h3>로운이의 변화</h3>
+        <div class="quote">"로운이처럼 처음에는 부족해도 봉사를 잘 하고 반장으로서 책임감을 가지면 좋겠다는 이야기이다. (...) 좋은 리더는 성실한 사람이다. '지금부터 노력하자!'"</div>
+        <p class="comment">독후활동지 10문항 → 글쓰기 개요 → 완성 독후감의 3단계 과정을 거친 글입니다. 책 읽기가 삶의 다짐으로 연결되는 것, 이것이 글답이 추구하는 독서의 방향입니다.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
-  <!-- 원장 소개 -->
-  <div class="section fade-up">
+<!-- ABOUT -->
+<section id="about">
+  <div class="inner">
     <div class="section-label">ABOUT</div>
-    <div class="section-title">원장 소개</div>
-    <div class="section-sub" style="margin-bottom:24px">22년의 공교육 경험이 글답의 기반입니다</div>
-    <div class="teacher-card">
-      <div class="teacher-avatar">📝</div>
-      <div class="teacher-info">
-        <h3>글답국어 원장</h3>
-        <div class="sub">중등 1급 정교사 · 국어교육 전공</div>
+    <h2 class="section-title">원장 소개</h2>
+    <p class="section-desc">22년의 공교육 경험이 글답의 기반입니다</p>
+    <div class="about-card">
+      <div class="about-avatar">
+        <div class="about-icon">📝</div>
+        <div class="about-name">글답국어 원장</div>
+        <div class="about-role">국어교육 전공</div>
+      </div>
+      <div class="about-body">
+        <h3>중학교 국어 교사 22년 경력</h3>
+        <span class="role-tag">중등 1급 정교사 · 국어교육 전공</span>
         <p>22년간 중학교 국어 교사로 많은 학생들을 가르치며, 초등에서 무엇이 준비되어야 중학 국어를 잘할 수 있는지 직접 확인했습니다. 그 경험이 글답의 커리큘럼이 되었습니다.</p>
-        <div class="career-tags">
-          <span class="career-tag">공교육 22년</span>
-          <span class="career-tag">명예퇴직</span>
-          <span class="career-tag">논술 전문</span>
-          <span class="career-tag">독서교육</span>
+        <div class="about-tags">
+          <span class="tag">공교육 22년</span>
+          <span class="tag">명예퇴직</span>
+          <span class="tag">논술 전문</span>
+          <span class="tag">독서교육</span>
         </div>
       </div>
     </div>
   </div>
+</section>
 
-  <div class="gold-line"></div>
-
-  <!-- 오시는 길 -->
-  <div class="section fade-up">
-    <div id="location" class="section-label">LOCATION</div>
-    <div class="section-title">오시는 길</div>
-    <div class="section-sub">부천시 소사구 지음프라자 5층에 위치한 글답국어독서논술입니다</div>
-    <div style="border:1px solid #e8e0cc; border-radius:16px; overflow:hidden;">
-      <div id="kakaoMap" style="width:100%; height:380px;"></div>
-      <div style="padding:24px 28px; background:#F5F1E8;">
-        <div class="map-info-grid">
-          <div style="display:flex; gap:14px; align-items:flex-start;">
-            <div style="width:42px; height:42px; background:#0d1b4b; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">🏫</div>
-            <div>
-              <div style="font-size:13px; color:#c5a149; font-weight:700; letter-spacing:1px; margin-bottom:6px;">학원 주소</div>
-              <div style="font-size:16px; color:#1a1a2e; font-weight:600; line-height:1.7;">경기 부천시 소사구 양지로 208<br>5층 506호<br><span style="font-size:13px; color:#888; font-weight:400;">(지음프라자 5층)</span></div>
-            </div>
-          </div>
-          <div style="display:flex; gap:14px; align-items:flex-start;">
-            <div style="width:42px; height:42px; background:#0d1b4b; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">📞</div>
-            <div>
-              <div style="font-size:13px; color:#c5a149; font-weight:700; letter-spacing:1px; margin-bottom:6px;">전화 문의</div>
-              <a href="tel:07043247175" style="font-size:20px; color:#0d1b4b; font-weight:700; text-decoration:none;">070-4324-7175</a>
-            </div>
-          </div>
-        </div>
+<!-- MAP -->
+<section id="location" class="map-sec">
+  <div class="inner">
+    <div class="section-label" style="color:#c9a84c;">LOCATION</div>
+    <h2 class="section-title">오시는 길</h2>
+    <p class="section-desc">부천시 소사구 지음프라자 5층에 위치한 글답국어독서논술입니다</p>
+    <div id="kakao-map"></div>
+    <div class="location-info">
+      <div class="loc-item">
+        <strong>🏫 학원 주소</strong>
+        경기 부천시 소사구 양지로 208<br>5층 506호 (지음프라자 5층)
+      </div>
+      <div class="loc-item">
+        <strong>📞 전화 문의</strong>
+        <a href="tel:07043247175" style="color:white;font-size:20px;font-weight:700;text-decoration:none;">070-4324-7175</a>
       </div>
     </div>
   </div>
+</section>
 
-  <!-- CTA -->
-  <div class="cta-bottom">
+<!-- CTA -->
+<section class="cta-sec">
+  <div class="inner">
     <h2>지금 바로 상담해보세요</h2>
     <p>수업 방식, 학년별 커리큘럼, 시간표 등<br>궁금한 것은 전화로 편하게 물어보세요</p>
-    <a class="phone-big" href="tel:07043247175">☎ 070-4324-7175</a>
-    <div class="cta-links">
-      <a class="btn-gold" href="tel:07043247175">전화 상담</a>
-      <a class="btn-outline" href="https://blog.naver.com/guldap-edu" target="_blank">네이버 블로그 →</a>
+    <div class="cta-btns">
+      <a href="tel:07043247175" class="cta-btn-main">☎ 070-4324-7175 전화 상담</a>
+      <a href="https://blog.naver.com/guldap-edu" target="_blank" class="cta-btn-sub">네이버 블로그 →</a>
     </div>
+    <p class="cta-info">글답국어독서논술학원 · 옥길동 · 070-4324-7175 · geuldap.co.kr</p>
   </div>
+</section>
 
-  <!-- 푸터 -->
-  <div class="footer">
-    <p>글답국어독서논술학원 · 옥길동<br>070-4324-7175 · geuldap.co.kr</p>
-  </div>
+<footer>
+  글답국어독서논술학원 | 경기 부천시 소사구 양지로 208 5층 506호<br>
+  070-4324-7175 | geuldap.co.kr
+</footer>
 
-</div>
+<a href="tel:07043247175" class="float-btn" title="전화 상담">📞</a>
 
-<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=25b433faf5d746c938cbcc7658f650b0&libraries=services"></script>
 <script>
-  // 햄버거 메뉴
-  function toggleMenu() {
-    document.getElementById('dropdown').classList.toggle('open');
-  }
-  function closeMenu() {
-    document.getElementById('dropdown').classList.remove('open');
-  }
-
-  // 네비 스크롤
-  window.addEventListener('scroll', () => {
-    const navbar = document.getElementById('navbar');
-    if (window.scrollY > 50) navbar.classList.add('scrolled');
-    else navbar.classList.remove('scrolled');
+function toggleMenu() {
+  document.getElementById('mobileMenu').classList.toggle('open');
+}
+function closeMenu() {
+  document.getElementById('mobileMenu').classList.remove('open');
+}
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const id = a.getAttribute('href').slice(1);
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
+});
 
-  // 스크롤 애니메이션
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
-  }, { threshold: 0.1 });
-  document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+// Scroll animation
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.12 });
+document.querySelectorAll('.why-card, .step, .student-card').forEach(el => obs.observe(el));
 
-  // 커리큘럼 탭
-  const currData = {
-    0: { title: '📚 초등 3~4학년 — 기초 다지기', items: ['소리 내어 읽기 → 묵독으로 전환 훈련','짧은 문단 쓰기 / 문장 구조 이해','자주 틀리는 맞춤법 집중 교정','독서 일지 작성 습관 형성','어휘력 확장 — 반의어·유의어·속담'] },
-    1: { title: '📚 초등 5~6학년 — 중학 대비 심화', items: ['장문 독해 및 핵심 주제 파악','논술형 글쓰기 — 주장·근거·예시 구조','중학 교과 어휘·문법 선행 학습','스스로 고쳐쓰기 심화 — 논리적 일관성 점검','서술형 답안 작성 훈련'] }
-  };
-  function switchCurr(idx, el) {
-    document.querySelectorAll('.grade-tab').forEach(t => t.classList.remove('active'));
-    el.classList.add('active');
-    const d = currData[idx];
-    const box = document.getElementById('currBox');
-    box.innerHTML = '<h3>' + d.title + '</h3>' + d.items.map(t => '<div class="curr-item"><div class="curr-dot"></div>' + t + '</div>').join('');
-  }
+// Tab
+function showTab(id) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
 
-  // 카카오맵
-  kakao.maps.load(function() {
-    var container = document.getElementById('kakaoMap');
-    var options = { center: new kakao.maps.LatLng(37.4637, 126.8240), level: 4 };
-    var map = new kakao.maps.Map(container, options);
-    var geocoder = new kakao.maps.services.Geocoder();
-    geocoder.addressSearch('경기 부천시 소사구 양지로 208', function(result, status) {
-      if (status === kakao.maps.services.Status.OK) {
-        var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-        map.setCenter(coords);
-        var marker = new kakao.maps.Marker({ position: coords });
-        marker.setMap(map);
-        var iwContent = '<div style="padding:10px 14px; font-size:13px; font-weight:700; color:#0d1b4b; white-space:nowrap;">📍 글답국어독서논술<br><span style="font-size:11px; color:#666; font-weight:400;">양지로 208 지음프라자 5층</span></div>';
-        var infowindow = new kakao.maps.InfoWindow({ content: iwContent });
-        infowindow.open(map, marker);
-      }
+// Kakao Map
+window.addEventListener('load', function() {
+  if (typeof kakao === 'undefined') return;
+  var geocoder = new kakao.maps.services.Geocoder();
+  geocoder.addressSearch('경기 부천시 소사구 양지로 208', function(result, status) {
+    if (status !== kakao.maps.services.Status.OK) return;
+    var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+    var container = document.getElementById('kakao-map');
+    var map = new kakao.maps.Map(container, { center: coords, level: 4 });
+    var marker = new kakao.maps.Marker({ map: map, position: coords });
+    var infowindow = new kakao.maps.InfoWindow({
+      content: '<div style="padding:8px 12px;font-size:13px;font-weight:700;color:#0d1b3e;">📍 글답국어독서논술<br><small style="font-weight:400;color:#666;">지음프라자 5층 506호</small></div>'
     });
+    infowindow.open(map, marker);
   });
+});
 </script>
 </body>
 </html>
