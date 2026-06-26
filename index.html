@@ -9,635 +9,305 @@
 <meta name="naver-site-verification" content="a53c4babe83b2be64b0e0dc03dfe88e70f5b6e46" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=25b433faf5d746c938cbcc7658f650b0&libraries=services"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Pretendard:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="//dapi.kakao.com/v2/maps/sdk.js?appkey=25b433faf5d746c938cbcc7658f650b0&libraries=services"></script>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; scroll-padding-top: 72px; }
-body {
-  font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
-  background: #FDFBF7;
-  color: #1a1a2e;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:68px}
+body{font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;background:#FDFBF7;color:#1a1a2e;-webkit-font-smoothing:antialiased}
 
-/* ===== NAV ===== */
-nav {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-  background: #0d1b3e;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 32px;
-  height: 64px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
-}
-.nav-brand {
-  display: flex; align-items: center; gap: 10px;
-  text-decoration: none;
-}
-.nav-logo {
-  width: 44px; height: 44px;
-  object-fit: contain;
-  filter: drop-shadow(0 0 4px rgba(255,255,255,0.3));
-}
-.nav-title {
-  font-family: 'Noto Serif KR', serif;
-  font-size: 15px; font-weight: 700;
-  color: #f5d87a; white-space: nowrap;
-}
-.nav-menu {
-  display: flex; align-items: center; gap: 4px;
-}
-.nav-menu a {
-  color: rgba(255,255,255,0.85); text-decoration: none;
-  font-size: 13px; font-weight: 500;
-  padding: 6px 12px; border-radius: 6px;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-.nav-menu a:hover { background: rgba(255,255,255,0.12); color: #f5d87a; }
-.nav-phone {
-  background: #c9a84c; color: #0d1b3e !important;
-  font-weight: 700 !important; border-radius: 20px !important;
-  padding: 6px 16px !important;
-}
-.nav-phone:hover { background: #e8c55a !important; color: #0d1b3e !important; }
-.hamburger {
-  display: none; background: none; border: none;
-  color: white; font-size: 24px; cursor: pointer; padding: 4px;
-}
-.mobile-menu {
-  display: none; position: fixed; top: 64px; left: 0; right: 0;
-  background: #0d1b3e; z-index: 999;
-  padding: 12px 0; border-bottom: 2px solid #c9a84c;
-}
-.mobile-menu.open { display: block; }
-.mobile-menu a {
-  display: block; color: rgba(255,255,255,0.9);
-  text-decoration: none; font-size: 15px;
-  padding: 12px 32px; border-bottom: 1px solid rgba(255,255,255,0.08);
-}
-.mobile-menu a:last-child { border-bottom: none; color: #f5d87a; font-weight: 700; }
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;background:#0d1b3e;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;box-shadow:0 2px 12px rgba(0,0,0,.3)}
+.nav-left{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-logo{width:38px;height:38px;object-fit:contain;filter:drop-shadow(0 1px 4px rgba(255,255,255,.2))}
+.nav-name{font-family:'Noto Serif KR',serif;font-size:15px;font-weight:700;color:#f5d87a;white-space:nowrap}
+.nav-links{display:flex;align-items:center;gap:2px}
+.nav-links a{color:rgba(255,255,255,.82);text-decoration:none;font-size:13px;font-weight:500;padding:6px 11px;border-radius:6px;transition:all .2s;white-space:nowrap}
+.nav-links a:hover{background:rgba(255,255,255,.1);color:#f5d87a}
+.nav-tel{background:#c9a84c!important;color:#0d1b3e!important;font-weight:700!important;border-radius:20px!important;padding:6px 16px!important}
+.nav-tel:hover{background:#e8c55a!important}
+.hamburger{display:none;background:none;border:none;color:#fff;font-size:24px;cursor:pointer;padding:4px}
+.mob-menu{display:none;position:fixed;top:64px;left:0;right:0;background:#0d1b3e;z-index:999;border-bottom:2px solid #c9a84c}
+.mob-menu.open{display:block}
+.mob-menu a{display:block;color:rgba(255,255,255,.9);text-decoration:none;font-size:15px;padding:13px 28px;border-bottom:1px solid rgba(255,255,255,.08)}
+.mob-menu a:last-child{color:#f5d87a;font-weight:700;border-bottom:none}
 
-/* ===== HERO ===== */
-.hero {
-  background: linear-gradient(135deg, #0d1b3e 0%, #1a2f5e 60%, #162548 100%);
-  color: white;
-  padding: 120px 40px 80px;
-  text-align: center;
-  position: relative; overflow: hidden;
-}
-.hero::before {
-  content: '';
-  position: absolute; inset: 0;
-  background-image: radial-gradient(circle at 20% 50%, rgba(201,168,76,0.08) 0%, transparent 50%),
-                    radial-gradient(circle at 80% 20%, rgba(201,168,76,0.06) 0%, transparent 40%);
-}
-.hero-inner { position: relative; max-width: 800px; margin: 0 auto; }
-.hero-logo-wrap {
-  display: inline-flex; align-items: center; justify-content: center;
-  margin-bottom: 20px;
-}
-.hero-logo { width: 100px; height: 100px; object-fit: contain; filter: drop-shadow(0 2px 12px rgba(255,255,255,0.2)); }
-.hero-badge {
-  display: inline-block;
-  background: rgba(201,168,76,0.15); border: 1px solid rgba(201,168,76,0.4);
-  color: #f5d87a; font-size: 13px; font-weight: 500;
-  padding: 5px 14px; border-radius: 20px; margin-bottom: 24px;
-}
-.hero h1 {
-  font-family: 'Noto Serif KR', serif;
-  font-size: 52px; font-weight: 700; line-height: 1.25;
-  color: white; margin-bottom: 12px;
-}
-.hero h1 span { color: #f5d87a; }
-.hero-sub {
-  font-size: 18px; color: rgba(255,255,255,0.8);
-  line-height: 1.7; margin-bottom: 36px;
-}
-.hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-.btn-primary {
-  background: #c9a84c; color: #0d1b3e;
-  font-size: 17px; font-weight: 700;
-  padding: 14px 32px; border-radius: 50px;
-  text-decoration: none; transition: all 0.2s;
-  box-shadow: 0 4px 16px rgba(201,168,76,0.4);
-}
-.btn-primary:hover { background: #e8c55a; transform: translateY(-2px); }
-.btn-secondary {
-  background: rgba(255,255,255,0.1); color: white;
-  font-size: 17px; font-weight: 500;
-  padding: 14px 32px; border-radius: 50px;
-  text-decoration: none; border: 1px solid rgba(255,255,255,0.3);
-  transition: all 0.2s;
-}
-.btn-secondary:hover { background: rgba(255,255,255,0.18); }
+/* HERO */
+.hero{background:linear-gradient(135deg,#0d1b3e 0%,#1a2f5e 55%,#162548 100%);padding:112px 32px 76px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 20% 50%,rgba(201,168,76,.07) 0%,transparent 50%),radial-gradient(circle at 80% 20%,rgba(201,168,76,.05) 0%,transparent 40%)}
+.hero-inner{position:relative;max-width:800px;margin:0 auto}
+.hero-top{display:flex;align-items:center;justify-content:center;gap:16px;margin-bottom:22px}
+.hero-logo{width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 2px 10px rgba(255,255,255,.18))}
+.hero-badge{display:inline-flex;align-items:center;background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.4);color:#f5d87a;font-size:13px;font-weight:500;padding:6px 16px;border-radius:20px}
+.hero h1{font-family:'Noto Serif KR',serif;font-size:50px;font-weight:700;color:#fff;line-height:1.25;margin-bottom:10px}
+.hero h1 span{color:#f5d87a}
+.hero-sub{font-size:17px;color:rgba(255,255,255,.78);line-height:1.75;margin-bottom:34px}
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-gold{background:#c9a84c;color:#0d1b3e;font-size:16px;font-weight:700;padding:14px 30px;border-radius:50px;text-decoration:none;transition:all .2s;box-shadow:0 4px 16px rgba(201,168,76,.4)}
+.btn-gold:hover{background:#e8c55a;transform:translateY(-2px)}
+.btn-ghost{background:rgba(255,255,255,.1);color:#fff;font-size:16px;font-weight:500;padding:14px 30px;border-radius:50px;text-decoration:none;border:1px solid rgba(255,255,255,.28);transition:all .2s}
+.btn-ghost:hover{background:rgba(255,255,255,.18)}
 
-/* ===== SECTIONS ===== */
-section { padding: 80px 40px; }
-.section-label {
-  text-align: center; font-size: 12px; font-weight: 700; letter-spacing: 3px;
-  color: #c9a84c; text-transform: uppercase; margin-bottom: 12px;
-}
-.section-title {
-  font-family: 'Noto Serif KR', serif;
-  text-align: center; font-size: 36px; font-weight: 700;
-  color: #0d1b3e; margin-bottom: 12px;
-}
-.section-desc {
-  text-align: center; font-size: 17px; color: #555;
-  margin-bottom: 52px; line-height: 1.7;
-}
-.inner { max-width: 1000px; margin: 0 auto; }
+/* SECTIONS */
+section{padding:76px 32px}
+.inner{max-width:980px;margin:0 auto}
+.sec-label{text-align:center;font-size:11px;font-weight:700;letter-spacing:3px;color:#c9a84c;text-transform:uppercase;margin-bottom:10px}
+.sec-title{font-family:'Noto Serif KR',serif;text-align:center;font-size:34px;font-weight:700;color:#0d1b3e;margin-bottom:10px}
+.sec-desc{text-align:center;font-size:16px;color:#666;margin-bottom:48px;line-height:1.7}
 
-/* ===== WHY ===== */
-.why-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-}
-.why-card {
-  background: white; border-radius: 16px;
-  padding: 28px 24px;
-  border: 1px solid #ede8db;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-  transition: all 0.25s;
-  opacity: 0; transform: translateY(24px);
-}
-.why-card.visible { opacity: 1; transform: translateY(0); }
-.why-card:hover { box-shadow: 0 8px 28px rgba(201,168,76,0.15); transform: translateY(-4px); }
-.why-card .icon { font-size: 36px; margin-bottom: 14px; }
-.why-card h3 {
-  font-family: 'Noto Serif KR', serif;
-  font-size: 17px; font-weight: 700; color: #0d1b3e; margin-bottom: 10px;
-}
-.why-card p { font-size: 15px; color: #555; line-height: 1.7; }
+/* WHY */
+.why-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.why-card{background:#fff;border-radius:16px;padding:26px 22px;border:1px solid #ede8db;box-shadow:0 2px 10px rgba(0,0,0,.04);transition:all .25s;opacity:0;transform:translateY(20px)}
+.why-card.show{opacity:1;transform:translateY(0)}
+.why-card:hover{box-shadow:0 8px 24px rgba(201,168,76,.14);transform:translateY(-3px)}
+.why-card .icon{font-size:34px;margin-bottom:12px}
+.why-card h3{font-family:'Noto Serif KR',serif;font-size:16px;font-weight:700;color:#0d1b3e;margin-bottom:8px}
+.why-card p{font-size:14px;color:#666;line-height:1.7}
 
-/* ===== METHOD ===== */
-.method-sec { background: #0d1b3e; }
-.method-sec .section-title { color: white; }
-.method-sec .section-desc { color: rgba(255,255,255,0.65); }
-.steps { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
-.step {
-  background: rgba(255,255,255,0.06); border: 1px solid rgba(201,168,76,0.25);
-  border-radius: 16px; padding: 28px 22px; flex: 1; min-width: 160px; max-width: 180px;
-  text-align: center;
-  opacity: 0; transform: translateY(24px); transition: all 0.4s;
-}
-.step.visible { opacity: 1; transform: translateY(0); }
-.step-num {
-  width: 40px; height: 40px; border-radius: 50%;
-  background: #c9a84c; color: #0d1b3e;
-  font-size: 18px; font-weight: 800;
-  display: flex; align-items: center; justify-content: center;
-  margin: 0 auto 14px;
-}
-.step h3 { font-family: 'Noto Serif KR', serif; font-size: 16px; font-weight: 700; color: #f5d87a; margin-bottom: 10px; }
-.step p { font-size: 14px; color: rgba(255,255,255,0.7); line-height: 1.6; }
+/* METHOD */
+.method-sec{background:#0d1b3e}
+.method-sec .sec-title{color:#fff}
+.method-sec .sec-desc{color:rgba(255,255,255,.6)}
+.steps{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.step{background:rgba(255,255,255,.06);border:1px solid rgba(201,168,76,.22);border-radius:16px;padding:26px 20px;flex:1;min-width:155px;max-width:178px;text-align:center;opacity:0;transform:translateY(20px);transition:all .4s}
+.step.show{opacity:1;transform:translateY(0)}
+.step-num{width:38px;height:38px;border-radius:50%;background:#c9a84c;color:#0d1b3e;font-size:17px;font-weight:800;display:flex;align-items:center;justify-content:center;margin:0 auto 12px}
+.step h3{font-family:'Noto Serif KR',serif;font-size:15px;font-weight:700;color:#f5d87a;margin-bottom:8px}
+.step p{font-size:13px;color:rgba(255,255,255,.65);line-height:1.65}
 
-/* ===== CURRICULUM ===== */
-.tab-btns { display: flex; gap: 8px; justify-content: center; margin-bottom: 36px; }
-.tab-btn {
-  padding: 10px 28px; border-radius: 50px; font-size: 15px; font-weight: 600;
-  cursor: pointer; border: 2px solid #0d1b3e;
-  background: white; color: #0d1b3e; transition: all 0.2s;
-}
-.tab-btn.active { background: #0d1b3e; color: #f5d87a; }
-.tab-pane { display: none; }
-.tab-pane.active { display: block; }
-.cur-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.cur-card {
-  background: white; border-radius: 14px;
-  padding: 24px 22px; border: 1px solid #ede8db;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-}
-.cur-card h3 {
-  font-family: 'Noto Serif KR', serif;
-  font-size: 16px; font-weight: 700; color: #0d1b3e;
-  margin-bottom: 14px; padding-bottom: 10px;
-  border-bottom: 2px solid #f0e8d0;
-}
-.cur-card ul { list-style: none; }
-.cur-card li {
-  font-size: 15px; color: #444; padding: 5px 0;
-  padding-left: 16px; position: relative; line-height: 1.6;
-}
-.cur-card li::before {
-  content: '▸'; position: absolute; left: 0; color: #c9a84c;
-}
+/* CURRICULUM */
+.tab-btns{display:flex;gap:8px;justify-content:center;margin-bottom:32px}
+.tab-btn{padding:9px 26px;border-radius:50px;font-size:14px;font-weight:600;cursor:pointer;border:2px solid #0d1b3e;background:#fff;color:#0d1b3e;transition:all .2s}
+.tab-btn.active{background:#0d1b3e;color:#f5d87a}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+.cur-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.cur-card{background:#fff;border-radius:14px;padding:22px 20px;border:1px solid #ede8db;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.cur-card h3{font-family:'Noto Serif KR',serif;font-size:15px;font-weight:700;color:#0d1b3e;margin-bottom:12px;padding-bottom:9px;border-bottom:2px solid #f0e8d0}
+.cur-card li{font-size:14px;color:#555;padding:4px 0 4px 16px;position:relative;line-height:1.6;list-style:none}
+.cur-card li::before{content:'▸';position:absolute;left:0;color:#c9a84c}
 
-/* ===== STUDENT ===== */
-.student-sec { background: #F5F1E8; }
-.student-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
-.student-card {
-  background: white; border-radius: 16px; padding: 28px 24px;
-  border: 1px solid #ede8db;
-  opacity: 0; transform: translateY(24px); transition: all 0.4s;
-}
-.student-card.visible { opacity: 1; transform: translateY(0); }
-.student-meta { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
-.badge {
-  font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px;
-  background: #0d1b3e; color: #f5d87a;
-}
-.badge-book {
-  font-size: 12px; padding: 4px 10px; border-radius: 20px;
-  background: #f0e8d0; color: #7a6020;
-}
-.student-card h3 {
-  font-family: 'Noto Serif KR', serif;
-  font-size: 16px; font-weight: 700; color: #0d1b3e; margin-bottom: 12px;
-}
-.quote {
-  font-size: 14px; color: #555; line-height: 1.8;
-  background: #FDFBF7; border-left: 3px solid #c9a84c;
-  padding: 12px 14px; border-radius: 0 8px 8px 0;
-  margin-bottom: 12px; font-style: italic;
-}
-.student-card .comment { font-size: 13px; color: #888; line-height: 1.7; }
+/* STUDENTS */
+.student-sec{background:#F5F1E8}
+.student-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.s-card{background:#fff;border-radius:16px;padding:26px 22px;border:1px solid #ede8db;opacity:0;transform:translateY(20px);transition:all .4s}
+.s-card.show{opacity:1;transform:translateY(0)}
+.s-meta{display:flex;gap:7px;margin-bottom:12px;flex-wrap:wrap}
+.badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:#0d1b3e;color:#f5d87a}
+.badge-book{font-size:11px;padding:3px 9px;border-radius:20px;background:#f0e8d0;color:#7a6020}
+.s-card h3{font-family:'Noto Serif KR',serif;font-size:15px;font-weight:700;color:#0d1b3e;margin-bottom:10px}
+.quote{font-size:13px;color:#666;line-height:1.8;background:#FDFBF7;border-left:3px solid #c9a84c;padding:10px 13px;border-radius:0 8px 8px 0;margin-bottom:10px;font-style:italic}
+.s-card .comment{font-size:12px;color:#999;line-height:1.7}
 
-/* ===== ABOUT ===== */
-.about-card {
-  background: white; border-radius: 20px;
-  padding: 40px; display: flex; gap: 36px; align-items: flex-start;
-  border: 1px solid #ede8db; box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-  max-width: 760px; margin: 0 auto;
-}
-.about-avatar {
-  width: 100px; flex-shrink: 0; text-align: center;
-}
-.about-icon {
-  width: 100px; height: 100px; border-radius: 50%;
-  background: linear-gradient(135deg, #0d1b3e, #2a4080);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 40px; margin-bottom: 10px;
-}
-.about-name { font-size: 14px; font-weight: 700; color: #0d1b3e; }
-.about-role { font-size: 12px; color: #888; }
-.about-body h3 {
-  font-family: 'Noto Serif KR', serif;
-  font-size: 22px; font-weight: 700; color: #0d1b3e; margin-bottom: 8px;
-}
-.about-body .role-tag {
-  display: inline-block; background: #f0e8d0; color: #7a6020;
-  font-size: 13px; font-weight: 600; padding: 4px 12px;
-  border-radius: 20px; margin-bottom: 14px;
-}
-.about-body p { font-size: 15px; color: #555; line-height: 1.8; margin-bottom: 20px; }
-.about-tags { display: flex; gap: 8px; flex-wrap: wrap; }
-.tag {
-  background: #0d1b3e; color: white;
-  font-size: 13px; padding: 5px 14px; border-radius: 20px;
-}
+/* ABOUT */
+.about-card{background:#fff;border-radius:20px;padding:38px;display:flex;gap:32px;align-items:flex-start;border:1px solid #ede8db;box-shadow:0 4px 18px rgba(0,0,0,.05);max-width:740px;margin:0 auto}
+.about-icon{width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,#0d1b3e,#2a4080);display:flex;align-items:center;justify-content:center;font-size:38px;flex-shrink:0}
+.about-info{text-align:center}
+.about-info .name{font-size:13px;font-weight:700;color:#0d1b3e;margin-top:8px}
+.about-info .role{font-size:11px;color:#999}
+.about-body h3{font-family:'Noto Serif KR',serif;font-size:21px;font-weight:700;color:#0d1b3e;margin-bottom:6px}
+.role-tag{display:inline-block;background:#f0e8d0;color:#7a6020;font-size:12px;font-weight:600;padding:3px 11px;border-radius:20px;margin-bottom:12px}
+.about-body p{font-size:14px;color:#666;line-height:1.85;margin-bottom:18px}
+.tags{display:flex;gap:7px;flex-wrap:wrap}
+.tag{background:#0d1b3e;color:#fff;font-size:12px;padding:4px 13px;border-radius:20px}
 
-/* ===== MAP ===== */
-.map-sec { background: #0d1b3e; }
-.map-sec .section-title { color: white; }
-.map-sec .section-desc { color: rgba(255,255,255,0.65); }
-#kakao-map {
-  width: 100%; max-width: 760px; height: 340px;
-  border-radius: 16px; margin: 0 auto 28px;
-  display: block; border: 2px solid rgba(201,168,76,0.3);
-}
-.location-info {
-  max-width: 760px; margin: 0 auto;
-  display: flex; gap: 24px; justify-content: center;
-}
-.loc-item { color: rgba(255,255,255,0.9); font-size: 15px; line-height: 1.7; }
-.loc-item strong { color: #f5d87a; display: block; font-size: 13px; letter-spacing: 1px; margin-bottom: 4px; }
+/* MAP */
+.map-sec{background:#0d1b3e}
+.map-sec .sec-title{color:#fff}
+.map-sec .sec-desc{color:rgba(255,255,255,.6)}
+#kakao-map{width:100%;max-width:740px;height:320px;border-radius:14px;margin:0 auto 24px;display:block;border:2px solid rgba(201,168,76,.28)}
+.loc-info{max-width:740px;margin:0 auto;display:flex;gap:32px;justify-content:center;flex-wrap:wrap}
+.loc-item{color:rgba(255,255,255,.88);font-size:14px;line-height:1.8}
+.loc-item strong{color:#f5d87a;display:block;font-size:11px;letter-spacing:1px;margin-bottom:3px}
 
-/* ===== CTA ===== */
-.cta-sec {
-  background: linear-gradient(135deg, #c9a84c, #e8c55a);
-  text-align: center; padding: 72px 40px;
-}
-.cta-sec h2 {
-  font-family: 'Noto Serif KR', serif;
-  font-size: 34px; font-weight: 700; color: #0d1b3e; margin-bottom: 12px;
-}
-.cta-sec p { font-size: 17px; color: rgba(13,27,62,0.75); margin-bottom: 32px; line-height: 1.7; }
-.cta-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-.cta-btn-main {
-  background: #0d1b3e; color: white;
-  font-size: 18px; font-weight: 700;
-  padding: 16px 36px; border-radius: 50px;
-  text-decoration: none; transition: all 0.2s;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-}
-.cta-btn-main:hover { transform: translateY(-2px); background: #162548; }
-.cta-btn-sub {
-  background: rgba(13,27,62,0.1); color: #0d1b3e;
-  font-size: 16px; font-weight: 600;
-  padding: 16px 36px; border-radius: 50px;
-  text-decoration: none; border: 2px solid rgba(13,27,62,0.3);
-  transition: all 0.2s;
-}
-.cta-btn-sub:hover { background: rgba(13,27,62,0.18); }
-.cta-info { margin-top: 20px; font-size: 14px; color: rgba(13,27,62,0.6); }
+/* CTA */
+.cta-sec{background:linear-gradient(135deg,#c9a84c,#e8c55a);text-align:center;padding:68px 32px}
+.cta-sec h2{font-family:'Noto Serif KR',serif;font-size:32px;font-weight:700;color:#0d1b3e;margin-bottom:10px}
+.cta-sec p{font-size:16px;color:rgba(13,27,62,.72);margin-bottom:30px;line-height:1.75}
+.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.cta-main{background:#0d1b3e;color:#fff;font-size:17px;font-weight:700;padding:15px 34px;border-radius:50px;text-decoration:none;transition:all .2s;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+.cta-main:hover{background:#162548;transform:translateY(-2px)}
+.cta-sub{background:rgba(13,27,62,.1);color:#0d1b3e;font-size:15px;font-weight:600;padding:15px 34px;border-radius:50px;text-decoration:none;border:2px solid rgba(13,27,62,.28);transition:all .2s}
+.cta-sub:hover{background:rgba(13,27,62,.18)}
+.cta-note{margin-top:18px;font-size:13px;color:rgba(13,27,62,.55)}
 
-/* ===== FOOTER ===== */
-footer {
-  background: #080f20; color: rgba(255,255,255,0.5);
-  text-align: center; padding: 28px 40px; font-size: 13px; line-height: 1.8;
-}
+/* FOOTER */
+footer{background:#080f20;color:rgba(255,255,255,.45);text-align:center;padding:24px 32px;font-size:12px;line-height:1.9}
 
-/* ===== FLOAT BTN ===== */
-.float-btn {
-  position: fixed; bottom: 28px; right: 24px; z-index: 999;
-  width: 58px; height: 58px; border-radius: 50%;
-  background: #c9a84c; color: #0d1b3e;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 26px; text-decoration: none;
-  box-shadow: 0 6px 24px rgba(201,168,76,0.5);
-  animation: pulse 2.5s infinite;
-}
-@keyframes pulse {
-  0%,100% { box-shadow: 0 6px 24px rgba(201,168,76,0.5); }
-  50% { box-shadow: 0 6px 32px rgba(201,168,76,0.8), 0 0 0 8px rgba(201,168,76,0.15); }
-}
+/* FLOAT */
+.float-btn{position:fixed;bottom:26px;right:22px;z-index:999;width:56px;height:56px;border-radius:50%;background:#c9a84c;color:#0d1b3e;display:flex;align-items:center;justify-content:center;font-size:24px;text-decoration:none;box-shadow:0 6px 22px rgba(201,168,76,.5);animation:pulse 2.5s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 6px 22px rgba(201,168,76,.5)}50%{box-shadow:0 6px 28px rgba(201,168,76,.8),0 0 0 7px rgba(201,168,76,.12)}}
 
-/* ===== MOBILE ===== */
-@media (max-width: 768px) {
-  nav { padding: 0 16px; }
-  .nav-title { font-size: 13px; }
-  .nav-logo { width: 28px; height: 28px; }
-  .nav-menu { display: none; }
-  .hamburger { display: block; }
-
-  .hero { padding: 90px 20px 60px; }
-  .hero h1 { font-size: 28px; }
-  .hero-sub { font-size: 15px; }
-  .hero-logo { width: 48px; height: 48px; }
-
-  section { padding: 56px 20px; }
-  .section-title { font-size: 26px; }
-  .section-desc { font-size: 15px; }
-
-  .why-grid { grid-template-columns: 1fr; }
-  .steps { gap: 10px; }
-  .step { min-width: 140px; }
-  .cur-grid { grid-template-columns: 1fr; }
-  .student-grid { grid-template-columns: 1fr; }
-
-  .about-card { flex-direction: column; align-items: center; padding: 28px 20px; gap: 20px; }
-  .about-avatar { text-align: center; }
-
-  .location-info { flex-direction: column; gap: 12px; }
-  #kakao-map { height: 240px; }
-
-  .cta-sec h2 { font-size: 24px; }
-  .cta-sec p { font-size: 15px; }
-  .cta-btn-main, .cta-btn-sub { font-size: 15px; padding: 14px 28px; }
+/* MOBILE */
+@media(max-width:768px){
+  nav{padding:0 16px}
+  .nav-name{font-size:13px}
+  .nav-logo{width:30px;height:30px}
+  .nav-links{display:none}
+  .hamburger{display:block}
+  .hero{padding:88px 18px 56px}
+  .hero h1{font-size:26px}
+  .hero-sub{font-size:14px}
+  .hero-logo{width:42px;height:42px}
+  .hero-badge{font-size:12px;padding:5px 12px}
+  section{padding:52px 18px}
+  .sec-title{font-size:24px}
+  .why-grid{grid-template-columns:1fr}
+  .steps{gap:8px}
+  .step{min-width:135px}
+  .cur-grid{grid-template-columns:1fr}
+  .student-grid{grid-template-columns:1fr}
+  .about-card{flex-direction:column;align-items:center;padding:26px 18px;gap:18px}
+  .loc-info{flex-direction:column;gap:14px;align-items:center;text-align:center}
+  #kakao-map{height:240px}
+  .cta-sec h2{font-size:22px}
 }
 </style>
 </head>
 <body>
 
-<!-- NAV -->
 <nav>
-  <a href="#top" class="nav-brand">
+  <a href="#top" class="nav-left">
     <img src="logo.png" class="nav-logo" alt="글답 로고">
-    <span class="nav-title">글답국어독서논술</span>
+    <span class="nav-name">글답국어독서논술</span>
   </a>
-  <div class="nav-menu">
+  <div class="nav-links">
     <a href="#why">왜 글답인가</a>
     <a href="#method">수업 방법론</a>
     <a href="#curriculum">커리큘럼</a>
     <a href="#students">학생 글</a>
     <a href="#location">오시는 길</a>
-    <a href="tel:07043247175" class="nav-phone">📞 상담 전화</a>
+    <a href="tel:07043247175" class="nav-tel">📞 상담 전화</a>
   </div>
-  <button class="hamburger" onclick="toggleMenu()">☰</button>
+  <button class="hamburger" onclick="toggleMob()">☰</button>
 </nav>
-<div class="mobile-menu" id="mobileMenu">
-  <a href="#why" onclick="closeMenu()">글답이 다른 이유</a>
-  <a href="#method" onclick="closeMenu()">수업 방법론</a>
-  <a href="#curriculum" onclick="closeMenu()">커리큘럼</a>
-  <a href="#students" onclick="closeMenu()">학생 글</a>
-  <a href="#location" onclick="closeMenu()">오시는 길</a>
-  <a href="tel:07043247175" onclick="closeMenu()">📞 070-4324-7175 전화 상담</a>
+<div class="mob-menu" id="mobMenu">
+  <a href="#why" onclick="closeMob()">글답이 다른 이유</a>
+  <a href="#method" onclick="closeMob()">수업 방법론</a>
+  <a href="#curriculum" onclick="closeMob()">커리큘럼</a>
+  <a href="#students" onclick="closeMob()">학생 글</a>
+  <a href="#location" onclick="closeMob()">오시는 길</a>
+  <a href="tel:07043247175" onclick="closeMob()">📞 070-4324-7175 전화 상담</a>
 </div>
 
-<!-- HERO -->
 <div id="top">
 <section class="hero">
   <div class="hero-inner">
-    <div style="display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:20px;">
-      <img src="logo.png" style="width:52px; height:52px; object-fit:contain; filter:drop-shadow(0 2px 8px rgba(255,255,255,0.2));" alt="글답 로고">
-      <div class="hero-badge" style="margin-bottom:0;">✦ 옥길동 · 초등 국어 전문</div>
+    <div class="hero-top">
+      <img src="logo.png" class="hero-logo" alt="글답 로고">
+      <span class="hero-badge">✦ 옥길동 · 초등 국어 전문</span>
     </div>
     <h1>읽고, 쓰고, 생각하는 힘<br><span>평생 흔들리지 않습니다</span></h1>
     <p class="hero-sub">22년 공교육 경력의 국어 전문가가<br>초등 3~6학년의 탄탄한 국어 실력을 만듭니다</p>
     <div class="hero-btns">
-      <a href="tel:07043247175" class="btn-primary">📞 상담 전화하기</a>
-      <a href="https://blog.naver.com/guldap-edu" target="_blank" class="btn-secondary">네이버 블로그 보기</a>
+      <a href="tel:07043247175" class="btn-gold">📞 상담 전화하기</a>
+      <a href="https://blog.naver.com/guldap-edu" target="_blank" class="btn-ghost">네이버 블로그 보기</a>
     </div>
   </div>
 </section>
 </div>
 
-<!-- WHY -->
 <section id="why">
   <div class="inner">
-    <div class="section-label">WHY GEULDAP</div>
-    <h2 class="section-title">글답이 다른 이유</h2>
-    <p class="section-desc">단순 문제풀이가 아닌, 평생 쓰이는 언어 감각을 키웁니다</p>
+    <div class="sec-label">WHY GEULDAP</div>
+    <h2 class="sec-title">글답이 다른 이유</h2>
+    <p class="sec-desc">단순 문제풀이가 아닌, 평생 쓰이는 언어 감각을 키웁니다</p>
     <div class="why-grid">
-      <div class="why-card">
-        <div class="icon">🎓</div>
-        <h3>중학교 국어 교사 22년 경력</h3>
-        <p>중학교 교과 흐름을 꿰뚫는 원장이 직접 설계한 커리큘럼. 초등 때 갖춰야 할 것이 무엇인지 정확히 압니다.</p>
-      </div>
-      <div class="why-card">
-        <div class="icon">📖</div>
-        <h3>40분 몰입 독서</h3>
-        <p>매 수업 깊이 읽는 훈련. 이해력·집중력의 기반이 됩니다.</p>
-      </div>
-      <div class="why-card">
-        <div class="icon">✍️</div>
-        <h3>스스로 고쳐쓰는 글쓰기</h3>
-        <p>직접 고쳐쓰며 글을 완성하는 자기주도 습관을 만듭니다.</p>
-      </div>
-      <div class="why-card">
-        <div class="icon">🔤</div>
-        <h3>맞춤법·어휘 체계 지도</h3>
-        <p>틀리기 쉬운 표현을 체계적으로 교정합니다.</p>
-      </div>
-      <div class="why-card">
-        <div class="icon">✏️</div>
-        <h3>A4 한 장 이상 긴글쓰기</h3>
-        <p>짧은 문장 나열이 아닌, 처음부터 끝까지 완결된 긴 글을 씁니다. 중학 서술형·논술의 핵심 기초입니다.</p>
-      </div>
-      <div class="why-card">
-        <div class="icon">🏫</div>
-        <h3>중학 국어 선행 대비</h3>
-        <p>논술·서술형 중심의 중등 국어를 미리 대비합니다.</p>
-      </div>
+      <div class="why-card"><div class="icon">🎓</div><h3>중학교 국어 교사 22년 경력</h3><p>중학교 교과 흐름을 꿰뚫는 원장이 직접 설계한 커리큘럼. 초등 때 갖춰야 할 것이 무엇인지 정확히 압니다.</p></div>
+      <div class="why-card"><div class="icon">📖</div><h3>40분 몰입 독서</h3><p>매 수업 깊이 읽는 훈련. 이해력·집중력의 기반이 됩니다.</p></div>
+      <div class="why-card"><div class="icon">✍️</div><h3>스스로 고쳐쓰는 글쓰기</h3><p>직접 고쳐쓰며 글을 완성하는 자기주도 습관을 만듭니다.</p></div>
+      <div class="why-card"><div class="icon">🔤</div><h3>맞춤법·어휘 체계 지도</h3><p>틀리기 쉬운 표현을 체계적으로 교정합니다.</p></div>
+      <div class="why-card"><div class="icon">✏️</div><h3>A4 한 장 이상 긴글쓰기</h3><p>짧은 문장 나열이 아닌, 처음부터 끝까지 완결된 긴 글을 씁니다. 중학 서술형·논술의 핵심 기초입니다.</p></div>
+      <div class="why-card"><div class="icon">🏫</div><h3>중학 국어 선행 대비</h3><p>논술·서술형 중심의 중등 국어를 미리 대비합니다.</p></div>
     </div>
   </div>
 </section>
 
-<!-- METHOD -->
 <section id="method" class="method-sec">
   <div class="inner">
-    <div class="section-label" style="color:#c9a84c;">METHODOLOGY</div>
-    <h2 class="section-title">글답 5단계 수업 방법론</h2>
-    <p class="section-desc">모든 수업은 이 다섯 단계로 설계됩니다</p>
+    <div class="sec-label" style="color:#c9a84c">METHODOLOGY</div>
+    <h2 class="sec-title">글답 5단계 수업 방법론</h2>
+    <p class="sec-desc">모든 수업은 이 다섯 단계로 설계됩니다</p>
     <div class="steps">
-      <div class="step">
-        <div class="step-num">1</div>
-        <h3>몰입 독서</h3>
-        <p>40분간 방해 없이 깊게 읽습니다. 읽기의 근력이 생깁니다.</p>
-      </div>
-      <div class="step">
-        <div class="step-num">2</div>
-        <h3>내용 이해 확인</h3>
-        <p>읽은 내용을 구조적으로 파악하고 핵심을 정리합니다.</p>
-      </div>
-      <div class="step">
-        <div class="step-num">3</div>
-        <h3>생각 글쓰기</h3>
-        <p>자신의 언어로 생각을 정리하고 문장으로 표현합니다.</p>
-      </div>
-      <div class="step">
-        <div class="step-num">4</div>
-        <h3>스스로 고쳐쓰기</h3>
-        <p>직접 글을 검토하고 수정합니다. 스스로 완성하는 훈련입니다.</p>
-      </div>
-      <div class="step">
-        <div class="step-num">5</div>
-        <h3>맞춤법·어휘 정리</h3>
-        <p>매 수업 마무리에 틀린 표현과 어휘를 체계적으로 교정합니다.</p>
-      </div>
+      <div class="step"><div class="step-num">1</div><h3>몰입 독서</h3><p>40분간 방해 없이 깊게 읽습니다. 읽기의 근력이 생깁니다.</p></div>
+      <div class="step"><div class="step-num">2</div><h3>내용 이해 확인</h3><p>읽은 내용을 구조적으로 파악하고 핵심을 정리합니다.</p></div>
+      <div class="step"><div class="step-num">3</div><h3>생각 글쓰기</h3><p>자신의 언어로 생각을 정리하고 문장으로 표현합니다.</p></div>
+      <div class="step"><div class="step-num">4</div><h3>스스로 고쳐쓰기</h3><p>직접 글을 검토하고 수정합니다. 스스로 완성하는 훈련입니다.</p></div>
+      <div class="step"><div class="step-num">5</div><h3>맞춤법·어휘 정리</h3><p>매 수업 마무리에 틀린 표현과 어휘를 체계적으로 교정합니다.</p></div>
     </div>
   </div>
 </section>
 
-<!-- CURRICULUM -->
 <section id="curriculum">
   <div class="inner">
-    <div class="section-label">CURRICULUM</div>
-    <h2 class="section-title">학년별 커리큘럼</h2>
-    <p class="section-desc">초등 3학년부터 6학년까지, 단계적으로 실력을 쌓습니다</p>
+    <div class="sec-label">CURRICULUM</div>
+    <h2 class="sec-title">학년별 커리큘럼</h2>
+    <p class="sec-desc">초등 3학년부터 6학년까지, 단계적으로 실력을 쌓습니다</p>
     <div class="tab-btns">
-      <button class="tab-btn active" onclick="showTab('low')">초등 3~4학년</button>
-      <button class="tab-btn" onclick="showTab('high')">초등 5~6학년</button>
+      <button class="tab-btn active" onclick="showTab('low',this)">초등 3~4학년</button>
+      <button class="tab-btn" onclick="showTab('high',this)">초등 5~6학년</button>
     </div>
     <div id="tab-low" class="tab-pane active">
       <div class="cur-grid">
-        <div class="cur-card">
-          <h3>📚 초등 3~4학년 — 기초 다지기</h3>
-          <ul>
-            <li>소리 내어 읽기 → 묵독으로 전환 훈련</li>
-            <li>짧은 문단 쓰기 / 문장 구조 이해</li>
-            <li>자주 틀리는 맞춤법 집중 교정</li>
-            <li>독서 일지 작성 습관 형성</li>
-            <li>어휘력 확장 — 반의어·유의어·속담</li>
-          </ul>
-        </div>
-        <div class="cur-card">
-          <h3>🗓 주중 수업</h3>
-          <ul>
-            <li>독서·글쓰기·논술 통합</li>
-            <li>읽기-쓰기-고치기 3단계 완성 수업</li>
-          </ul>
-        </div>
-        <div class="cur-card">
-          <h3>📅 토요 수업</h3>
-          <ul>
-            <li>창의 글쓰기 심화</li>
-            <li>서울대 국문과 · 서강대 경영학과 강사의 테마 글쓰기 수업</li>
-          </ul>
-        </div>
+        <div class="cur-card"><h3>📚 초등 3~4학년 — 기초 다지기</h3><ul><li>소리 내어 읽기 → 묵독으로 전환 훈련</li><li>짧은 문단 쓰기 / 문장 구조 이해</li><li>자주 틀리는 맞춤법 집중 교정</li><li>독서 일지 작성 습관 형성</li><li>어휘력 확장 — 반의어·유의어·속담</li></ul></div>
+        <div class="cur-card"><h3>🗓 주중 수업</h3><ul><li>독서·글쓰기·논술 통합</li><li>읽기-쓰기-고치기 3단계 완성 수업</li></ul></div>
+        <div class="cur-card"><h3>📅 토요 수업</h3><ul><li>창의 글쓰기 심화</li><li>서울대 국문과 · 서강대 경영학과 강사의 테마 글쓰기 수업</li></ul></div>
       </div>
     </div>
     <div id="tab-high" class="tab-pane">
       <div class="cur-grid">
-        <div class="cur-card">
-          <h3>📚 초등 5~6학년 — 심화 완성</h3>
-          <ul>
-            <li>논리적 독후 글쓰기 (주장-근거-예시)</li>
-            <li>A4 한 장 이상 긴글쓰기 완성</li>
-            <li>중학 서술형·논술 선행 대비</li>
-            <li>자기주도 글 고쳐쓰기 심화</li>
-            <li>어휘·한자어·관용 표현 심화</li>
-          </ul>
-        </div>
-        <div class="cur-card">
-          <h3>🗓 주중 수업</h3>
-          <ul>
-            <li>독서 토론 + 논술 글쓰기 통합</li>
-            <li>중등 내신 서술형 문항 대비</li>
-            <li>읽기-분석-쓰기-고치기 4단계</li>
-          </ul>
-        </div>
-        <div class="cur-card">
-          <h3>📅 토요 수업</h3>
-          <ul>
-            <li>심화 주제 논술 글쓰기</li>
-            <li>서울대 국문과 · 서강대 경영학과 강사의 테마 글쓰기 수업</li>
-          </ul>
-        </div>
+        <div class="cur-card"><h3>📚 초등 5~6학년 — 심화 완성</h3><ul><li>논리적 독후 글쓰기 (주장-근거-예시)</li><li>A4 한 장 이상 긴글쓰기 완성</li><li>중학 서술형·논술 선행 대비</li><li>자기주도 글 고쳐쓰기 심화</li><li>어휘·한자어·관용 표현 심화</li></ul></div>
+        <div class="cur-card"><h3>🗓 주중 수업</h3><ul><li>독서 토론 + 논술 글쓰기 통합</li><li>중등 내신 서술형 문항 대비</li><li>읽기-분석-쓰기-고치기 4단계</li></ul></div>
+        <div class="cur-card"><h3>📅 토요 수업</h3><ul><li>심화 주제 논술 글쓰기</li><li>서울대 국문과 · 서강대 경영학과 강사의 테마 글쓰기 수업</li></ul></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- STUDENTS -->
 <section id="students" class="student-sec">
   <div class="inner">
-    <div class="section-label">STUDENT WORK</div>
-    <h2 class="section-title">학생 글 사례</h2>
-    <p class="section-desc">아이들이 글답에서 직접 쓴 글입니다. 선생님이 대신 써주지 않습니다.</p>
+    <div class="sec-label">STUDENT WORK</div>
+    <h2 class="sec-title">학생 글 사례</h2>
+    <p class="sec-desc">아이들이 글답에서 직접 쓴 글입니다. 선생님이 대신 써주지 않습니다.</p>
     <div class="student-grid">
-      <div class="student-card">
-        <div class="student-meta">
-          <span class="badge">초등 5학년</span>
-          <span class="badge-book">장영희 수필 〈괜찮아〉</span>
-        </div>
+      <div class="s-card">
+        <div class="s-meta"><span class="badge">초등 5학년</span><span class="badge-book">장영희 수필 〈괜찮아〉</span></div>
         <h3>나랑 친구할래?</h3>
         <div class="quote">"나는 항상 이 말을 당연하게 여겨왔다. 하지만 나는 작년에 이 말이 나에게 무척 소중한 말이라는 것을 깨달았다. (...) 나는 이 말이 누군가에게 힘이 되고, 희망이 되는 이 말을 해준다는 것 자체가 기쁘고 행복하다."</div>
-        <p class="comment">수필을 읽고 자신의 경험으로 연결한 글입니다. 단순 줄거리 요약이 아닌, 책 속 이야기가 아이 자신의 삶과 만나는 순간을 만들어주는 것이 글답 수업의 방식입니다.</p>
+        <p class="comment">수필을 읽고 자신의 경험으로 연결한 글입니다. 책 속 이야기가 아이 자신의 삶과 만나는 순간을 만들어주는 것이 글답 수업의 방식입니다.</p>
       </div>
-      <div class="student-card">
-        <div class="student-meta">
-          <span class="badge">초등 5학년</span>
-          <span class="badge-book">토요 주제글쓰기</span>
-        </div>
+      <div class="s-card">
+        <div class="s-meta"><span class="badge">초등 5학년</span><span class="badge-book">토요 주제글쓰기</span></div>
         <h3>내가 만약 일론 머스크가 된다면</h3>
-        <div class="quote">"그가 가진 가장 큰 장점은 여러 사업들이 있어서 돈도 안정적으로 벌 수 있으며 세상에서 많이 유명한 사람이다. (...) 두 번째로 좋은 점은 살아가는 데 제약이 거의 없기 때문이다. 사고 싶은 게 있어? 그냥 사!"</div>
+        <div class="quote">"그가 가진 가장 큰 장점은 여러 사업들이 있어서 돈도 안정적으로 벌 수 있으며 세상에서 많이 유명한 사람이다. (...) 사고 싶은 게 있어? 그냥 사!"</div>
         <p class="comment">위트 있는 표현 속에 주장-이유-예시 구조가 완벽하게 담겨 있습니다. 논리력과 유머 감각이 함께 자라는 것이 글답 글쓰기의 특징입니다.</p>
       </div>
-      <div class="student-card">
-        <div class="student-meta">
-          <span class="badge">초등 4학년</span>
-          <span class="badge-book">《잘못 뽑은 반장》</span>
-        </div>
+      <div class="s-card">
+        <div class="s-meta"><span class="badge">초등 4학년</span><span class="badge-book">《잘못 뽑은 반장》</span></div>
         <h3>로운이의 변화</h3>
         <div class="quote">"로운이처럼 처음에는 부족해도 봉사를 잘 하고 반장으로서 책임감을 가지면 좋겠다는 이야기이다. (...) 좋은 리더는 성실한 사람이다. '지금부터 노력하자!'"</div>
-        <p class="comment">독후활동지 10문항 → 글쓰기 개요 → 완성 독후감의 3단계 과정을 거친 글입니다. 책 읽기가 삶의 다짐으로 연결되는 것, 이것이 글답이 추구하는 독서의 방향입니다.</p>
+        <p class="comment">독후활동지 10문항 → 글쓰기 개요 → 완성 독후감의 3단계 과정을 거친 글입니다. 책 읽기가 삶의 다짐으로 연결되는 것이 글답이 추구하는 독서의 방향입니다.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ABOUT -->
 <section id="about">
   <div class="inner">
-    <div class="section-label">ABOUT</div>
-    <h2 class="section-title">원장 소개</h2>
-    <p class="section-desc">22년의 공교육 경험이 글답의 기반입니다</p>
+    <div class="sec-label">ABOUT</div>
+    <h2 class="sec-title">원장 소개</h2>
+    <p class="sec-desc">22년의 공교육 경험이 글답의 기반입니다</p>
     <div class="about-card">
-      <div class="about-avatar">
+      <div class="about-info">
         <div class="about-icon">📝</div>
-        <div class="about-name">글답국어 원장</div>
-        <div class="about-role">국어교육 전공</div>
+        <div class="name">글답국어 원장</div>
+        <div class="role">국어교육 전공</div>
       </div>
       <div class="about-body">
         <h3>중학교 국어 교사 22년 경력</h3>
         <span class="role-tag">중등 1급 정교사 · 국어교육 전공</span>
         <p>22년간 중학교 국어 교사로 많은 학생들을 가르치며, 초등에서 무엇이 준비되어야 중학 국어를 잘할 수 있는지 직접 확인했습니다. 그 경험이 글답의 커리큘럼이 되었습니다.</p>
-        <div class="about-tags">
+        <div class="tags">
           <span class="tag">공교육 22년</span>
           <span class="tag">명예퇴직</span>
           <span class="tag">논술 전문</span>
@@ -648,90 +318,71 @@ footer {
   </div>
 </section>
 
-<!-- MAP -->
 <section id="location" class="map-sec">
   <div class="inner">
-    <div class="section-label" style="color:#c9a84c;">LOCATION</div>
-    <h2 class="section-title">오시는 길</h2>
-    <p class="section-desc">부천시 소사구 지음프라자 5층에 위치한 글답국어독서논술입니다</p>
+    <div class="sec-label" style="color:#c9a84c">LOCATION</div>
+    <h2 class="sec-title">오시는 길</h2>
+    <p class="sec-desc">부천시 소사구 지음프라자 5층에 위치한 글답국어독서논술입니다</p>
     <div id="kakao-map"></div>
-    <div class="location-info">
-      <div class="loc-item">
-        <strong>🏫 학원 주소</strong>
-        경기 부천시 소사구 양지로 208<br>5층 506호 (지음프라자 5층)
-      </div>
-      <div class="loc-item">
-        <strong>📞 전화 문의</strong>
-        <a href="tel:07043247175" style="color:white;font-size:20px;font-weight:700;text-decoration:none;">070-4324-7175</a>
-      </div>
+    <div class="loc-info">
+      <div class="loc-item"><strong>🏫 학원 주소</strong>경기 부천시 소사구 양지로 208<br>5층 506호 (지음프라자 5층)</div>
+      <div class="loc-item"><strong>📞 전화 문의</strong><a href="tel:07043247175" style="color:#fff;font-size:20px;font-weight:700;text-decoration:none;">070-4324-7175</a></div>
     </div>
   </div>
 </section>
 
-<!-- CTA -->
 <section class="cta-sec">
   <div class="inner">
     <h2>지금 바로 상담해보세요</h2>
     <p>수업 방식, 학년별 커리큘럼, 시간표 등<br>궁금한 것은 전화로 편하게 물어보세요</p>
     <div class="cta-btns">
-      <a href="tel:07043247175" class="cta-btn-main">☎ 070-4324-7175 전화 상담</a>
-      <a href="https://blog.naver.com/guldap-edu" target="_blank" class="cta-btn-sub">네이버 블로그 →</a>
+      <a href="tel:07043247175" class="cta-main">☎ 070-4324-7175 전화 상담</a>
+      <a href="https://blog.naver.com/guldap-edu" target="_blank" class="cta-sub">네이버 블로그 →</a>
     </div>
-    <p class="cta-info">글답국어독서논술학원 · 옥길동 · 070-4324-7175 · geuldap.co.kr</p>
+    <p class="cta-note">글답국어독서논술학원 · 옥길동 · 070-4324-7175 · geuldap.co.kr</p>
   </div>
 </section>
 
-<footer>
-  글답국어독서논술학원 | 경기 부천시 소사구 양지로 208 5층 506호<br>
-  070-4324-7175 | geuldap.co.kr
-</footer>
+<footer>글답국어독서논술학원 | 경기 부천시 소사구 양지로 208 5층 506호<br>070-4324-7175 | geuldap.co.kr</footer>
 
-<a href="tel:07043247175" class="float-btn" title="전화 상담">📞</a>
+<a href="tel:07043247175" class="float-btn">📞</a>
 
 <script>
-function toggleMenu() {
-  document.getElementById('mobileMenu').classList.toggle('open');
-}
-function closeMenu() {
-  document.getElementById('mobileMenu').classList.remove('open');
-}
-document.querySelectorAll('a[href^="#"]').forEach(a => {
-  a.addEventListener('click', e => {
+function toggleMob(){document.getElementById('mobMenu').classList.toggle('open')}
+function closeMob(){document.getElementById('mobMenu').classList.remove('open')}
+
+// 앵커 스크롤 — 네비 높이 보정
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click',e=>{
     e.preventDefault();
-    const id = a.getAttribute('href').slice(1);
-    const el = document.getElementById(id);
-    if (el) { const top = el.getBoundingClientRect().top + window.scrollY - 72; window.scrollTo({ top: top, behavior: "smooth" }); }
-  });
+    const id=a.getAttribute('href').slice(1);
+    const el=document.getElementById(id);
+    if(el){const top=el.getBoundingClientRect().top+window.scrollY-68;window.scrollTo({top,behavior:'smooth'})}
+  })
 });
 
-// Scroll animation
-const obs = new IntersectionObserver(entries => {
-  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
-}, { threshold: 0.12 });
-document.querySelectorAll('.why-card, .step, .student-card').forEach(el => obs.observe(el));
+// 스크롤 애니메이션
+const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('show')})},{threshold:0.1});
+document.querySelectorAll('.why-card,.step,.s-card').forEach(el=>obs.observe(el));
 
-// Tab
-function showTab(id) {
-  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + id).classList.add('active');
-  event.target.classList.add('active');
+// 탭
+function showTab(id,btn){
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
 }
 
-// Kakao Map
-window.addEventListener('load', function() {
-  if (typeof kakao === 'undefined') return;
-  var geocoder = new kakao.maps.services.Geocoder();
-  geocoder.addressSearch('경기 부천시 소사구 양지로 208', function(result, status) {
-    if (status !== kakao.maps.services.Status.OK) return;
-    var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
-    var container = document.getElementById('kakao-map');
-    var map = new kakao.maps.Map(container, { center: coords, level: 4 });
-    var marker = new kakao.maps.Marker({ map: map, position: coords });
-    var infowindow = new kakao.maps.InfoWindow({
-      content: '<div style="padding:8px 12px;font-size:13px;font-weight:700;color:#0d1b3e;">📍 글답국어독서논술<br><small style="font-weight:400;color:#666;">지음프라자 5층 506호</small></div>'
-    });
-    infowindow.open(map, marker);
+// 카카오맵
+window.addEventListener('load',()=>{
+  if(typeof kakao==='undefined')return;
+  var gc=new kakao.maps.services.Geocoder();
+  gc.addressSearch('경기 부천시 소사구 양지로 208',function(r,s){
+    if(s!==kakao.maps.services.Status.OK)return;
+    var c=new kakao.maps.LatLng(r[0].y,r[0].x);
+    var map=new kakao.maps.Map(document.getElementById('kakao-map'),{center:c,level:4});
+    new kakao.maps.Marker({map,position:c});
+    new kakao.maps.InfoWindow({content:'<div style="padding:7px 11px;font-size:13px;font-weight:700;color:#0d1b3e;">📍 글답국어독서논술<br><small style="font-weight:400;color:#666">지음프라자 5층 506호</small></div>'}).open(map,new kakao.maps.Marker({map,position:c}));
   });
 });
 </script>
