@@ -190,7 +190,9 @@
     .footer p { font-size: 17px; color: rgba(255,255,255,0.35); font-family: 'Apple SD Gothic Neo', sans-serif; line-height: 1.75; }
 
     /* 모바일 */
+    .map-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     @media (max-width: 768px) {
+      .map-info-grid { display: flex; flex-direction: column; gap: 20px; }
       /* 네비바 */
       .navbar { padding: 8px 14px; }
       .navbar-logo span { font-size: 13px; white-space: nowrap; }
@@ -217,6 +219,8 @@
       .why-card.highlight { grid-column: 1; }
       .why-card h3 { font-size: 16px; }
       .why-card p { font-size: 14px; }
+      .why-card.highlight h3::after { content: ""; display: block; }
+      .why-card.highlight h3 { word-break: keep-all; }
 
       /* 5단계 */
       .step-info h3 { font-size: 17px; }
@@ -463,18 +467,18 @@
     <div style="border:1px solid #e8e0cc; border-radius:16px; overflow:hidden;">
       <div id="kakaoMap" style="width:100%; height:380px;"></div>
       <div style="padding:24px 28px; background:#f8f7f2;">
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+        <div class="map-info-grid">
           <div style="display:flex; gap:12px; align-items:flex-start;">
             <div style="width:40px; height:40px; background:#0d1b4b; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">🏫</div>
             <div>
-              <div style="font-size:13px; color:#c5a149; font-weight:700; letter-spacing:1px; margin-bottom:4px; font-family:'Pretendard',sans-serif;">학원 주소</div>
-              <div style="font-size:16px; color:#1a1a2e; font-weight:600; line-height:1.6; font-family:'Pretendard',sans-serif;">경기 부천시 소사구<br>양지로 208 5층 506호<br><span style="font-size:13px; color:#888;">(지음프라자 5층)</span></div>
+              <div style="font-size:13px; color:#c5a149; font-weight:700; letter-spacing:1px; margin-bottom:6px; font-family:'Pretendard',sans-serif;">학원 주소</div>
+              <div style="font-size:16px; color:#1a1a2e; font-weight:600; line-height:1.7; font-family:'Pretendard',sans-serif;">경기 부천시 소사구 양지로 208<br>5층 506호<br><span style="font-size:13px; color:#888; font-weight:400;">(지음프라자 5층)</span></div>
             </div>
           </div>
           <div style="display:flex; gap:12px; align-items:flex-start;">
             <div style="width:40px; height:40px; background:#0d1b4b; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0;">📞</div>
             <div>
-              <div style="font-size:13px; color:#c5a149; font-weight:700; letter-spacing:1px; margin-bottom:4px; font-family:'Pretendard',sans-serif;">전화 문의</div>
+              <div style="font-size:13px; color:#c5a149; font-weight:700; letter-spacing:1px; margin-bottom:6px; font-family:'Pretendard',sans-serif;">전화 문의</div>
               <a href="tel:07043247175" style="font-size:18px; color:#0d1b4b; font-weight:700; text-decoration:none; font-family:'Pretendard',sans-serif;">070-4324-7175</a>
             </div>
           </div>
