@@ -37,18 +37,18 @@
     .navbar {
       position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
       background: rgba(13,27,75,0.96); backdrop-filter: blur(10px);
-      padding: 12px 32px; display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px; display: flex; align-items: center; justify-content: space-between;
       border-bottom: 1px solid rgba(197,161,73,0.2);
       transition: all 0.3s;
     }
     .navbar.scrolled { background: rgba(13,27,75,0.99); box-shadow: 0 2px 20px rgba(0,0,0,0.3); }
     .navbar-logo { display: flex; align-items: center; gap: 10px; }
     .navbar-logo img { width: 48px; height: 48px; object-fit: contain; }
-    .navbar-logo span { font-size: 20px; font-weight: 700; color: #fff; font-family: 'Noto Serif KR', serif; }
+    .navbar-logo span { font-size: 14px; font-weight: 700; color: #fff; font-family: 'Noto Serif KR', serif; white-space: nowrap; }
     .navbar-phone {
       background: linear-gradient(135deg, #c5a149, #e8c96a);
-      color: #0d1b4b; font-weight: 700; font-size: 17px;
-      padding: 12px 28px; border-radius: 8px; text-decoration: none;
+      color: #0d1b4b; font-weight: 700; font-size: 13px;
+      padding: 8px 16px; border-radius: 8px; text-decoration: none; white-space: nowrap;
     }
     .lp { padding-top: 62px; }
 
@@ -190,15 +190,64 @@
     .footer p { font-size: 17px; color: rgba(255,255,255,0.35); font-family: 'Apple SD Gothic Neo', sans-serif; line-height: 1.75; }
 
     /* 모바일 */
-    @media (max-width: 480px) {
-      .hero { padding: 36px 20px 40px; }
-      .hero h1 { font-size: 28px; }
-      .section { padding: 36px 20px; }
+    @media (max-width: 768px) {
+      /* 네비바 */
+      .navbar { padding: 8px 14px; }
+      .navbar-logo span { font-size: 13px; white-space: nowrap; }
+      .navbar-logo img { width: 30px; height: 30px; }
+      .navbar-phone { font-size: 12px; padding: 7px 12px; }
+      .lp { padding-top: 56px; }
+
+      /* 히어로 */
+      .hero { padding: 28px 20px 36px; }
+      .hero h1 { font-size: 26px; }
+      .hero p { font-size: 15px; }
+      .hero-logo-text .name { font-size: 16px; }
+      .hero-logo-text .sub { font-size: 10px; }
+      .btn-gold { font-size: 15px; padding: 12px 22px; }
+      .btn-outline { font-size: 14px; padding: 12px 18px; }
+
+      /* 섹션 */
+      .section { padding: 32px 18px; }
+      .section-title { font-size: 24px; }
+      .section-sub { font-size: 14px; }
+
+      /* why 카드 */
       .why-grid { grid-template-columns: 1fr; }
       .why-card.highlight { grid-column: 1; }
+      .why-card h3 { font-size: 16px; }
+      .why-card p { font-size: 14px; }
+
+      /* 5단계 */
+      .step-info h3 { font-size: 17px; }
+      .step-info p { font-size: 14px; }
+
+      /* 커리큘럼 */
       .class-type-grid { grid-template-columns: 1fr; }
-      .teacher-card { flex-direction: column; align-items: center; text-align: center; }
-      .phone-big { font-size: 22px; }
+      .curr-item { font-size: 14px; }
+
+      /* 학생 글 */
+      .sample-title { font-size: 16px; }
+      .sample-quote { font-size: 15px; line-height: 1.8; }
+      .sample-comment { font-size: 13px; }
+
+      /* 원장 */
+      .teacher-card { flex-direction: column; align-items: center; text-align: center; padding: 24px 18px; }
+      .teacher-info h3 { font-size: 18px; }
+      .teacher-info p { font-size: 14px; }
+      .career-tags { justify-content: center; }
+
+      /* CTA */
+      .cta-bottom { padding: 32px 20px; }
+      .cta-bottom h2 { font-size: 22px; }
+      .cta-bottom p { font-size: 15px; }
+      .phone-big { font-size: 26px; }
+
+      /* 플로팅 버튼 */
+      .float-call { width: 50px; height: 50px; font-size: 22px; bottom: 20px; right: 16px; }
+
+      /* 지도 섹션 */
+      #kakaoMap { height: 280px; }
     }
   </style>
   <meta name="naver-site-verification" content="374402ceccb8d30f4365dd91bef5938a90e8f9f9" />
