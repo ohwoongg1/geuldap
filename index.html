@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" style="scroll-behavior: smooth;">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -295,7 +295,7 @@
 
   <!-- WHY GEULDAP -->
   <div class="section fade-up">
-    <div class="section-label">WHY GEULDAP</div>
+    <div id="why" class="section-label">WHY GEULDAP</div>
     <div class="section-title">글답이 다른 이유</div>
     <div class="section-sub">단순 문제풀이가 아닌, 평생 쓰이는 언어 감각을 키웁니다</div>
     <div class="why-grid">
@@ -336,7 +336,7 @@
 
   <!-- 5단계 -->
   <div class="section fade-up">
-    <div class="section-label">METHODOLOGY</div>
+    <div id="method" class="section-label">METHODOLOGY</div>
     <div class="section-title">글답 5단계 수업 방법론</div>
     <div class="section-sub">모든 수업은 이 다섯 단계로 설계됩니다</div>
     <div class="steps">
@@ -352,7 +352,7 @@
 
   <!-- 커리큘럼 -->
   <div class="section fade-up">
-    <div class="section-label">CURRICULUM</div>
+    <div id="curriculum" class="section-label">CURRICULUM</div>
     <div class="section-title">학년별 커리큘럼</div>
     <div class="section-sub">초등 3학년부터 6학년까지, 단계적으로 실력을 쌓습니다</div>
     <div class="grade-tabs">
@@ -385,7 +385,7 @@
 
   <!-- 학생 글 사례 -->
   <div class="section sample-bg fade-up">
-    <div class="section-label">STUDENT WORK</div>
+    <div id="student" class="section-label">STUDENT WORK</div>
     <div class="section-title">학생 글 사례</div>
     <div class="section-sub">아이들이 글답에서 직접 쓴 글입니다. 선생님이 대신 써주지 않습니다.</div>
 
@@ -460,7 +460,7 @@
 
   <!-- 오시는 길 -->
   <div class="section fade-up">
-    <div class="section-label">LOCATION</div>
+    <div id="location" class="section-label">LOCATION</div>
     <div class="section-title">오시는 길</div>
     <div class="section-sub">부천시 소사구 지음프라자 5층에 위치한 글답국어독서논술입니다</div>
 
@@ -533,6 +533,13 @@
 
 <script>
 
+  function toggleMenu() {
+    const dropdown = document.getElementById('dropdown');
+    dropdown.classList.toggle('open');
+  }
+  function closeMenu() {
+    document.getElementById('dropdown').classList.remove('open');
+  }
   // 네비 스크롤 효과
   window.addEventListener('scroll', () => {
     const navbar = document.getElementById('navbar');
