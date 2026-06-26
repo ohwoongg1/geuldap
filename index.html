@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>글답국어독서논술 — 옥길동 초등 국어 전문</title>
+  <meta name="description" content="22년 공교육 경력의 국어 전문가가 초등 3~6학년의 탄탄한 국어 실력을 만듭니다. 몰입독서·긴글쓰기·자기주도 퇴고·맞춤법 교육·중학 선행 대비.">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #f4f4f0; font-family: 'Noto Serif KR', 'Apple SD Gothic Neo', serif; }
+
+    .lp { max-width: 720px; margin: 0 auto; background: #fff; color: #1a1a2e; box-shadow: 0 0 40px rgba(0,0,0,0.08); }
+
+    /* HERO */
+    .hero {
+      background: linear-gradient(160deg, #0d1b4b 0%, #1a2f6b 60%, #0d1b4b 100%);
+      padding: 48px 36px 52px; text-align: center; position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
+      width: 360px; height: 360px;
+      background: radial-gradient(circle, rgba(197,161,73,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-logo { margin-bottom: 22px; display: flex; align-items: center; justify-content: center; gap: 16px; }
+    .hero-logo img { width: 72px; height: 72px; object-fit: contain; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3)); }
+    .hero-logo-text { text-align: left; }
+    .hero-logo-text .name { font-size: 21px; font-weight: 700; color: #fff; letter-spacing: -0.5px; line-height: 1.2; }
+    .hero-logo-text .sub { font-size: 11px; color: rgba(255,255,255,0.55); font-family: 'Apple SD Gothic Neo', sans-serif; letter-spacing: 0.5px; }
+    .hero-badge {
+      display: inline-block; background: rgba(197,161,73,0.18); color: #e8c96a;
+      font-size: 12px; letter-spacing: 2px; padding: 5px 14px; border-radius: 20px;
+      border: 1px solid rgba(197,161,73,0.35); margin-bottom: 18px;
+      font-family: 'Apple SD Gothic Neo', sans-serif;
+    }
+    .hero h1 { font-size: 28px; font-weight: 700; color: #fff; line-height: 1.45; margin-bottom: 14px; letter-spacing: -0.5px; }
+    .hero h1 span { color: #e8c96a; }
+    .hero p { font-size: 14px; color: rgba(255,255,255,0.72); line-height: 1.8; margin-bottom: 30px; font-family: 'Apple SD Gothic Neo', sans-serif; }
+    .hero-cta { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .btn-gold {
+      background: linear-gradient(135deg, #c5a149 0%, #e8c96a 100%);
+      color: #0d1b4b; font-weight: 700; font-size: 15px; padding: 14px 30px;
+      border-radius: 8px; border: none; cursor: pointer; text-decoration: none;
+      font-family: 'Apple SD Gothic Neo', sans-serif;
+    }
+    .btn-outline {
+      background: transparent; color: #e8c96a; font-size: 14px; padding: 14px 24px;
+      border-radius: 8px; border: 1px solid rgba(197,161,73,0.5);
+      cursor: pointer; text-decoration: none; font-family: 'Apple SD Gothic Neo', sans-serif;
+    }
+
+    /* DIVIDER */
+    .gold-line { height: 2px; background: linear-gradient(90deg, transparent, #c5a149, transparent); }
+
+    /* SECTION */
+    .section { padding: 48px 32px; }
+    .section-label { font-size: 11px; letter-spacing: 3px; color: #c5a149; font-family: 'Apple SD Gothic Neo', sans-serif; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; }
+    .section-title { font-size: 23px; font-weight: 700; color: #0d1b4b; line-height: 1.4; margin-bottom: 6px; }
+    .section-sub { font-size: 13px; color: #666; line-height: 1.7; margin-bottom: 28px; font-family: 'Apple SD Gothic Neo', sans-serif; }
+
+    /* WHY */
+    .why-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .why-card { background: #f8f7f2; border: 1px solid #e8e0cc; border-radius: 10px; padding: 18px; }
+    .why-card .icon { font-size: 22px; margin-bottom: 8px; }
+    .why-card h3 { font-size: 14px; font-weight: 700; color: #0d1b4b; margin-bottom: 5px; font-family: 'Apple SD Gothic Neo', sans-serif; }
+    .why-card p { font-size: 12px; color: #666; line-height: 1.65; font-family: 'Apple SD Gothic Neo', sans-serif; }
+    .why-card.highlight { background: #0d1b4b; border-color: #0d1b4b; grid-column: 1/-1; }
+    .why-card.highlight h3 { color: #e8c96a; font-size: 15px; }
+    .why-card.highlight p { color: rgba(255,255,255,0.78); }
+
+    /* 5단계 */
+    .steps { display: flex; flex-direction: column; }
+    .step { display: flex; gap: 16px; align-items: flex-start; padding: 16px 0; border-bottom: 1px solid #f0ebe0; }
+    .step:last-child { border-bottom: none; }
+    .step-num { min-width: 38px; height: 38px; background: #0d1b4b; color: #e8c96a; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; font-family: 'Apple SD Gothic Neo', sans-serif; flex-shrink: 0; }
+    .step-info h3 { font-size: 15px; font-weight: 700; color: #0d1b4b; margin-bottom: 4px; font-family: 'Apple SD Gothic Neo', sans-serif; }
+    .step-info p { font-size: 13px; color: #666; line-height: 1.6; font-family: 'Apple SD Gothic Neo', sans-serif; }
+
+    /* 커리큘럼 */
+    .grade-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+    .grade-tab { padding: 7px 16px; border-radius: 20px; font-size: 13px; font-family: 'Apple SD Gothic Neo', sans-serif; font-weight: 600; border: 1.5px solid #ddd; color: #888; cursor: pointer; background: #fff; transition: all 0.2s; }
+    .grade-tab.active { background: #0d1b4b; color: #e8c96a; border-color: #0d1b4b; }
+    .curriculum-box { background: #f8f7f2; border: 1px solid #e8e0cc; border-radius: 12px; padding: 22px; }
+    .curriculum-box h3 { font-size: 15px; font-weight: 700; color: #0d1b4b; margin-bottom: 14px; font-family: 'Apple SD Gothic Neo', sans-serif; }
+    .curr-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 9px; font-size: 13px; color: #444; font-family: 'Apple SD Gothic Neo', sans-serif; line-height: 1.55; }
+    .curr-dot { width: 6px; height: 6px; background: #c5a149; border-radius: 50%; margin-top: 7px; flex-shrink: 0; }
+    .class-type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px; }
+    .class-type { background: #fff; border: 1px solid #e8e0cc; border-radius: 8px; padding: 16px; }
+    .class-type .tag { font-size: 10px; font-weight: 700; color: #c5a149; letter-spacing: 1px; font-family: 'Apple SD Gothic Neo', sans-serif; margin-bottom: 6px; }
+    .class-type h4 { font-size: 13px; font-weight: 700; color: #0d1b4b; margin-bottom: 4px; font-family: 'Apple SD Gothic Neo', sans-serif; }
+    .class-type p { font-size: 12px; color: #777; line-height: 1.55; font-family: 'Apple SD Gothic Neo', sans-serif; }
+
+    /* 학생 글 사례 */
+    .sample-bg { background: #f8f7f2; }
+    .sample-card { background: #fff; border: 1px solid #e8e0cc; border-radius: 12px; padding: 22px; margin-bottom: 16px; }
+    .sample-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .sample-grade-badge { background: #0d1b4b; color: #e8c96a; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 12px; font-family: 'Apple SD Gothic Neo', sans-serif; white-space: nowrap; }
+    .sample-period { font-size: 11px; color: #c5a149; font-weight: 600; font-family: 'Apple SD Gothic Neo', sans-serif; }
+    .sample-book { font-size: 11px; color: #999; font-family: 'Apple SD Gothic Neo', sans-serif; }
+    .sample-title { font-size: 14px; font-weight: 700; color: #0d1b4b; margin-bottom: 10px; font-family: 'Apple SD Gothic Neo', sans-serif; border-left: 3px solid #c5a149; padding-left: 10px; }
+    .sample-quote { font-size: 13.5px; color: #333; line-height: 1.95; font-style: italic; background: #faf9f5; border-radius: 8px; padding: 16px 18px; margin-bottom: 10px; }
+    .sample-quote .ellipsis { color: #bbb; font-size: 12px; font-style: normal; display: block; margin: 6px 0; }
+    .sample-comment { font-size: 12px; color: #777; line-height: 1.65; font-family: 'Apple SD Gothic Neo', sans-serif; padding-top: 10px; border-top: 1px dashed #e8e0cc; }
+    .sample-comment strong { color: #0d1b4b; }
+
+    /* 원장 소개 */
+    .teacher-card { background: #0d1b4b; border-radius: 14px; padding: 30px 26px; display: flex; gap: 22px; align-items: flex-start; }
+    .teacher-avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #c5a149, #e8c96a); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+    .teacher-info h3 { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .teacher-info .sub { font-size: 12px; color: #e8c96a; font-family: 'Apple SD Gothic Neo', sans-serif; margin-bottom: 12px; font-weight: 600; letter-spacing: 0.5px; }
+    .teacher-info p { font-size: 13px; color: rgba(255,255,255,0.75); line-height: 1.8; font-family: 'Apple SD Gothic Neo', sans-serif; }
+    .career-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+    .career-tag { background: rgba(197,161,73,0.18); color: #e8c96a; font-size: 11px; padding: 4px 11px; border-radius: 12px; font-family: 'Apple SD Gothic Neo', sans-serif; border: 1px solid rgba(197,161,73,0.3); }
+
+    /* CTA */
+    .cta-bottom { background: linear-gradient(160deg, #0d1b4b, #1a2f6b); padding: 44px 32px; text-align: center; }
+    .cta-bottom h2 { font-size: 21px; font-weight: 700; color: #fff; margin-bottom: 10px; }
+    .cta-bottom p { font-size: 13px; color: rgba(255,255,255,0.65); margin-bottom: 26px; font-family: 'Apple SD Gothic Neo', sans-serif; line-height: 1.75; }
+    .phone-big { font-size: 28px; font-weight: 700; color: #e8c96a; letter-spacing: 1px; margin-bottom: 18px; display: block; font-family: 'Apple SD Gothic Neo', sans-serif; }
+    .cta-links { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+    /* FOOTER */
+    .footer { background: #0a1233; padding: 22px 32px; text-align: center; }
+    .footer p { font-size: 11px; color: rgba(255,255,255,0.35); font-family: 'Apple SD Gothic Neo', sans-serif; line-height: 1.75; }
+
+    /* 모바일 */
+    @media (max-width: 480px) {
+      .hero { padding: 36px 20px 40px; }
+      .hero h1 { font-size: 22px; }
+      .section { padding: 36px 20px; }
+      .why-grid { grid-template-columns: 1fr; }
+      .why-card.highlight { grid-column: 1; }
+      .class-type-grid { grid-template-columns: 1fr; }
+      .teacher-card { flex-direction: column; align-items: center; text-align: center; }
+      .phone-big { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+<div class="lp">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-logo">
+      <div class="hero-logo-text">
+        <div class="name">글답국어독서논술</div>
+        <div class="sub">geuldap Reading &amp; Essay Academy</div>
+      </div>
+    </div>
+    <div class="hero-badge">✦ 옥길동 · 초등 국어 전문</div>
+    <h1>읽고, 쓰고, 생각하는 힘<br><span>평생 흔들리지 않습니다</span></h1>
+    <p>22년 공교육 경력의 국어 전문가가<br>초등 3~6학년의 탄탄한 국어 실력을 만듭니다</p>
+    <div class="hero-cta">
+      <a class="btn-gold" href="tel:07043247175">📞 상담 전화하기</a>
+      <a class="btn-outline" href="https://blog.naver.com/guldap-edu" target="_blank">네이버 블로그 보기</a>
+    </div>
+  </div>
+
+  <div class="gold-line"></div>
+
+  <!-- WHY GEULDAP -->
+  <div class="section">
+    <div class="section-label">WHY GEULDAP</div>
+    <div class="section-title">글답이 다른 이유</div>
+    <div class="section-sub">단순 문제풀이가 아닌, 평생 쓰이는 언어 감각을 키웁니다</div>
+    <div class="why-grid">
+      <div class="why-card highlight">
+        <div class="icon">🎓</div>
+        <h3>현직 중학교 국어교사 22년 경력</h3>
+        <p>중학교 교과 흐름을 꿰뚫는 원장이 직접 설계한 커리큘럼. 초등 때 갖춰야 할 것이 무엇인지 정확히 압니다.</p>
+      </div>
+      <div class="why-card">
+        <div class="icon">📖</div>
+        <h3>40분 몰입 독서</h3>
+        <p>매 수업 깊이 읽는 훈련. 이해력·집중력의 기반이 됩니다.</p>
+      </div>
+      <div class="why-card">
+        <div class="icon">✍️</div>
+        <h3>스스로 고쳐쓰는 글쓰기</h3>
+        <p>직접 고쳐쓰며 글을 완성하는 자기주도 습관을 만듭니다.</p>
+      </div>
+      <div class="why-card">
+        <div class="icon">🔤</div>
+        <h3>맞춤법·어휘 체계 지도</h3>
+        <p>틀리기 쉬운 표현을 체계적으로 교정합니다.</p>
+      </div>
+      <div class="why-card">
+        <div class="icon">🏫</div>
+        <h3>중학 국어 선행 대비</h3>
+        <p>논술·서술형 중심의 중등 국어를 미리 대비합니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="gold-line"></div>
+
+  <!-- 5단계 -->
+  <div class="section">
+    <div class="section-label">METHODOLOGY</div>
+    <div class="section-title">글답 5단계 수업 방법론</div>
+    <div class="section-sub">모든 수업은 이 다섯 단계로 설계됩니다</div>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div class="step-info"><h3>몰입 독서</h3><p>40분간 방해 없이 깊게 읽습니다. 읽기의 근력이 생깁니다.</p></div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-info"><h3>내용 이해 확인</h3><p>읽은 내용을 구조적으로 파악하고 핵심을 정리합니다.</p></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-info"><h3>생각 글쓰기</h3><p>자신의 언어로 생각을 정리하고 문장으로 표현합니다.</p></div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-info"><h3>스스로 고쳐쓰기</h3><p>직접 글을 검토하고 수정합니다. 스스로 완성하는 훈련입니다.</p></div></div>
+      <div class="step"><div class="step-num">5</div><div class="step-info"><h3>맞춤법·어휘 정리</h3><p>매 수업 마무리에 틀린 표현과 어휘를 체계적으로 교정합니다.</p></div></div>
+    </div>
+  </div>
+
+  <div class="gold-line"></div>
+
+  <!-- 커리큘럼 -->
+  <div class="section">
+    <div class="section-label">CURRICULUM</div>
+    <div class="section-title">학년별 커리큘럼</div>
+    <div class="section-sub">초등 3학년부터 6학년까지, 단계적으로 실력을 쌓습니다</div>
+    <div class="grade-tabs">
+      <div class="grade-tab active" onclick="switchCurr(0, this)">초등 3~4학년</div>
+      <div class="grade-tab" onclick="switchCurr(1, this)">초등 5~6학년</div>
+    </div>
+    <div class="curriculum-box" id="currBox">
+      <h3>📚 초등 3~4학년 — 기초 다지기</h3>
+      <div class="curr-item"><div class="curr-dot"></div>소리 내어 읽기 → 묵독으로 전환 훈련</div>
+      <div class="curr-item"><div class="curr-dot"></div>짧은 문단 쓰기 / 문장 구조 이해</div>
+      <div class="curr-item"><div class="curr-dot"></div>자주 틀리는 맞춤법 집중 교정</div>
+      <div class="curr-item"><div class="curr-dot"></div>독서 일지 작성 습관 형성</div>
+      <div class="curr-item"><div class="curr-dot"></div>어휘력 확장 — 반의어·유의어·속담</div>
+    </div>
+    <div class="class-type-grid">
+      <div class="class-type">
+        <div class="tag">주중 수업</div>
+        <h4>독서·글쓰기·논술 통합</h4>
+        <p>읽기-쓰기-고치기 3단계 완성 수업</p>
+      </div>
+      <div class="class-type">
+        <div class="tag">토요 수업</div>
+        <h4>창의 글쓰기 심화</h4>
+        <p>서울대 국문과 · 서강대 경영학과 강사의 테마 글쓰기 수업</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="gold-line"></div>
+
+  <!-- 학생 글 사례 -->
+  <div class="section sample-bg">
+    <div class="section-label">STUDENT WORK</div>
+    <div class="section-title">학생 글 사례</div>
+    <div class="section-sub">아이들이 글답에서 직접 쓴 글입니다. 선생님이 대신 써주지 않습니다.</div>
+
+    <div class="sample-card">
+      <div class="sample-header">
+        <span class="sample-grade-badge">초등 5학년</span>
+        <span class="sample-period">수업 1개월차</span>
+        <span class="sample-book">· 장영희 수필 〈괜찮아〉</span>
+      </div>
+      <div class="sample-title">제목: 나랑 친구할래?</div>
+      <div class="sample-quote">
+        "나는 항상 이 말을 당연하게 여겨왔다. 하지만 나는 작년에 이 말이 나에게 무척 소중한 말이라는 것을 깨달았다. 이 말은 누군가에게는 아무리 용기를 내어도 할 수 없는 말이고, 다른 누군가에게는 대수롭지 않은 말이 될 수 있다.
+        <span class="ellipsis">(...)</span>
+        나는 이 말이 누군가에게 힘이 되고, 희망이 되는 이 말을 해준다는 것 자체가 기쁘고 행복하다. 사소한 것들이 나에게는 의미가 있는 것이다."
+      </div>
+      <div class="sample-comment"><strong>→ 수업 1개월차에 완성한 글입니다.</strong> 수필을 읽고 단순 줄거리 요약이 아닌, 자신의 경험과 연결해 쓰는 것이 글답 수업의 방식입니다. 학부모님께서 사진을 받아보시고 "우리 아이가 이런 글을 썼다고요?"라며 놀라셨습니다.</div>
+    </div>
+
+    <div class="sample-card">
+      <div class="sample-header">
+        <span class="sample-grade-badge">초등 5학년</span>
+        <span class="sample-period">토요 주제 글쓰기</span>
+        <span class="sample-book">· 주제: 내가 다른 사람이 된다면</span>
+      </div>
+      <div class="sample-title">제목: 내가 만약 일론 머스크가 된다면</div>
+      <div class="sample-quote">
+        "그가 가진 가장 큰 장점은 여러 사업(테슬라, 스타링크)들이 있어서 돈도 안정적으로 벌 수 있으며 세상에서 많이 유명한 사람이다.
+        <span class="ellipsis">(...)</span>
+        두 번째로 좋은 점은 살아가는 데 제약이 거의 없기 때문이다. 예를 들면: 돈이 부족해? 조금만 기다려봐. 사고 싶은 게 있어? 그냥 사!"
+      </div>
+      <div class="sample-comment"><strong>→ 위트 있는 표현 속에 주장-이유-예시 구조가 완벽하게 담겨 있습니다.</strong> 논리력과 유머 감각이 함께 자라는 것이 글답 글쓰기의 특징입니다.</div>
+    </div>
+
+    <div class="sample-card">
+      <div class="sample-header">
+        <span class="sample-grade-badge">초등 4학년</span>
+        <span class="sample-period">수업 3개월차</span>
+        <span class="sample-book">· 《잘못 뽑은 반장》</span>
+      </div>
+      <div class="sample-title">제목: 로운이의 변화</div>
+      <div class="sample-quote">
+        "로운이처럼 처음에는 부족해도 봉사를 잘 하고 반장으로서 책임감을 가지면 좋겠다는 이야기이다.
+        <span class="ellipsis">(...)</span>
+        좋은 리더는 성실한 사람이다. 나도 학급과 사회에서 더 차분하고 성실하고 싶다. '지금부터 노력하자!'"
+      </div>
+      <div class="sample-comment"><strong>→ 독후활동지 10문항 → 글쓰기 개요 → 완성 독후감의 3단계 과정을 거친 글입니다.</strong> 책 읽기가 삶의 다짐으로 연결되는 것, 이것이 글답이 추구하는 독서의 방향입니다.</div>
+    </div>
+  </div>
+
+  <div class="gold-line"></div>
+
+  <!-- 원장 소개 -->
+  <div class="section">
+    <div class="section-label">ABOUT</div>
+    <div class="section-title">원장 소개</div>
+    <div class="section-sub" style="margin-bottom:22px">22년의 공교육 경험이 글답의 기반입니다</div>
+    <div class="teacher-card">
+      <div class="teacher-avatar">📝</div>
+      <div class="teacher-info">
+        <h3>글답국어 원장</h3>
+        <div class="sub">중등 1급 정교사 · 국어교육 전공</div>
+        <p>22년간 중학교 국어 교사로 많은 학생들을 가르치며, 초등에서 무엇이 준비되어야 중학 국어를 잘할 수 있는지 직접 확인했습니다. 그 경험이 글답의 커리큘럼이 되었습니다.</p>
+        <div class="career-tags">
+          <span class="career-tag">공교육 22년</span>
+          <span class="career-tag">명예퇴직</span>
+          <span class="career-tag">논술 전문</span>
+          <span class="career-tag">독서교육</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-bottom">
+    <h2>지금 바로 상담해보세요</h2>
+    <p>수업 방식, 학년별 커리큘럼, 시간표 등<br>궁금한 것은 전화로 편하게 물어보세요</p>
+    <a class="phone-big" href="tel:07043247175">☎ 070-4324-7175</a>
+    <div class="cta-links">
+      <a class="btn-gold" href="tel:07043247175">전화 상담</a>
+      <a class="btn-outline" href="https://blog.naver.com/guldap-edu" target="_blank">네이버 블로그 →</a>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <p>글답국어독서논술학원 · 옥길동<br>070-4324-7175 · geuldap.co.kr</p>
+  </div>
+
+</div>
+
+<script>
+  const currData = {
+    0: {
+      title: '📚 초등 3~4학년 — 기초 다지기',
+      items: ['소리 내어 읽기 → 묵독으로 전환 훈련','짧은 문단 쓰기 / 문장 구조 이해','자주 틀리는 맞춤법 집중 교정','독서 일지 작성 습관 형성','어휘력 확장 — 반의어·유의어·속담']
+    },
+    1: {
+      title: '📚 초등 5~6학년 — 중학 대비 심화',
+      items: ['장문 독해 및 핵심 주제 파악','논술형 글쓰기 — 주장·근거·예시 구조','중학 교과 어휘·문법 선행 학습','스스로 고쳐쓰기 심화 — 논리적 일관성 점검','서술형 답안 작성 훈련']
+    }
+  };
+
+  function switchCurr(idx, el) {
+    document.querySelectorAll('.grade-tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    const d = currData[idx];
+    const box = document.getElementById('currBox');
+    box.innerHTML = '<h3>' + d.title + '</h3>' +
+      d.items.map(t => '<div class="curr-item"><div class="curr-dot"></div>' + t + '</div>').join('');
+  }
+</script>
+</body>
+</html>
