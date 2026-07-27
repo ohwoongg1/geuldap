@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>글답 글쓰기 성장 관리 시스템</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&family=Noto+Serif+KR:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Noto Sans KR', sans-serif; background: #f0f2f5; color: #1a1a2e; }
+
+    /* 헤더 */
+    .header { background: linear-gradient(135deg, #0d1b4b, #1a2f6b); padding: 18px 32px; display: flex; align-items: center; justify-content: space-between; }
+    .header-title { font-family: 'Noto Serif KR', serif; font-size: 20px; font-weight: 700; color: #fff; }
+    .header-title span { color: #e8c96a; }
+    .header-sub { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+
+    /* 탭 네비 */
+    .tab-nav { background: #fff; border-bottom: 1px solid #e0e0e0; display: flex; padding: 0 32px; }
+    .tab { padding: 14px 20px; font-size: 14px; font-weight: 600; color: #888; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+    .tab.active { color: #0d1b4b; border-bottom-color: #c5a149; }
+
+    /* 메인 */
+    .main { max-width: 1200px; margin: 0 auto; padding: 28px 24px; }
+
+    /* 카드 */
+    .card { background: #fff; border-radius: 14px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .card-title { font-size: 16px; font-weight: 700; color: #0d1b4b; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+    .card-title::before { content: ''; width: 4px; height: 18px; background: #c5a149; border-radius: 2px; display: block; }
+
+    /* 폼 */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1/-1; }
+    label { font-size: 13px; font-weight: 600; color: #555; }
+    input, select, textarea { padding: 10px 14px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 14px; font-family: 'Noto Sans KR', sans-serif; transition: border 0.2s; outline: none; }
+    input:focus, select:focus, textarea:focus { border-color: #c5a149; }
+    textarea { resize: vertical; min-height: 80px; }
+
+    /* 버튼 */
+    .btn { padding: 11px 24px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; transition: all 0.2s; }
+    .btn-primary { background: linear-gradient(135deg, #c5a149, #e8c96a); color: #0d1b4b; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-secondary { background: #f0f2f5; color: #555; }
+    .btn-danger { background: #fff0f0; color: #e53e3e; border: 1px solid #fecaca; }
+    .btn-sm { padding: 6px 14px; font-size: 12px; }
+
+    /* 학생 목록 */
+    .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+    .student-card { background: #f8f9fc; border: 1.5px solid #e8e0cc; border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s; }
+    .student-card:hover, .student-card.selected { border-color: #c5a149; background: #fefbf3; }
+    .student-avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #0d1b4b, #1a2f6b); color: #e8c96a; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+    .student-name { font-size: 15px; font-weight: 700; color: #0d1b4b; }
+    .student-info { font-size: 12px; color: #888; margin-top: 3px; }
+    .student-count { font-size: 11px; color: #c5a149; font-weight: 600; margin-top: 6px; }
+
+    /* 업로드 영역 */
+    .upload-area { border: 2px dashed #c5a149; border-radius: 12px; padding: 32px; text-align: center; cursor: pointer; transition: all 0.2s; background: #fefbf3; }
+    .upload-area:hover { background: #fdf6e3; }
+    .upload-icon { font-size: 36px; margin-bottom: 10px; }
+    .upload-text { font-size: 14px; color: #888; }
+    .upload-text strong { color: #0d1b4b; }
+    .preview-img { max-width: 100%; max-height: 300px; border-radius: 8px; margin-top: 16px; }
+
+    /* 평가 결과 */
+    .eval-header { background: linear-gradient(135deg, #0d1b4b, #1a2f6b); border-radius: 12px; padding: 24px; color: #fff; margin-bottom: 20px; }
+    .eval-student { font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 4px; }
+    .eval-title { font-family: 'Noto Serif KR', serif; font-size: 22px; font-weight: 700; color: #e8c96a; margin-bottom: 8px; }
+    .eval-date { font-size: 12px; color: rgba(255,255,255,0.5); }
+    .eval-total { font-size: 36px; font-weight: 700; color: #e8c96a; margin-top: 12px; }
+    .eval-total span { font-size: 16px; color: rgba(255,255,255,0.6); }
+
+    /* 점수 그리드 */
+    .score-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+    .score-item { background: #f8f9fc; border-radius: 10px; padding: 14px; text-align: center; }
+    .score-label { font-size: 12px; color: #888; margin-bottom: 6px; }
+    .score-value { font-size: 24px; font-weight: 700; color: #0d1b4b; }
+    .score-value.high { color: #2f855a; }
+    .score-value.mid { color: #c5a149; }
+    .score-value.low { color: #e53e3e; }
+    .score-bar { height: 4px; background: #e0e0e0; border-radius: 2px; margin-top: 8px; }
+    .score-bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #c5a149, #e8c96a); }
+
+    /* 평가 텍스트 */
+    .eval-section { margin-bottom: 16px; }
+    .eval-section-title { font-size: 13px; font-weight: 700; color: #0d1b4b; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+    .eval-text { font-size: 14px; color: #444; line-height: 1.75; background: #f8f9fc; border-radius: 8px; padding: 14px; }
+    .badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+    .badge-good { background: #f0fff4; color: #2f855a; }
+    .badge-bad { background: #fff5f5; color: #c53030; }
+
+    /* 비교 */
+    .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .compare-card { border-radius: 10px; padding: 16px; }
+    .compare-card.good { background: #f0fff4; border: 1px solid #c6f6d5; }
+    .compare-card.bad { background: #fff5f5; border: 1px solid #fed7d7; }
+    .compare-title { font-size: 13px; font-weight: 700; margin-bottom: 10px; }
+    .compare-title.good { color: #2f855a; }
+    .compare-title.bad { color: #c53030; }
+    .compare-item { font-size: 13px; color: #555; margin-bottom: 6px; display: flex; gap: 6px; line-height: 1.5; }
+
+    /* 글 기록 목록 */
+    .record-list { display: flex; flex-direction: column; gap: 12px; }
+    .record-item { background: #f8f9fc; border: 1px solid #e0e0e0; border-radius: 10px; padding: 16px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s; }
+    .record-item:hover { border-color: #c5a149; background: #fefbf3; }
+    .record-date { font-size: 12px; color: #888; min-width: 80px; }
+    .record-title { font-size: 14px; font-weight: 600; color: #0d1b4b; flex: 1; }
+    .record-score { font-size: 20px; font-weight: 700; color: #c5a149; min-width: 50px; text-align: right; }
+    .record-change { font-size: 12px; font-weight: 600; }
+    .record-change.up { color: #2f855a; }
+    .record-change.down { color: #e53e3e; }
+    .record-change.same { color: #888; }
+
+    /* 로딩 */
+    .loading { display: none; text-align: center; padding: 40px; }
+    .loading.show { display: block; }
+    .spinner { width: 40px; height: 40px; border: 3px solid #e0e0e0; border-top-color: #c5a149; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 14px; color: #888; }
+
+    /* 페이지 */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* 빈 상태 */
+    .empty { text-align: center; padding: 48px; color: #aaa; }
+    .empty-icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-text { font-size: 15px; }
+
+    /* 모달 */
+    .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+    .modal-bg.show { display: flex; }
+    .modal { background: #fff; border-radius: 16px; padding: 28px; width: 90%; max-width: 500px; }
+    .modal-title { font-size: 18px; font-weight: 700; color: #0d1b4b; margin-bottom: 20px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+    @media (max-width: 768px) {
+      .score-grid { grid-template-columns: repeat(2, 1fr); }
+      .compare-grid { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<div class="header">
+  <div>
+    <div class="header-title">글답 <span>글쓰기 성장</span> 관리 시스템</div>
+    <div class="header-sub">AI 기반 학생 글쓰기 평가 · 성장 추적</div>
+  </div>
+  <button class="btn btn-primary" onclick="showModal('addStudent')">+ 학생 등록</button>
+</div>
+
+<!-- 탭 -->
+<div class="tab-nav">
+  <div class="tab active" onclick="switchTab('students')">학생 관리</div>
+  <div class="tab" onclick="switchTab('upload')">글 업로드 · 평가</div>
+  <div class="tab" onclick="switchTab('records')">평가 기록</div>
+</div>
+
+<div class="main">
+
+  <!-- 학생 관리 탭 -->
+  <div class="page active" id="page-students">
+    <div class="card">
+      <div class="card-title">등록된 학생</div>
+      <div class="student-grid" id="studentGrid">
+        <div class="empty">
+          <div class="empty-icon">👦</div>
+          <div class="empty-text">등록된 학생이 없습니다<br>우측 상단 + 학생 등록을 눌러주세요</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 업로드 · 평가 탭 -->
+  <div class="page" id="page-upload">
+    <div class="card">
+      <div class="card-title">학생 선택</div>
+      <div class="student-grid" id="uploadStudentGrid">
+        <div class="empty"><div class="empty-icon">👦</div><div class="empty-text">먼저 학생을 등록해주세요</div></div>
+      </div>
+    </div>
+
+    <div class="card" id="uploadSection" style="display:none;">
+      <div class="card-title">글 사진 업로드</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>글 종류</label>
+          <select id="writingType">
+            <option value="독후감">독후감</option>
+            <option value="주제글쓰기">주제글쓰기</option>
+            <option value="논술">논술</option>
+            <option value="수행평가">수행평가</option>
+            <option value="자유글쓰기">자유글쓰기</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>참고 도서/주제 (선택)</label>
+          <input type="text" id="writingTopic" placeholder="예) 잘못 뽑은 반장, 새벽">
+        </div>
+        <div class="form-group full">
+          <label>사진 업로드</label>
+          <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+            <div class="upload-icon">📸</div>
+            <div class="upload-text"><strong>클릭하여 사진 선택</strong><br>학생이 쓴 글 사진을 올려주세요</div>
+            <img id="previewImg" class="preview-img" style="display:none;">
+          </div>
+          <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="previewImage(this)">
+        </div>
+        <div class="form-group full">
+          <label>글 내용 (OCR 추출 또는 직접 입력)</label>
+          <textarea id="writingContent" rows="8" placeholder="사진에서 자동으로 글을 추출합니다. 또는 직접 입력하세요..."></textarea>
+          <button class="btn btn-secondary btn-sm" style="margin-top:8px; width:fit-content;" onclick="extractFromImage()">📷 사진에서 글 추출</button>
+        </div>
+      </div>
+      <div style="margin-top:20px; display:flex; gap:10px;">
+        <button class="btn btn-primary" onclick="evaluateWriting()">🤖 AI 평가 시작</button>
+      </div>
+    </div>
+
+    <!-- 로딩 -->
+    <div class="loading" id="loadingSection">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loadingText">AI가 글을 분석하고 있습니다...</div>
+    </div>
+
+    <!-- 평가 결과 -->
+    <div id="evalResult" style="display:none;">
+      <div class="eval-header" id="evalHeader"></div>
+      <div class="card">
+        <div class="card-title">항목별 점수</div>
+        <div class="score-grid" id="scoreGrid"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">종합 평가</div>
+        <div id="evalSummary"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">이전 글과 비교</div>
+        <div id="evalCompare"></div>
+      </div>
+      <div style="display:flex; gap:10px; justify-content:flex-end; margin-bottom:20px;">
+        <button class="btn btn-secondary" onclick="resetUpload()">새 글 평가</button>
+        <button class="btn btn-primary" onclick="saveRecord()">💾 기록 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 평가 기록 탭 -->
+  <div class="page" id="page-records">
+    <div class="card">
+      <div class="card-title">학생 선택</div>
+      <div class="student-grid" id="recordStudentGrid"></div>
+    </div>
+    <div class="card" id="recordListSection" style="display:none;">
+      <div class="card-title" id="recordListTitle">평가 기록</div>
+      <div class="record-list" id="recordList"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 학생 등록 모달 -->
+<div class="modal-bg" id="modal-addStudent">
+  <div class="modal">
+    <div class="modal-title">학생 등록</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>이름</label>
+        <input type="text" id="newStudentName" placeholder="홍길동">
+      </div>
+      <div class="form-group">
+        <label>학년</label>
+        <select id="newStudentGrade">
+          <option>초등 3학년</option>
+          <option>초등 4학년</option>
+          <option>초등 5학년</option>
+          <option>초등 6학년</option>
+          <option>중학교 1학년</option>
+          <option>중학교 2학년</option>
+          <option>중학교 3학년</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>입학일</label>
+        <input type="date" id="newStudentDate">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="hideModal('addStudent')">취소</button>
+      <button class="btn btn-primary" onclick="addStudent()">등록</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 상태 =====
+let students = JSON.parse(localStorage.getItem('geuldap_students') || '[]');
+let records = JSON.parse(localStorage.getItem('geuldap_records') || '[]');
+let selectedStudent = null;
+let currentEval = null;
+let uploadedImageBase64 = null;
+
+// ===== 초기화 =====
+window.onload = () => {
+  document.getElementById('newStudentDate').value = new Date().toISOString().split('T')[0];
+  renderStudents();
+};
+
+// ===== 탭 전환 =====
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', ['students','upload','records'][i] === tab);
+  });
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  if (tab === 'upload') renderUploadStudents();
+  if (tab === 'records') renderRecordStudents();
+}
+
+// ===== 학생 렌더링 =====
+function renderStudents() {
+  const grid = document.getElementById('studentGrid');
+  if (students.length === 0) {
+    grid.innerHTML = '<div class="empty"><div class="empty-icon">👦</div><div class="empty-text">등록된 학생이 없습니다<br>우측 상단 + 학생 등록을 눌러주세요</div></div>';
+    return;
+  }
+  grid.innerHTML = students.map(s => {
+    const cnt = records.filter(r => r.studentId === s.id).length;
+    return `<div class="student-card">
+      <div class="student-avatar">${s.name[0]}</div>
+      <div class="student-name">${s.name}</div>
+      <div class="student-info">${s.grade} · ${s.date}</div>
+      <div class="student-count">📝 ${cnt}편 작성</div>
+      <div style="margin-top:10px; display:flex; gap:6px;">
+        <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}')">삭제</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderUploadStudents() {
+  const grid = document.getElementById('uploadStudentGrid');
+  if (students.length === 0) {
+    grid.innerHTML = '<div class="empty"><div class="empty-icon">👦</div><div class="empty-text">먼저 학생을 등록해주세요</div></div>';
+    return;
+  }
+  grid.innerHTML = students.map(s => `
+    <div class="student-card ${selectedStudent?.id === s.id ? 'selected' : ''}" onclick="selectStudent('${s.id}', 'upload')">
+      <div class="student-avatar">${s.name[0]}</div>
+      <div class="student-name">${s.name}</div>
+      <div class="student-info">${s.grade}</div>
+    </div>`).join('');
+}
+
+function renderRecordStudents() {
+  const grid = document.getElementById('recordStudentGrid');
+  if (students.length === 0) {
+    grid.innerHTML = '<div class="empty"><div class="empty-icon">👦</div><div class="empty-text">등록된 학생이 없습니다</div></div>';
+    return;
+  }
+  grid.innerHTML = students.map(s => {
+    const cnt = records.filter(r => r.studentId === s.id).length;
+    return `<div class="student-card" onclick="showStudentRecords('${s.id}')">
+      <div class="student-avatar">${s.name[0]}</div>
+      <div class="student-name">${s.name}</div>
+      <div class="student-info">${s.grade}</div>
+      <div class="student-count">📝 ${cnt}편</div>
+    </div>`;
+  }).join('');
+}
+
+// ===== 학생 선택 =====
+function selectStudent(id, mode) {
+  selectedStudent = students.find(s => s.id === id);
+  if (mode === 'upload') {
+    renderUploadStudents();
+    document.getElementById('uploadSection').style.display = 'block';
+    document.getElementById('evalResult').style.display = 'none';
+  }
+}
+
+// ===== 학생 추가/삭제 =====
+function addStudent() {
+  const name = document.getElementById('newStudentName').value.trim();
+  const grade = document.getElementById('newStudentGrade').value;
+  const date = document.getElementById('newStudentDate').value;
+  if (!name) { alert('이름을 입력해주세요'); return; }
+  students.push({ id: Date.now().toString(), name, grade, date });
+  localStorage.setItem('geuldap_students', JSON.stringify(students));
+  hideModal('addStudent');
+  document.getElementById('newStudentName').value = '';
+  renderStudents();
+}
+
+function deleteStudent(id) {
+  if (!confirm('학생을 삭제하면 관련 기록도 모두 삭제됩니다. 계속할까요?')) return;
+  students = students.filter(s => s.id !== id);
+  records = records.filter(r => r.studentId !== id);
+  localStorage.setItem('geuldap_students', JSON.stringify(students));
+  localStorage.setItem('geuldap_records', JSON.stringify(records));
+  renderStudents();
+}
+
+// ===== 이미지 미리보기 =====
+function previewImage(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    uploadedImageBase64 = e.target.result.split(',')[1];
+    const img = document.getElementById('previewImg');
+    img.src = e.target.result;
+    img.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+// ===== OCR 추출 =====
+async function extractFromImage() {
+  if (!uploadedImageBase64) { alert('사진을 먼저 업로드해주세요'); return; }
+  setLoading(true, '사진에서 글을 추출하고 있습니다...');
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: uploadedImageBase64 } },
+            { type: 'text', text: '이 사진에서 학생이 쓴 글의 텍스트만 정확하게 추출해주세요. 제목도 포함해서 글 내용만 출력하세요.' }
+          ]
+        }]
+      })
+    });
+    const data = await res.json();
+    document.getElementById('writingContent').value = data.content[0].text;
+  } catch(e) { alert('추출 중 오류가 발생했습니다'); }
+  setLoading(false);
+}
+
+// ===== AI 평가 =====
+async function evaluateWriting() {
+  if (!selectedStudent) { alert('학생을 선택해주세요'); return; }
+  const content = document.getElementById('writingContent').value.trim();
+  if (!content) { alert('글 내용을 입력하거나 사진에서 추출해주세요'); return; }
+
+  const type = document.getElementById('writingType').value;
+  const topic = document.getElementById('writingTopic').value;
+  const grade = selectedStudent.grade;
+
+  // 이전 글 가져오기
+  const prevRecords = records.filter(r => r.studentId === selectedStudent.id).slice(-3);
+  const prevInfo = prevRecords.length > 0
+    ? '이전 글들: ' + prevRecords.map(r => `[${r.date}] 총점 ${r.totalScore}점 - ${r.summary?.substring(0,50)}`).join(' / ')
+    : '이전 글 없음 (첫 번째 글)';
+
+  setLoading(true, 'AI가 글을 분석하고 있습니다...');
+  document.getElementById('evalResult').style.display = 'none';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: `당신은 22년 경력의 국어 교사입니다. ${grade} 학생의 ${type} 글을 냉정하고 전문적으로 평가해주세요.
+
+[학생 정보]
+학년: ${grade}
+글 종류: ${type}
+${topic ? '주제/도서: ' + topic : ''}
+${prevInfo}
+
+[학생 글]
+${content}
+
+아래 JSON 형식으로만 응답하세요. 다른 텍스트 없이 JSON만 출력하세요:
+{
+  "title": "글 제목 (첫 줄에서 추출, 없으면 주제 요약)",
+  "scores": {
+    "논리성": 점수,
+    "소재참신성": 점수,
+    "어휘풍부성": 점수,
+    "문장구성력": 점수,
+    "표현다양성": 점수,
+    "주제일관성": 점수,
+    "감수성창의성": 점수,
+    "맞춤법": 점수
+  },
+  "strengths": ["잘된 점 1", "잘된 점 2", "잘된 점 3"],
+  "improvements": ["아쉬운 점 1", "아쉬운 점 2"],
+  "summary": "전체 총평 (3-4문장, 냉정하고 구체적으로)",
+  "compare": "${prevRecords.length > 0 ? '이전 글과 비교하여 달라진 점 (구체적으로)' : '첫 번째 글이므로 앞으로의 방향 제시'}",
+  "encouragement": "학생에게 전하는 한마디 (따뜻하게)"
+}`
+        }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content[0].text.replace(/```json|```/g, '').trim();
+    currentEval = JSON.parse(text);
+    currentEval.studentId = selectedStudent.id;
+    currentEval.studentName = selectedStudent.name;
+    currentEval.grade = selectedStudent.grade;
+    currentEval.type = type;
+    currentEval.topic = topic;
+    currentEval.content = content;
+    currentEval.date = new Date().toLocaleDateString('ko-KR');
+    currentEval.totalScore = Math.round(Object.values(currentEval.scores).reduce((a,b) => a+b, 0) / 8 * 10) / 10;
+    renderEvalResult();
+  } catch(e) {
+    alert('평가 중 오류가 발생했습니다. 다시 시도해주세요.');
+    console.error(e);
+  }
+  setLoading(false);
+}
+
+// ===== 평가 결과 렌더링 =====
+function renderEvalResult() {
+  const e = currentEval;
+
+  // 헤더
+  document.getElementById('evalHeader').innerHTML = `
+    <div class="eval-student">${e.studentName} · ${e.grade} · ${e.type}</div>
+    <div class="eval-title">${e.title}</div>
+    <div class="eval-date">${e.date}</div>
+    <div class="eval-total">${e.totalScore}<span> / 10점</span></div>`;
+
+  // 점수 그리드
+  const scoreNames = { '논리성':'🧠','소재참신성':'✨','어휘풍부성':'📚','문장구성력':'✏️','표현다양성':'🎨','주제일관성':'🎯','감수성창의성':'💡','맞춤법':'🔤' };
+  document.getElementById('scoreGrid').innerHTML = Object.entries(e.scores).map(([k,v]) => {
+    const cls = v >= 8 ? 'high' : v >= 6 ? 'mid' : 'low';
+    return `<div class="score-item">
+      <div class="score-label">${scoreNames[k] || ''} ${k}</div>
+      <div class="score-value ${cls}">${v}</div>
+      <div class="score-bar"><div class="score-bar-fill" style="width:${v*10}%"></div></div>
+    </div>`;
+  }).join('');
+
+  // 총평
+  document.getElementById('evalSummary').innerHTML = `
+    <div class="eval-section">
+      <div class="eval-section-title">📋 총평</div>
+      <div class="eval-text">${e.summary}</div>
+    </div>
+    <div class="compare-grid" style="margin-top:16px;">
+      <div class="compare-card good">
+        <div class="compare-title good">✅ 잘된 점</div>
+        ${e.strengths.map(s => `<div class="compare-item">• ${s}</div>`).join('')}
+      </div>
+      <div class="compare-card bad">
+        <div class="compare-title bad">📌 보완할 점</div>
+        ${e.improvements.map(s => `<div class="compare-item">• ${s}</div>`).join('')}
+      </div>
+    </div>
+    <div class="eval-section" style="margin-top:16px;">
+      <div class="eval-section-title">💬 학생에게</div>
+      <div class="eval-text" style="background:#fefbf3; border-left:3px solid #c5a149; padding-left:16px;">${e.encouragement}</div>
+    </div>`;
+
+  // 비교
+  document.getElementById('evalCompare').innerHTML = `<div class="eval-text">${e.compare}</div>`;
+
+  document.getElementById('evalResult').style.display = 'block';
+  document.getElementById('evalResult').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ===== 기록 저장 =====
+function saveRecord() {
+  if (!currentEval) return;
+  records.push({ ...currentEval, id: Date.now().toString() });
+  localStorage.setItem('geuldap_records', JSON.stringify(records));
+  alert('저장되었습니다!');
+  renderStudents();
+}
+
+// ===== 학생 기록 보기 =====
+function showStudentRecords(id) {
+  const student = students.find(s => s.id === id);
+  const studentRecords = records.filter(r => r.studentId === id).reverse();
+  document.getElementById('recordListSection').style.display = 'block';
+  document.getElementById('recordListTitle').textContent = `${student.name} 평가 기록 (${studentRecords.length}편)`;
+
+  if (studentRecords.length === 0) {
+    document.getElementById('recordList').innerHTML = '<div class="empty"><div class="empty-icon">📝</div><div class="empty-text">아직 평가 기록이 없습니다</div></div>';
+    return;
+  }
+
+  document.getElementById('recordList').innerHTML = studentRecords.map((r, i) => {
+    const prev = studentRecords[i+1];
+    const diff = prev ? (r.totalScore - prev.totalScore).toFixed(1) : null;
+    const changeEl = diff === null ? '' :
+      diff > 0 ? `<span class="record-change up">▲ ${diff}</span>` :
+      diff < 0 ? `<span class="record-change down">▼ ${Math.abs(diff)}</span>` :
+      `<span class="record-change same">— 동일</span>`;
+
+    return `<div class="record-item" onclick="showRecordDetail('${r.id}')">
+      <div class="record-date">${r.date}</div>
+      <div>
+        <div class="record-title">${r.title}</div>
+        <div style="font-size:12px; color:#888;">${r.type}${r.topic ? ' · ' + r.topic : ''}</div>
+      </div>
+      ${changeEl}
+      <div class="record-score">${r.totalScore}</div>
+    </div>`;
+  }).join('');
+}
+
+// ===== 기록 상세 =====
+function showRecordDetail(id) {
+  currentEval = records.find(r => r.id === id);
+  switchTab('upload');
+  renderEvalResult();
+}
+
+// ===== 리셋 =====
+function resetUpload() {
+  document.getElementById('writingContent').value = '';
+  document.getElementById('writingTopic').value = '';
+  document.getElementById('fileInput').value = '';
+  document.getElementById('previewImg').style.display = 'none';
+  document.getElementById('evalResult').style.display = 'none';
+  uploadedImageBase64 = null;
+  currentEval = null;
+  window.scrollTo(0, 0);
+}
+
+// ===== 로딩 =====
+function setLoading(show, text) {
+  const el = document.getElementById('loadingSection');
+  el.classList.toggle('show', show);
+  if (text) document.getElementById('loadingText').textContent = text;
+  if (show) el.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ===== 모달 =====
+function showModal(id) { document.getElementById('modal-' + id).classList.add('show'); }
+function hideModal(id) { document.getElementById('modal-' + id).classList.remove('show'); }
+</script>
+</body>
+</html>
