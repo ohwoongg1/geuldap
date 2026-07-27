@@ -442,7 +442,9 @@
     setLoading(false);
   }
 
-  // ===== AI 평가 =====
+  // ===== AI 평가 (Firebase Function 경유) =====
+  const EVAL_FUNCTION_URL = 'https://evaluatewriting-ebdj223r6q-du.a.run.app';
+
   async function evaluateWriting() {
     if (!selectedStudent) { alert('학생을 선택해주세요'); return; }
     const content = document.getElementById('writingContent').value.trim();
@@ -455,14 +457,15 @@
     setLoading(true,'AI가 글을 분석하고 있습니다...');
     document.getElementById('evalResult').style.display='none';
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const prompt = `당신은 22년 경력의 국어 교사입니다. ${selectedStudent.grade} 학생의 ${type} 글을 냉정하고 전문적으로 평가해주세요.\n학생: ${selectedStudent.name} (${selectedStudent.grade})\n글 종류: ${type}${topic?'\n주제: '+topic:''}\n${prevInfo}\n\n[학생 글]\n${content}\n\n아래 JSON 형식으로만 응답하세요:\n{"title":"글 제목","scores":{"논리성":점수,"소재참신성":점수,"어휘풍부성":점수,"문장구성력":점수,"표현다양성":점수,"주제일관성":점수,"감수성창의성":점수,"맞춤법":점수},"strengths":["잘된 점1","잘된 점2","잘된 점3"],"improvements":["아쉬운 점1","아쉬운 점2"],"summary":"전체 총평 3-4문장","compare":"이전 글과 비교 또는 앞으로 방향","encouragement":"학생에게 한마디"}`;
+
+      const res = await fetch(EVAL_FUNCTION_URL, {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1000, messages:[{role:'user',content:
-          `당신은 22년 경력의 국어 교사입니다. ${selectedStudent.grade} 학생의 ${type} 글을 냉정하고 전문적으로 평가해주세요.\n학생: ${selectedStudent.name} (${selectedStudent.grade})\n글 종류: ${type}${topic?'\n주제: '+topic:''}\n${prevInfo}\n\n[학생 글]\n${content}\n\n아래 JSON 형식으로만 응답하세요:\n{"title":"글 제목","scores":{"논리성":점수,"소재참신성":점수,"어휘풍부성":점수,"문장구성력":점수,"표현다양성":점수,"주제일관성":점수,"감수성창의성":점수,"맞춤법":점수},"strengths":["잘된 점1","잘된 점2","잘된 점3"],"improvements":["아쉬운 점1","아쉬운 점2"],"summary":"전체 총평 3-4문장","compare":"이전 글과 비교 또는 앞으로 방향","encouragement":"학생에게 한마디"}`
-        }]})
+        body: JSON.stringify({ prompt })
       });
       const data = await res.json();
-      const text = data.content[0].text.replace(/```json|```/g,'').trim();
+      if (data.error) throw new Error(data.error);
+      const text = data.text.replace(/```json|```/g,'').trim();
       currentEval = JSON.parse(text);
       currentEval.studentId = selectedStudent.id;
       currentEval.studentName = selectedStudent.name;
