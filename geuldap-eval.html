@@ -220,9 +220,37 @@
       <div class="card-title">학생 선택</div>
       <div class="student-grid" id="recordStudentGrid"></div>
     </div>
+    <div class="card" id="growthChartSection" style="display:none;">
+      <div class="card-title">점수 추이</div>
+      <div id="growthChart"></div>
+    </div>
+    <div class="card" id="growthReportSection" style="display:none;">
+      <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+        <span>AI 성장 리포트</span>
+        <button class="btn btn-secondary btn-sm" onclick="generateGrowthReport()">🤖 리포트 생성</button>
+      </div>
+      <div id="growthReportBody" style="font-size:14px; color:#888;">기록이 2편 이상 쌓이면, 꾸준히 좋아지는 점과 계속 반복되는 아쉬운 점을 AI가 정리해드려요. 버튼을 눌러주세요.</div>
+    </div>
     <div class="card" id="recordListSection" style="display:none;">
       <div class="card-title" id="recordListTitle">평가 기록</div>
       <div id="recordList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 기록 상세 모달 -->
+<div class="modal-bg" id="recordDetailModal">
+  <div class="modal" style="max-width:720px; max-height:85vh; overflow-y:auto; text-align:left;">
+    <div class="modal-title" id="recordDetailTitle">평가 상세</div>
+    <div class="eval-header" id="recordDetailHeader"></div>
+    <div class="card"><div class="card-title">항목별 점수</div><div class="score-grid" id="recordDetailScoreGrid"></div></div>
+    <div class="card"><div class="card-title">종합 평가</div><div id="recordDetailSummary"></div></div>
+    <div class="card"><div class="card-title">이전 글과 비교</div><div id="recordDetailCompare"></div></div>
+    <div class="card"><div class="card-title">원본 글</div><div id="recordDetailContent" style="white-space:pre-wrap; font-size:14px; line-height:1.7;"></div></div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" onclick="deleteRecordFromDetail()">삭제</button>
+      <button class="btn btn-secondary" onclick="closeRecordDetail()">닫기</button>
+      <button class="btn btn-primary" onclick="editAndReevaluate()">✏️ 수정 후 재평가</button>
     </div>
   </div>
 </div>
@@ -331,10 +359,20 @@
   let selectedStudent = null;
   let currentEval = null;
 
+  // toISOString()은 UTC 기준이라 한국 새벽 시간대엔 하루 전 날짜로 나오는 문제가 있어,
+  // 로컬(한국) 시간 기준으로 YYYY-MM-DD를 만든다.
+  function todayLocalDateStr() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+
   // ===== 초기화 =====
   document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('newDate').value = new Date().toISOString().split('T')[0];
-    document.getElementById('writingDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('newDate').value = todayLocalDateStr();
+    document.getElementById('writingDate').value = todayLocalDateStr();
     renderStudents();
   });
 
@@ -399,7 +437,7 @@
     document.getElementById('studentModalSaveBtn').textContent = '등록';
     document.getElementById('newName').value = '';
     document.getElementById('newGrade').selectedIndex = 0;
-    document.getElementById('newDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('newDate').value = todayLocalDateStr();
     document.getElementById('studentModal').classList.add('open');
   }
   function closeModal() { document.getElementById('studentModal').classList.remove('open'); }
@@ -669,42 +707,186 @@
     setLoading(false);
   }
 
+  // ===== 점수 아이콘 (공용) =====
+  const SCORE_ICONS = {'논리성':'🧠','소재참신성':'✨','어휘풍부성':'📚','문장구성력':'✏️','표현다양성':'🎨','주제일관성':'🎯','감수성창의성':'💡','맞춤법':'🔤'};
+  function scoreGridHTML(scores) {
+    return Object.entries(scores).map(([k,v])=>`<div class="score-item"><div class="score-label">${SCORE_ICONS[k]||''} ${k}</div><div class="score-value ${v>=80?'high':v>=60?'mid':'low'}">${v}</div><div class="score-bar"><div class="score-bar-fill" style="width:${v}%"></div></div></div>`).join('');
+  }
+  function evalHeaderHTML(e) {
+    return `<div class="eval-student">${e.studentName} · ${e.grade} · ${e.type}</div><div class="eval-title">${e.title}</div><div class="eval-date">${e.date}</div><div class="eval-total">${e.totalScore}<span> / 100점</span></div>`;
+  }
+  function evalSummaryHTML(e) {
+    return `<div class="eval-text" style="margin-bottom:16px;">${e.summary}</div><div class="compare-grid"><div class="compare-card good"><div class="compare-title good">✅ 잘된 점</div>${e.strengths.map(s=>`<div class="compare-item">• ${s}</div>`).join('')}</div><div class="compare-card bad"><div class="compare-title bad">📌 보완할 점</div>${e.improvements.map(s=>`<div class="compare-item">• ${s}</div>`).join('')}</div></div><div class="eval-text" style="margin-top:16px;background:#fefbf3;border-left:3px solid #c5a149;padding-left:16px;">💬 ${e.encouragement}</div>`;
+  }
+
   // ===== 평가 렌더링 =====
   function renderEval() {
     const e = currentEval;
-    document.getElementById('evalHeader').innerHTML=`<div class="eval-student">${e.studentName} · ${e.grade} · ${e.type}</div><div class="eval-title">${e.title}</div><div class="eval-date">${e.date}</div><div class="eval-total">${e.totalScore}<span> / 100점</span></div>`;
-    const icons = {'논리성':'🧠','소재참신성':'✨','어휘풍부성':'📚','문장구성력':'✏️','표현다양성':'🎨','주제일관성':'🎯','감수성창의성':'💡','맞춤법':'🔤'};
-    document.getElementById('scoreGrid').innerHTML = Object.entries(e.scores).map(([k,v])=>`<div class="score-item"><div class="score-label">${icons[k]||''} ${k}</div><div class="score-value ${v>=8?'high':v>=6?'mid':'low'}">${v}</div><div class="score-bar"><div class="score-bar-fill" style="width:${v*10}%"></div></div></div>`).join('');
-    document.getElementById('evalSummary').innerHTML=`<div class="eval-text" style="margin-bottom:16px;">${e.summary}</div><div class="compare-grid"><div class="compare-card good"><div class="compare-title good">✅ 잘된 점</div>${e.strengths.map(s=>`<div class="compare-item">• ${s}</div>`).join('')}</div><div class="compare-card bad"><div class="compare-title bad">📌 보완할 점</div>${e.improvements.map(s=>`<div class="compare-item">• ${s}</div>`).join('')}</div></div><div class="eval-text" style="margin-top:16px;background:#fefbf3;border-left:3px solid #c5a149;padding-left:16px;">💬 ${e.encouragement}</div>`;
+    document.getElementById('evalHeader').innerHTML = evalHeaderHTML(e);
+    document.getElementById('scoreGrid').innerHTML = scoreGridHTML(e.scores);
+    document.getElementById('evalSummary').innerHTML = evalSummaryHTML(e);
     document.getElementById('evalCompare').innerHTML=`<div class="eval-text">${e.compare}</div>`;
     document.getElementById('evalResult').style.display='block';
     document.getElementById('evalResult').scrollIntoView({behavior:'smooth'});
   }
 
-  // ===== 저장 =====
+  // ===== 저장 (수정 후 재평가한 경우엔 기존 기록을 덮어씀) =====
   async function saveRecord() {
     if (!currentEval) return;
-    const r = {...currentEval, id: Date.now().toString()};
-    _records.push(r);
-    localStorage.setItem('gr', JSON.stringify(_records));
-    if (window._fbReady) await window._add(window._col(window._db,'geuldap_records'), r).catch(console.error);
-    alert('저장되었습니다!');
+    if (editingRecordId) {
+      const idx = _records.findIndex(r=>r.id===editingRecordId);
+      if (idx > -1) {
+        const updated = {...currentEval, id: editingRecordId};
+        _records[idx] = updated;
+        localStorage.setItem('gr', JSON.stringify(_records));
+        if (window._fbReady) window._updateByFieldId('geuldap_records', editingRecordId, updated).catch(console.error);
+      }
+      editingRecordId = null;
+      alert('수정한 평가로 갱신되었습니다!');
+    } else {
+      const r = {...currentEval, id: Date.now().toString()};
+      _records.push(r);
+      localStorage.setItem('gr', JSON.stringify(_records));
+      if (window._fbReady) await window._add(window._col(window._db,'geuldap_records'), r).catch(console.error);
+      alert('저장되었습니다!');
+    }
     renderStudents();
   }
 
   // ===== 기록 보기 =====
+  let currentRecordsStudentId = null;
+
   function showRecords(id) {
     const s = _students.find(x=>x.id===id);
     const recs = _records.filter(r=>r.studentId===id).reverse();
+    currentRecordsStudentId = id;
     document.getElementById('recordListSection').style.display='block';
     document.getElementById('recordListTitle').textContent=`${s.name} 평가 기록 (${recs.length}편)`;
+
+    // 성장 리포트 영역 초기화
+    document.getElementById('growthReportSection').style.display = recs.length>0 ? 'block' : 'none';
+    document.getElementById('growthReportBody').innerHTML = recs.length>=2
+      ? '기록이 2편 이상 쌓이면, 꾸준히 좋아지는 점과 계속 반복되는 아쉬운 점을 AI가 정리해드려요. 버튼을 눌러주세요.'
+      : '기록이 2편 이상 쌓이면 성장 리포트를 만들 수 있어요.';
+
+    renderGrowthChart(recs);
+
     if (recs.length===0) { document.getElementById('recordList').innerHTML='<div class="empty"><div class="empty-icon">📝</div><div>아직 기록이 없습니다</div></div>'; return; }
     document.getElementById('recordList').innerHTML = recs.map((r,i)=>{
       const prev = recs[i+1];
       const diff = prev ? (r.totalScore-prev.totalScore).toFixed(1) : null;
       const ch = diff===null?'':(diff>0?`<span class="record-change up">▲${diff}</span>`:`<span class="record-change down">▼${Math.abs(diff)}</span>`);
-      return `<div class="record-item"><div class="record-date">${r.date}</div><div><div class="record-title">${r.title}</div><div style="font-size:12px;color:#888;">${r.type}</div></div>${ch}<div class="record-score">${r.totalScore}</div></div>`;
+      return `<div class="record-item" onclick="openRecordDetail('${r.id}')"><div class="record-date">${r.date}</div><div><div class="record-title">${r.title}</div><div style="font-size:12px;color:#888;">${r.type}</div></div>${ch}<div class="record-score">${r.totalScore}</div></div>`;
     }).join('');
+  }
+
+  // ===== 점수 추이 그래프 (오래된 글 → 최신 글 순) =====
+  function renderGrowthChart(recsNewestFirst) {
+    const section = document.getElementById('growthChartSection');
+    const recs = [...recsNewestFirst].reverse(); // 오래된 순
+    if (recs.length < 2) { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+    const W = 640, H = 160, PAD = 30;
+    const scores = recs.map(r=>r.totalScore);
+    const minS = Math.max(0, Math.min(...scores) - 5);
+    const maxS = Math.min(100, Math.max(...scores) + 5);
+    const span = Math.max(1, maxS - minS);
+    const stepX = (W - PAD*2) / (recs.length - 1);
+    const pts = recs.map((r,i)=>{
+      const x = PAD + i*stepX;
+      const y = H - PAD - ((r.totalScore - minS) / span) * (H - PAD*2);
+      return {x, y, r};
+    });
+    const linePath = pts.map((p,i)=>`${i===0?'M':'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+    const dots = pts.map(p=>`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="#c5a149"><title>${p.r.date} · ${p.r.totalScore}점</title></circle>`).join('');
+    const labels = pts.map((p,i)=> (i===0||i===pts.length-1||recs.length<=6) ? `<text x="${p.x.toFixed(1)}" y="${H-8}" font-size="10" fill="#999" text-anchor="middle">${p.r.date.slice(5)}</text>` : '').join('');
+    document.getElementById('growthChart').innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%; height:auto; max-width:640px; display:block;">
+        <line x1="${PAD}" y1="${H-PAD}" x2="${W-PAD}" y2="${H-PAD}" stroke="#e0e0e0" stroke-width="1"/>
+        <path d="${linePath}" fill="none" stroke="#c5a149" stroke-width="2.5"/>
+        ${dots}
+        ${labels}
+      </svg>`;
+  }
+
+  // ===== AI 성장 리포트 =====
+  async function generateGrowthReport() {
+    const id = currentRecordsStudentId;
+    if (!id) return;
+    const s = _students.find(x=>x.id===id);
+    const recs = _records.filter(r=>r.studentId===id).sort((a,b)=> (a.id > b.id ? 1 : -1));
+    if (recs.length < 2) { alert('기록이 2편 이상 있어야 성장 리포트를 만들 수 있어요.'); return; }
+    const body = document.getElementById('growthReportBody');
+    body.innerHTML = '<span style="color:#888;">AI가 그동안의 기록을 분석하고 있습니다...</span>';
+    try {
+      const compact = recs.map(r => ({
+        date: r.date, type: r.type, score: r.totalScore,
+        strengths: r.strengths, improvements: r.improvements
+      }));
+      const prompt = `당신은 국어 교사입니다. 아래는 ${s.name} 학생(${s.grade})이 그동안 쓴 글들에 대한 평가 기록입니다(오래된 순).\n\n${JSON.stringify(compact, null, 2)}\n\n이 기록들을 종합해서 다음 세 가지를 학부모나 교사가 한눈에 볼 수 있도록 정리해주세요:\n1. 꾸준히 좋아지고 있는 부분 (구체적 근거와 함께)\n2. 시간이 지나도 계속 반복되는 아쉬운 부분 (구체적 근거와 함께)\n3. 앞으로 지도할 때 참고할 만한 한두 가지 제안\n\n각 항목은 2~3문장으로, 부모님께 설명하듯 친절하고 구체적으로 작성하세요. 마크다운 기호(#, * 등) 없이 일반 문장으로만 작성하세요.`;
+      const res = await fetch(EVAL_FUNCTION_URL, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ prompt })
+      });
+      const data = await res.json();
+      if (!res.ok || data.error || !data.text) {
+        throw new Error(data.error || `서버 오류 (status ${res.status})`);
+      }
+      body.innerHTML = `<div class="eval-text" style="white-space:pre-wrap;">${data.text.trim()}</div>`;
+    } catch(e) {
+      body.innerHTML = `<span style="color:#e53e3e;">리포트 생성 오류: ${e.message}</span>`;
+    }
+  }
+
+  // ===== 기록 상세 보기 / 수정 후 재평가 =====
+  let viewingRecordId = null;
+  let editingRecordId = null;
+
+  function openRecordDetail(id) {
+    const r = _records.find(x=>x.id===id);
+    if (!r) return;
+    viewingRecordId = id;
+    document.getElementById('recordDetailTitle').textContent = `${r.studentName} · ${r.date}`;
+    document.getElementById('recordDetailHeader').innerHTML = evalHeaderHTML(r);
+    document.getElementById('recordDetailScoreGrid').innerHTML = scoreGridHTML(r.scores);
+    document.getElementById('recordDetailSummary').innerHTML = evalSummaryHTML(r);
+    document.getElementById('recordDetailCompare').innerHTML = `<div class="eval-text">${r.compare||''}</div>`;
+    document.getElementById('recordDetailContent').textContent = r.content || '(저장된 원본 글이 없습니다)';
+    document.getElementById('recordDetailModal').classList.add('open');
+  }
+
+  function closeRecordDetail() {
+    document.getElementById('recordDetailModal').classList.remove('open');
+    viewingRecordId = null;
+  }
+
+  async function deleteRecordFromDetail() {
+    if (!viewingRecordId) return;
+    if (!confirm('이 평가 기록을 삭제할까요?')) return;
+    const id = viewingRecordId;
+    const r = _records.find(x=>x.id===id);
+    window._records = _records.filter(x=>x.id!==id);
+    localStorage.setItem('gr', JSON.stringify(_records));
+    if (window._fbReady) window._deleteByFieldId('geuldap_records', id).catch(console.error);
+    closeRecordDetail();
+    if (r) showRecords(r.studentId);
+    renderStudents();
+  }
+
+  function editAndReevaluate() {
+    const r = _records.find(x=>x.id===viewingRecordId);
+    if (!r) return;
+    editingRecordId = r.id;
+    closeRecordDetail();
+    switchTab('upload');
+    selectStudent(r.studentId);
+    document.getElementById('writingType').value = r.type;
+    document.getElementById('writingTopic').value = r.topic || '';
+    document.getElementById('writingContent').value = r.content || '';
+    // writingDate는 YYYY-MM-DD 형식이 필요한데 저장된 date는 한국어 표기라 원본 날짜를 알 수 없으면 오늘 날짜 유지
+    document.getElementById('evalResult').style.display = 'none';
+    window.scrollTo(0,0);
+    alert('내용을 수정한 뒤 "AI 평가 시작"을 다시 눌러주세요. 평가 후 저장하면 기존 기록이 갱신됩니다.');
   }
 
   // ===== 리셋 =====
@@ -714,7 +896,7 @@
     document.getElementById('fileInput').value='';
     document.getElementById('previewList').innerHTML='';
     document.getElementById('evalResult').style.display='none';
-    uploadedImages=[]; currentEval=null;
+    uploadedImages=[]; currentEval=null; editingRecordId=null;
     window.scrollTo(0,0);
   }
 
