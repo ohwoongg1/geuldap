@@ -136,6 +136,7 @@
 <div class="tab-nav">
   <div class="tab active" onclick="switchTab('students')">학생 관리</div>
   <div class="tab" onclick="switchTab('upload')">글 업로드 · 평가</div>
+  <div class="tab" onclick="switchTab('quiz')">문제 채점</div>
   <div class="tab" onclick="switchTab('records')">평가 기록</div>
 </div>
 
@@ -211,6 +212,63 @@
         <button class="btn btn-secondary" onclick="resetUpload()">새 글 평가</button>
         <button class="btn btn-primary" onclick="saveRecord()">💾 기록 저장</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 문제 채점 -->
+  <div class="page" id="page-quiz">
+    <div class="card">
+      <div class="card-title">학생 선택</div>
+      <div class="student-grid" id="quizStudentGrid"></div>
+    </div>
+    <div class="card" id="quizUploadSection" style="display:none;">
+      <div class="card-title">문제집 사진 업로드</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>채점 날짜</label>
+          <input type="date" id="quizDate">
+        </div>
+        <div class="form-group">
+          <label>과목/문제집 (선택)</label>
+          <input type="text" id="quizTopic" placeholder="예) 독해력 4단계 12과">
+        </div>
+        <div class="form-group full">
+          <label>사진 업로드 (지문+문제+학생 답이 보이도록, 여러 장 가능)</label>
+          <div class="upload-area" onclick="document.getElementById('quizFileInput').click()">
+            <div style="font-size:36px; margin-bottom:10px;">📝</div>
+            <div style="font-size:14px; color:#888;"><strong>클릭하여 사진 선택</strong><br>지문·문제·학생이 표시한 답이 잘 보이게 찍어주세요 (여러 페이지 가능)</div>
+            <div id="quizPreviewList" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; justify-content:center;"></div>
+          </div>
+          <input type="file" id="quizFileInput" accept="image/*" multiple style="display:none;" onchange="previewQuizImage(this)">
+        </div>
+      </div>
+      <div style="margin-top:20px;">
+        <button class="btn btn-primary" onclick="gradeQuiz()">🤖 AI 채점 시작</button>
+      </div>
+    </div>
+    <div class="loading" id="quizLoadingSection">
+      <div class="spinner"></div>
+      <div id="quizLoadingText" style="font-size:14px;color:#888;">AI가 채점 중입니다...</div>
+    </div>
+    <div id="quizResult" style="display:none;">
+      <div class="eval-header" id="quizResultHeader"></div>
+      <div class="card"><div class="card-title">문항별 채점</div><div id="quizItemList"></div></div>
+      <div class="card"><div class="card-title">총평</div><div id="quizOverallComment" class="eval-text"></div></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-bottom:20px;">
+        <button class="btn btn-secondary" onclick="resetQuizUpload()">새 채점</button>
+        <button class="btn btn-primary" onclick="saveQuizRecord()">💾 채점 기록 저장</button>
+      </div>
+    </div>
+    <div class="card" id="quizAnalysisSection" style="display:none;">
+      <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+        <span>약점 · 강점 분석</span>
+        <button class="btn btn-secondary btn-sm" onclick="renderQuizAnalysis(true)">🔄 새로고침</button>
+      </div>
+      <div id="quizAnalysisBody"></div>
+    </div>
+    <div class="card" id="quizReviewSection" style="display:none;">
+      <div class="card-title">틀린 문제 복습</div>
+      <div id="quizReviewBody"></div>
     </div>
   </div>
 
@@ -329,8 +387,11 @@
     ss.forEach(d => { const s = d.data(); if (!window._students.find(x=>x.id===s.id)) window._students.push(s); });
     const rs = await getDocs(collection(db, 'geuldap_records'));
     rs.forEach(d => { const r = d.data(); if (!window._records.find(x=>x.id===r.id)) window._records.push(r); });
+    const qs = await getDocs(collection(db, 'geuldap_quizzes'));
+    qs.forEach(d => { const q2 = d.data(); if (!window._quizzes.find(x=>x.id===q2.id)) window._quizzes.push(q2); });
     localStorage.setItem('gs', JSON.stringify(window._students));
     localStorage.setItem('gr', JSON.stringify(window._records));
+    localStorage.setItem('gq', JSON.stringify(window._quizzes));
   } catch(e) { console.log('Firebase 로드:', e); }
   renderStudents();
   window._fbReady = true;
@@ -356,6 +417,7 @@
   // ===== 상태 =====
   window._students = JSON.parse(localStorage.getItem('gs') || '[]');
   window._records = JSON.parse(localStorage.getItem('gr') || '[]');
+  window._quizzes = JSON.parse(localStorage.getItem('gq') || '[]');
   let selectedStudent = null;
   let currentEval = null;
 
@@ -378,10 +440,11 @@
 
   // ===== 탭 =====
   function switchTab(tab) {
-    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['students','upload','records'][i]===tab));
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['students','upload','quiz','records'][i]===tab));
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById('page-'+tab).classList.add('active');
     if (tab==='upload') renderUploadStudents();
+    if (tab==='quiz') renderQuizStudents();
     if (tab==='records') renderRecordStudents();
   }
 
@@ -486,8 +549,10 @@
     if (!confirm('삭제할까요?')) return;
     window._students = _students.filter(s=>s.id!==id);
     window._records = _records.filter(r=>r.studentId!==id);
+    window._quizzes = _quizzes.filter(q=>q.studentId!==id);
     localStorage.setItem('gs', JSON.stringify(_students));
     localStorage.setItem('gr', JSON.stringify(_records));
+    localStorage.setItem('gq', JSON.stringify(_quizzes));
     renderStudents();
     if (window._fbReady) {
       try {
@@ -496,6 +561,9 @@
         const snap = await window._get(q);
         const jobs = [];
         snap.forEach(d => jobs.push(window._del(d.ref)));
+        const q2 = window._q(window._col(window._db,'geuldap_quizzes'), window._where('studentId','==', id));
+        const snap2 = await window._get(q2);
+        snap2.forEach(d => jobs.push(window._del(d.ref)));
         await Promise.all(jobs);
       } catch(e) { console.error('클라우드 삭제 오류:', e); }
     }
@@ -904,6 +972,179 @@
   function setLoading(show, text) {
     document.getElementById('loadingSection').classList.toggle('show', show);
     if(text) document.getElementById('loadingText').textContent=text;
+  }
+
+  // =========================================================
+  // ===== 문제 채점 (독해 지문 기반 문제 사진 → AI 채점) =====
+  // =========================================================
+  let selectedQuizStudent = null;
+  let uploadedQuizImages = []; // { base64, dataUrl }
+  let currentQuizEval = null;
+
+  function renderQuizStudents() {
+    const g = document.getElementById('quizStudentGrid');
+    if (_students.length===0) { g.innerHTML='<div class="empty"><div class="empty-icon">👦</div><div>먼저 학생을 등록해주세요</div></div>'; return; }
+    g.innerHTML = _students.map(s=>`<div class="student-card ${selectedQuizStudent?.id===s.id?'selected':''}" onclick="selectQuizStudent('${s.id}')">
+      <div class="student-avatar">${s.name[0]}</div>
+      <div class="student-name">${s.name}</div>
+      <div class="student-info">${s.grade}</div>
+    </div>`).join('');
+  }
+
+  function selectQuizStudent(id) {
+    selectedQuizStudent = _students.find(s=>s.id===id);
+    renderQuizStudents();
+    document.getElementById('quizUploadSection').style.display = 'block';
+    document.getElementById('quizResult').style.display = 'none';
+    document.getElementById('quizDate').value = todayLocalDateStr();
+    renderQuizAnalysis();
+    renderQuizReview();
+  }
+
+  function previewQuizImage(input) {
+    const files = Array.from(input.files || []);
+    if (!files.length) return;
+    (async () => {
+      for (const file of files) {
+        try {
+          const dataUrl = await loadOrientedImage(file);
+          uploadedQuizImages.push({ base64: dataUrl.split(',')[1], dataUrl });
+          renderQuizPreviewList();
+        } catch (e) {
+          alert('사진 처리 중 오류: ' + e.message);
+        }
+      }
+    })();
+    input.value = '';
+  }
+
+  function renderQuizPreviewList() {
+    const list = document.getElementById('quizPreviewList');
+    list.innerHTML = uploadedQuizImages.map((img, i) => `
+      <div class="thumb-wrap" onclick="event.stopPropagation()">
+        <img src="${img.dataUrl}">
+        <span class="thumb-num">${i+1}</span>
+        <button class="thumb-remove" onclick="event.stopPropagation(); removeQuizImage(${i})">✕</button>
+      </div>
+    `).join('');
+  }
+
+  function removeQuizImage(i) {
+    uploadedQuizImages.splice(i, 1);
+    renderQuizPreviewList();
+  }
+
+  async function gradeQuiz() {
+    if (!selectedQuizStudent) { alert('학생을 먼저 선택해주세요'); return; }
+    if (!uploadedQuizImages.length) { alert('문제집 사진을 먼저 올려주세요'); return; }
+    document.getElementById('quizLoadingSection').classList.add('show');
+    document.getElementById('quizResult').style.display = 'none';
+    try {
+      const prompt = `당신은 국어 교사입니다. 첨부된 사진은 ${selectedQuizStudent.grade} 학생이 푼 독해 문제집의 지문, 문제, 그리고 학생이 직접 표시하거나 적은 답입니다(여러 장이면 같은 문제집의 서로 다른 페이지입니다).\n\n사진에 포함된 지문 내용을 근거로 각 문항의 정답을 스스로 판단하고, 학생이 표시한 답과 비교해서 채점해주세요. 객관식이면 학생이 고른 번호나 표시를, 주관식이면 학생이 쓴 답을 정확히 읽어서 판단하세요.\n\n아래 JSON 형식으로만 응답하세요(다른 설명 없이):\n{"totalQuestions":문항수,"correctCount":정답개수,"items":[{"number":"문항 번호","questionSummary":"문제를 한 줄로 요약","studentAnswer":"학생이 표시한 답","correctAnswer":"정답","isCorrect":true또는false,"category":"사실적이해 또는 추론 또는 어휘 또는 주제파악 또는 구조파악 또는 기타 중 하나","explanation":"정답 근거와, 틀렸다면 학생이 왜 틀렸는지 1~2문장"}],"overallComment":"전체적인 총평 2~3문장"}`;
+      const res = await fetch(EVAL_FUNCTION_URL, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ prompt, images: uploadedQuizImages.map(img=>({ data: img.base64, mediaType: 'image/jpeg' })) })
+      });
+      const data = await res.json();
+      if (!res.ok || data.error || !data.text) {
+        throw new Error(data.error || `서버 오류 (status ${res.status})`);
+      }
+      const text = data.text.replace(/```json|```/g,'').trim();
+      currentQuizEval = JSON.parse(text);
+      currentQuizEval.studentId = selectedQuizStudent.id;
+      currentQuizEval.studentName = selectedQuizStudent.name;
+      currentQuizEval.grade = selectedQuizStudent.grade;
+      currentQuizEval.topic = document.getElementById('quizTopic').value;
+      const dv = document.getElementById('quizDate').value;
+      currentQuizEval.date = dv ? new Date(dv).toLocaleDateString('ko-KR') : new Date().toLocaleDateString('ko-KR');
+      renderQuizResultView();
+    } catch(e) { alert('채점 오류: '+e.message); }
+    document.getElementById('quizLoadingSection').classList.remove('show');
+  }
+
+  function renderQuizResultView() {
+    const q = currentQuizEval;
+    document.getElementById('quizResultHeader').innerHTML = `<div class="eval-student">${q.studentName} · ${q.grade}${q.topic? ' · '+q.topic:''}</div><div class="eval-date">${q.date}</div><div class="eval-total">${q.correctCount} / ${q.totalQuestions}<span> 문항 정답</span></div>`;
+    document.getElementById('quizItemList').innerHTML = q.items.map(it => `
+      <div class="record-item" style="cursor:default; align-items:flex-start;">
+        <div style="font-size:20px;">${it.isCorrect ? '✅' : '❌'}</div>
+        <div style="flex:1;">
+          <div style="font-weight:600;">${it.number}번 · ${it.questionSummary} <span style="font-weight:400;color:#888;font-size:12px;">(${it.category||'기타'})</span></div>
+          <div style="font-size:13px;color:#666;margin-top:4px;">학생 답: ${it.studentAnswer} ${it.isCorrect?'':`&nbsp;→&nbsp;정답: ${it.correctAnswer}`}</div>
+          <div style="font-size:13px;color:#888;margin-top:4px;">${it.explanation||''}</div>
+        </div>
+      </div>
+    `).join('');
+    document.getElementById('quizOverallComment').textContent = q.overallComment || '';
+    document.getElementById('quizResult').style.display = 'block';
+    document.getElementById('quizResult').scrollIntoView({behavior:'smooth'});
+  }
+
+  function resetQuizUpload() {
+    document.getElementById('quizTopic').value = '';
+    document.getElementById('quizFileInput').value = '';
+    document.getElementById('quizPreviewList').innerHTML = '';
+    document.getElementById('quizResult').style.display = 'none';
+    uploadedQuizImages = []; currentQuizEval = null;
+    window.scrollTo(0,0);
+  }
+
+  async function saveQuizRecord() {
+    if (!currentQuizEval) return;
+    const r = {...currentQuizEval, id: Date.now().toString()};
+    _quizzes.push(r);
+    localStorage.setItem('gq', JSON.stringify(_quizzes));
+    if (window._fbReady) await window._add(window._col(window._db,'geuldap_quizzes'), r).catch(console.error);
+    alert('채점 기록이 저장되었습니다!');
+    resetQuizUpload();
+    renderQuizAnalysis();
+    renderQuizReview();
+  }
+
+  // ===== 약점/강점 분석 (문제 유형별 정답률 누적) =====
+  function renderQuizAnalysis() {
+    const section = document.getElementById('quizAnalysisSection');
+    if (!selectedQuizStudent) { section.style.display='none'; return; }
+    const recs = _quizzes.filter(q=>q.studentId===selectedQuizStudent.id);
+    if (recs.length===0) { section.style.display='none'; return; }
+    const byCat = {};
+    recs.forEach(r => (r.items||[]).forEach(it => {
+      const cat = it.category || '기타';
+      if (!byCat[cat]) byCat[cat] = {correct:0, total:0};
+      byCat[cat].total++;
+      if (it.isCorrect) byCat[cat].correct++;
+    }));
+    const rows = Object.entries(byCat)
+      .map(([cat, v]) => ({cat, rate: Math.round(v.correct/v.total*100), correct:v.correct, total:v.total}))
+      .sort((a,b)=>a.rate-b.rate);
+    if (!rows.length) { section.style.display='none'; return; }
+    section.style.display = 'block';
+    document.getElementById('quizAnalysisBody').innerHTML = rows.map(r => `
+      <div class="score-item" style="margin-bottom:10px;">
+        <div class="score-label">${r.cat} <span style="color:#888;font-weight:400;">(${r.correct}/${r.total})</span></div>
+        <div class="score-value ${r.rate>=80?'high':r.rate>=60?'mid':'low'}">${r.rate}%</div>
+        <div class="score-bar"><div class="score-bar-fill" style="width:${r.rate}%"></div></div>
+      </div>`).join('');
+  }
+
+  // ===== 틀린 문제 복습 =====
+  function renderQuizReview() {
+    const section = document.getElementById('quizReviewSection');
+    if (!selectedQuizStudent) { section.style.display='none'; return; }
+    const recs = _quizzes.filter(q=>q.studentId===selectedQuizStudent.id);
+    const wrong = [];
+    recs.forEach(r => (r.items||[]).forEach(it => { if (!it.isCorrect) wrong.push({...it, date: r.date, topic: r.topic}); }));
+    if (!wrong.length) { section.style.display='none'; return; }
+    section.style.display = 'block';
+    document.getElementById('quizReviewBody').innerHTML = wrong.slice().reverse().map(it => `
+      <div class="record-item" style="cursor:default; align-items:flex-start;">
+        <div style="font-size:12px;color:#888;min-width:70px;">${it.date}</div>
+        <div style="flex:1;">
+          <div style="font-weight:600;">${it.number}번 · ${it.questionSummary} <span style="font-weight:400;color:#888;font-size:12px;">(${it.category||'기타'})</span></div>
+          <div style="font-size:13px;color:#666;margin-top:4px;">학생 답: ${it.studentAnswer} → 정답: ${it.correctAnswer}</div>
+          <div style="font-size:13px;color:#888;margin-top:4px;">${it.explanation||''}</div>
+        </div>
+      </div>`).join('');
   }
 </script>
 </body>
