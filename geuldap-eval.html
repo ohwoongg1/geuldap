@@ -408,17 +408,47 @@
   // ===== 이미지 미리보기 (여러 장) =====
   let uploadedImages = []; // { base64, dataUrl }
 
-  function previewImage(input) {
+  // 아이폰 사진 등은 실제 픽셀은 회전된 채 저장되고 "화면에 보일 때 돌려서 보여줘"라는
+  // 방향 정보(EXIF)만 따로 붙어있는 경우가 많다. Vision API로 원본 그대로 보내면
+  // 글자가 옆으로 누운 채로 인식되어 엉뚱한 글자를 뱉어낸다.
+  // 캔버스에 방향을 반영해서 다시 그린 뒤 전송하면 이 문제가 해결된다.
+  async function loadOrientedImage(file) {
+    try {
+      const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+      const MAX_DIM = 2200;
+      let { width, height } = bitmap;
+      if (width > MAX_DIM || height > MAX_DIM) {
+        const scale = MAX_DIM / Math.max(width, height);
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
+      return canvas.toDataURL('image/jpeg', 0.92);
+    } catch (e) {
+      // 구형 브라우저 등에서 위 방식이 안 되면 원본 그대로 사용
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = ev => resolve(ev.target.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+  }
+
+  async function previewImage(input) {
     const files = Array.from(input.files || []);
     if (!files.length) return;
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = e => {
-        uploadedImages.push({ base64: e.target.result.split(',')[1], dataUrl: e.target.result });
+    for (const file of files) {
+      try {
+        const dataUrl = await loadOrientedImage(file);
+        uploadedImages.push({ base64: dataUrl.split(',')[1], dataUrl });
         renderPreviewList();
-      };
-      reader.readAsDataURL(file);
-    });
+      } catch (e) {
+        alert('사진 처리 중 오류: ' + e.message);
+      }
+    }
     input.value = ''; // 같은 파일 다시 선택 가능하도록 초기화
   }
 
