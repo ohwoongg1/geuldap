@@ -164,6 +164,38 @@
       .form-grid { grid-template-columns: 1fr; }
     }
   </style>
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyC5nf84GbQQ_5vIDwhIvTZ5zPqf7nrnSxU",
+      authDomain: "starspoon-120d7.firebaseapp.com",
+      projectId: "starspoon-120d7",
+      storageBucket: "starspoon-120d7.firebasestorage.app",
+      messagingSenderId: "672370227821",
+      appId: "1:672370227821:web:aea1d9c6ca8587842a5d64"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // 전역으로 노출
+    window.db = db;
+    window.fbCollection = collection;
+    window.fbAddDoc = addDoc;
+    window.fbGetDocs = getDocs;
+    window.fbQuery = query;
+    window.fbWhere = where;
+    window.fbOrderBy = orderBy;
+    window.fbDeleteDoc = deleteDoc;
+    window.fbDoc = doc;
+    window.fbReady = true;
+
+    // Firebase 준비 완료 후 데이터 로드
+    window.dispatchEvent(new Event('firebaseReady'));
+  </script>
 </head>
 <body>
 
@@ -346,6 +378,34 @@ window.onload = () => {
   renderStudents();
 };
 
+// Firebase 준비되면 클라우드 데이터 로드
+window.addEventListener('firebaseReady', async () => {
+  try {
+    // 학생 로드
+    const sSnap = await window.fbGetDocs(window.fbCollection(window.db, 'geuldap_students'));
+    if (!sSnap.empty) {
+      const cloudStudents = [];
+      sSnap.forEach(d => cloudStudents.push(d.data()));
+      // 로컬에 없는 학생 추가
+      cloudStudents.forEach(cs => {
+        if (!students.find(s => s.id === cs.id)) students.push(cs);
+      });
+      localStorage.setItem('geuldap_students', JSON.stringify(students));
+    }
+    // 기록 로드
+    const rSnap = await window.fbGetDocs(window.fbCollection(window.db, 'geuldap_records'));
+    if (!rSnap.empty) {
+      const cloudRecords = [];
+      rSnap.forEach(d => cloudRecords.push(d.data()));
+      cloudRecords.forEach(cr => {
+        if (!records.find(r => r.id === cr.id)) records.push(cr);
+      });
+      localStorage.setItem('geuldap_records', JSON.stringify(records));
+    }
+    renderStudents();
+  } catch(e) { console.error('Firebase 로드 오류:', e); }
+});
+
 // ===== 탭 전환 =====
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach((t, i) => {
@@ -425,8 +485,13 @@ function addStudent() {
   const grade = document.getElementById('newStudentGrade').value;
   const date = document.getElementById('newStudentDate').value;
   if (!name) { alert('이름을 입력해주세요'); return; }
-  students.push({ id: Date.now().toString(), name, grade, date });
+  const newStudent = { id: Date.now().toString(), name, grade, date };
+  students.push(newStudent);
   localStorage.setItem('geuldap_students', JSON.stringify(students));
+  // Firebase 저장
+  if (window.fbReady) {
+    window.fbAddDoc(window.fbCollection(window.db, 'geuldap_students'), newStudent).catch(console.error);
+  }
   hideModal('addStudent');
   document.getElementById('newStudentName').value = '';
   renderStudents();
@@ -438,6 +503,13 @@ function deleteStudent(id) {
   records = records.filter(r => r.studentId !== id);
   localStorage.setItem('geuldap_students', JSON.stringify(students));
   localStorage.setItem('geuldap_records', JSON.stringify(records));
+  // Firebase 삭제
+  if (window.fbReady) {
+    const sSnap = await window.fbGetDocs(window.fbQuery(window.fbCollection(window.db, 'geuldap_students'), window.fbWhere('id', '==', id)));
+    sSnap.forEach(d => window.fbDeleteDoc(window.fbDoc(window.db, 'geuldap_students', d.id)));
+    const rSnap = await window.fbGetDocs(window.fbQuery(window.fbCollection(window.db, 'geuldap_records'), window.fbWhere('studentId', '==', id)));
+    rSnap.forEach(d => window.fbDeleteDoc(window.fbDoc(window.db, 'geuldap_records', d.id)));
+  }
   renderStudents();
 }
 
@@ -614,8 +686,13 @@ function renderEvalResult() {
 // ===== 기록 저장 =====
 function saveRecord() {
   if (!currentEval) return;
-  records.push({ ...currentEval, id: Date.now().toString() });
+  const newRecord = { ...currentEval, id: Date.now().toString() };
+  records.push(newRecord);
   localStorage.setItem('geuldap_records', JSON.stringify(records));
+  // Firebase 저장
+  if (window.fbReady) {
+    await window.fbAddDoc(window.fbCollection(window.db, 'geuldap_records'), newRecord).catch(console.error);
+  }
   alert('저장되었습니다!');
   renderStudents();
 }
