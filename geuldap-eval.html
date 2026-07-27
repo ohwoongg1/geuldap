@@ -441,6 +441,33 @@
   // ===== OCR (Google Cloud Vision API) =====
   const GOOGLE_VISION_API_KEY = 'AIzaSyCTpggLimhoo_jWyJQPf7mbTovtO7lABdQ';
 
+  // 원고지(칸 있는 용지)처럼 Vision이 한 글자/단어씩 줄바꿈해버리는 문제를 보정.
+  // 글자 단위의 detectedBreak 정보를 이용해 띄어쓰기/줄바꿈을 다시 판단해서 문장을 이어붙인다.
+  function reconstructText(response) {
+    const pages = response?.fullTextAnnotation?.pages;
+    if (!pages || !pages.length) return response?.fullTextAnnotation?.text || '';
+    let result = '';
+    for (const page of pages) {
+      for (const block of page.blocks || []) {
+        for (const para of block.paragraphs || []) {
+          for (const word of para.words || []) {
+            for (const symbol of word.symbols || []) {
+              result += symbol.text || '';
+              const breakType = symbol.property?.detectedBreak?.type;
+              if (breakType === 'SPACE' || breakType === 'SURE_SPACE') {
+                result += ' ';
+              } else if (breakType === 'EOL_SURE_SPACE' || breakType === 'LINE_BREAK') {
+                result += '\n';
+              }
+            }
+          }
+          result += '\n';
+        }
+      }
+    }
+    return result.replace(/\n{3,}/g, '\n\n').trim();
+  }
+
   async function extractFromImage() {
     if (!uploadedImages.length) { alert('사진을 먼저 업로드해주세요'); return; }
     if (!GOOGLE_VISION_API_KEY || GOOGLE_VISION_API_KEY === 'YOUR_GOOGLE_VISION_API_KEY') {
@@ -462,7 +489,8 @@
         });
         const data = await res.json();
         if (data.error) throw new Error(`(사진 ${i+1}) ` + data.error.message);
-        const text = data.responses?.[0]?.fullTextAnnotation?.text;
+        const response = data.responses?.[0];
+        const text = response ? reconstructText(response) : '';
         if (text) texts.push(text);
       }
       if (!texts.length) { alert('글자를 인식하지 못했습니다. 사진이 선명한지 확인해주세요.'); setLoading(false); return; }
