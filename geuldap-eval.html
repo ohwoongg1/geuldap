@@ -210,6 +210,7 @@
       <div class="card"><div class="card-title">이전 글과 비교</div><div id="evalCompare"></div></div>
       <div style="display:flex;gap:10px;justify-content:flex-end;margin-bottom:20px;">
         <button class="btn btn-secondary" onclick="resetUpload()">새 글 평가</button>
+        <button class="btn btn-secondary" onclick="openParentReport(currentEval)">👪 학부모 보고서</button>
         <button class="btn btn-primary" onclick="saveRecord()">💾 기록 저장</button>
       </div>
     </div>
@@ -308,7 +309,20 @@
     <div class="modal-actions">
       <button class="btn btn-danger" onclick="deleteRecordFromDetail()">삭제</button>
       <button class="btn btn-secondary" onclick="closeRecordDetail()">닫기</button>
+      <button class="btn btn-secondary" onclick="openParentReport(_records.find(x=>x.id===viewingRecordId))">👪 학부모 보고서</button>
       <button class="btn btn-primary" onclick="editAndReevaluate()">✏️ 수정 후 재평가</button>
+    </div>
+  </div>
+</div>
+
+<!-- 학부모 보고서 모달 -->
+<div class="modal-bg" id="parentReportModal">
+  <div class="modal" style="max-width:600px; max-height:85vh; overflow-y:auto; text-align:left;">
+    <div class="modal-title">학부모 보고서</div>
+    <div id="parentReportBody" style="font-size:14px; line-height:1.8;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeParentReport()">닫기</button>
+      <button class="btn btn-primary" onclick="copyParentReport()">📋 복사하기</button>
     </div>
   </div>
 </div>
@@ -785,6 +799,60 @@
   }
   function evalSummaryHTML(e) {
     return `<div class="eval-text" style="margin-bottom:16px;">${e.summary}</div><div class="compare-grid"><div class="compare-card good"><div class="compare-title good">✅ 잘된 점</div>${e.strengths.map(s=>`<div class="compare-item">• ${s}</div>`).join('')}</div><div class="compare-card bad"><div class="compare-title bad">📌 보완할 점</div>${e.improvements.map(s=>`<div class="compare-item">• ${s}</div>`).join('')}</div></div><div class="eval-text" style="margin-top:16px;background:#fefbf3;border-left:3px solid #c5a149;padding-left:16px;">💬 ${e.encouragement}</div>`;
+  }
+
+  // ===== 학부모 보고서 (점수 대신 서술형 표현) =====
+  const SCORE_DESCRIPTORS = [
+    {min:90, label:'매우 뛰어나요', cls:'high'},
+    {min:80, label:'우수해요', cls:'high'},
+    {min:70, label:'잘 하고 있어요', cls:'mid'},
+    {min:60, label:'노력하면 더 좋아질 거예요', cls:'mid'},
+    {min:0,  label:'조금 더 신경 써주시면 좋겠어요', cls:'low'},
+  ];
+  function scoreDescriptor(v) { return SCORE_DESCRIPTORS.find(d => v >= d.min); }
+
+  function parentReportHTML(e) {
+    const catRows = Object.entries(e.scores).map(([k,v]) => {
+      const d = scoreDescriptor(v);
+      return `<div class="score-item"><div class="score-label">${SCORE_ICONS[k]||''} ${k}</div><div class="score-value ${d.cls}" style="font-size:15px;">${d.label}</div></div>`;
+    }).join('');
+    const overall = scoreDescriptor(e.totalScore);
+    return `
+      <div style="margin-bottom:14px;">
+        <div style="font-weight:700; font-size:16px;">${e.studentName} 학생 · ${e.grade}</div>
+        <div style="color:#888; font-size:13px;">${e.date} · ${e.type}${e.topic?(' · '+e.topic):''}</div>
+        <div style="margin-top:6px; font-weight:600;">종합 평가: ${overall.label}</div>
+      </div>
+      <div class="score-grid" style="margin-bottom:16px;">${catRows}</div>
+      <div class="eval-text" style="margin-bottom:12px;">${e.summary}</div>
+      <div class="compare-grid">
+        <div class="compare-card good"><div class="compare-title good">✅ 잘하고 있는 점</div>${e.strengths.map(s=>`<div class="compare-item">• ${s}</div>`).join('')}</div>
+        <div class="compare-card bad"><div class="compare-title bad">📌 함께 도와주면 좋은 점</div>${e.improvements.map(s=>`<div class="compare-item">• ${s}</div>`).join('')}</div>
+      </div>
+      <div class="eval-text" style="margin-top:16px;background:#fefbf3;border-left:3px solid #c5a149;padding-left:16px;">💬 ${e.encouragement}</div>
+    `;
+  }
+
+  let parentReportSource = null;
+  function openParentReport(source) {
+    if (!source) { alert('보고서를 만들 평가 데이터를 찾을 수 없어요.'); return; }
+    parentReportSource = source;
+    document.getElementById('parentReportBody').innerHTML = parentReportHTML(source);
+    document.getElementById('parentReportModal').classList.add('open');
+  }
+  function closeParentReport() {
+    document.getElementById('parentReportModal').classList.remove('open');
+    parentReportSource = null;
+  }
+  function copyParentReport() {
+    const e = parentReportSource;
+    if (!e) return;
+    const overall = scoreDescriptor(e.totalScore).label;
+    const catLines = Object.entries(e.scores).map(([k,v]) => `- ${k}: ${scoreDescriptor(v).label}`).join('\n');
+    const text = `[${e.studentName} 학생 글쓰기 평가 보고서]\n${e.date} · ${e.type}${e.topic?(' · '+e.topic):''}\n\n종합 평가: ${overall}\n\n${catLines}\n\n[총평]\n${e.summary}\n\n[잘하고 있는 점]\n${e.strengths.map(s=>'- '+s).join('\n')}\n\n[함께 도와주면 좋은 점]\n${e.improvements.map(s=>'- '+s).join('\n')}\n\n${e.encouragement}`;
+    navigator.clipboard.writeText(text)
+      .then(()=> alert('복사되었습니다! 카카오톡이나 문자에 붙여넣으세요.'))
+      .catch(()=> alert('복사에 실패했어요. 화면의 내용을 직접 선택해서 복사해주세요.'));
   }
 
   // ===== 평가 렌더링 =====
