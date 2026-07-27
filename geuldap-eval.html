@@ -485,62 +485,25 @@
     renderPreviewList();
   }
 
-  // ===== OCR (Google Cloud Vision API) =====
-  const GOOGLE_VISION_API_KEY = 'AIzaSyCTpggLimhoo_jWyJQPf7mbTovtO7lABdQ';
-
-  // 원고지(칸 있는 용지)처럼 Vision이 한 글자/단어씩 줄바꿈해버리는 문제를 보정.
-  // 글자 단위의 detectedBreak 정보를 이용해 띄어쓰기/줄바꿈을 다시 판단해서 문장을 이어붙인다.
-  function reconstructText(response) {
-    const pages = response?.fullTextAnnotation?.pages;
-    if (!pages || !pages.length) return response?.fullTextAnnotation?.text || '';
-    let result = '';
-    for (const page of pages) {
-      for (const block of page.blocks || []) {
-        for (const para of block.paragraphs || []) {
-          for (const word of para.words || []) {
-            for (const symbol of word.symbols || []) {
-              result += symbol.text || '';
-              const breakType = symbol.property?.detectedBreak?.type;
-              if (breakType === 'SPACE' || breakType === 'SURE_SPACE') {
-                result += ' ';
-              } else if (breakType === 'EOL_SURE_SPACE' || breakType === 'LINE_BREAK') {
-                result += '\n';
-              }
-            }
-          }
-          result += '\n';
-        }
-      }
-    }
-    return result.replace(/\n{3,}/g, '\n\n').trim();
-  }
-
+  // ===== 글 추출 (Claude Vision 경유 - 원고지 등 특수 서식에 강함) =====
   async function extractFromImage() {
     if (!uploadedImages.length) { alert('사진을 먼저 업로드해주세요'); return; }
-    if (!GOOGLE_VISION_API_KEY || GOOGLE_VISION_API_KEY === 'YOUR_GOOGLE_VISION_API_KEY') {
-      alert('Google Vision API 키가 설정되지 않았습니다. 코드 상단의 GOOGLE_VISION_API_KEY 값을 채워주세요.');
-      return;
-    }
     setLoading(true, `사진 ${uploadedImages.length}장에서 글을 추출하고 있습니다...`);
     try {
       const texts = [];
       for (let i = 0; i < uploadedImages.length; i++) {
         setLoading(true, `사진 ${i+1}/${uploadedImages.length}에서 글을 추출하고 있습니다...`);
-        const res = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_API_KEY}`, {
+        const prompt = '이 사진은 학생이 원고지 또는 노트에 손으로 쓴 글입니다. 사진 속 글자를 빠짐없이 정확하게 그대로 옮겨 적어주세요. 원고지의 칸 구분이나 교정부호, 페이지 번호 같은 것은 무시하고, 실제로 학생이 쓴 문장만 자연스럽게 이어서 작성하세요. 설명이나 사족 없이 옮겨 적은 글 내용만 출력하세요.';
+        const res = await fetch(EVAL_FUNCTION_URL, {
           method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ requests:[{
-            image:{ content: uploadedImages[i].base64 },
-            features:[{ type:'DOCUMENT_TEXT_DETECTION' }],
-            imageContext:{ languageHints:['ko'] }
-          }]})
+          body: JSON.stringify({ prompt, image: { data: uploadedImages[i].base64, mediaType: 'image/jpeg' } })
         });
         const data = await res.json();
-        if (data.error) throw new Error(`(사진 ${i+1}) ` + data.error.message);
-        const response = data.responses?.[0];
-        const text = response ? reconstructText(response) : '';
-        if (text) texts.push(text);
+        if (!res.ok || data.error || !data.text) {
+          throw new Error(`(사진 ${i+1}) ` + (data.error || `서버 오류 (status ${res.status})`));
+        }
+        texts.push(data.text.trim());
       }
-      if (!texts.length) { alert('글자를 인식하지 못했습니다. 사진이 선명한지 확인해주세요.'); setLoading(false); return; }
       document.getElementById('writingContent').value = texts.join('\n\n');
     } catch(e) { alert('추출 오류: '+e.message); }
     setLoading(false);
