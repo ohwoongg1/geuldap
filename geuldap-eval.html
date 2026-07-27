@@ -412,6 +412,22 @@
   // 방향 정보(EXIF)만 따로 붙어있는 경우가 많다. Vision API로 원본 그대로 보내면
   // 글자가 옆으로 누운 채로 인식되어 엉뚱한 글자를 뱉어낸다.
   // 캔버스에 방향을 반영해서 다시 그린 뒤 전송하면 이 문제가 해결된다.
+  // 원고지 칸선은 대개 붉은/분홍 계열이고, 글씨는 회색(무채색) 연필이다.
+  // 붉은기가 도는 픽셀은 흰색으로 날려서 칸선을 지우고 글씨만 남긴다.
+  function suppressGridLines(canvas) {
+    const ctx = canvas.getContext('2d');
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const d = imgData.data;
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i], g = d[i+1], b = d[i+2];
+      const redness = r - (g + b) / 2;
+      let gray = (r + g + b) / 3;
+      if (redness > 12) gray = 255; // 붉은 계열(칸선)은 흰색 처리
+      d[i] = d[i+1] = d[i+2] = gray;
+    }
+    ctx.putImageData(imgData, 0, 0);
+  }
+
   async function loadOrientedImage(file) {
     try {
       const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
@@ -425,6 +441,7 @@
       const canvas = document.createElement('canvas');
       canvas.width = width; canvas.height = height;
       canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
+      suppressGridLines(canvas);
       return canvas.toDataURL('image/jpeg', 0.92);
     } catch (e) {
       // 구형 브라우저 등에서 위 방식이 안 되면 원본 그대로 사용
