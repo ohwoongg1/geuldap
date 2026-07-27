@@ -10,26 +10,29 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Noto Sans KR', sans-serif; background: #f0f2f5; color: #1a1a2e; }
 
-    /* 헤더 */
+    .pw-screen { position: fixed; inset: 0; z-index: 9999; background: linear-gradient(160deg, #0d1b4b, #1a2f6b); display: flex; align-items: center; justify-content: center; }
+    .pw-box { background: #fff; border-radius: 20px; padding: 48px 40px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .pw-logo { font-family: 'Noto Serif KR', serif; font-size: 28px; font-weight: 700; color: #0d1b4b; margin-bottom: 6px; }
+    .pw-logo span { color: #c5a149; }
+    .pw-sub { font-size: 13px; color: #888; margin-bottom: 32px; }
+    .pw-label { font-size: 14px; font-weight: 600; color: #555; margin-bottom: 8px; text-align: left; }
+    .pw-input { width: 100%; padding: 14px 18px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 20px; outline: none; text-align: center; letter-spacing: 6px; transition: border 0.2s; }
+    .pw-input:focus { border-color: #c5a149; }
+    .pw-btn { width: 100%; margin-top: 16px; padding: 14px; background: linear-gradient(135deg, #c5a149, #e8c96a); color: #0d1b4b; font-weight: 700; font-size: 15px; border: none; border-radius: 10px; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; }
+    .pw-error { color: #e53e3e; font-size: 13px; margin-top: 10px; display: none; }
+    .pw-error.show { display: block; }
+
     .header { background: linear-gradient(135deg, #0d1b4b, #1a2f6b); padding: 18px 32px; display: flex; align-items: center; justify-content: space-between; }
     .header-title { font-family: 'Noto Serif KR', serif; font-size: 20px; font-weight: 700; color: #fff; }
     .header-title span { color: #e8c96a; }
     .header-sub { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 2px; }
-
-    /* 탭 네비 */
     .tab-nav { background: #fff; border-bottom: 1px solid #e0e0e0; display: flex; padding: 0 32px; }
     .tab { padding: 14px 20px; font-size: 14px; font-weight: 600; color: #888; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
     .tab.active { color: #0d1b4b; border-bottom-color: #c5a149; }
-
-    /* 메인 */
     .main { max-width: 1200px; margin: 0 auto; padding: 28px 24px; }
-
-    /* 카드 */
     .card { background: #fff; border-radius: 14px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
     .card-title { font-size: 16px; font-weight: 700; color: #0d1b4b; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
     .card-title::before { content: ''; width: 4px; height: 18px; background: #c5a149; border-radius: 2px; display: block; }
-
-    /* 폼 */
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .form-group { display: flex; flex-direction: column; gap: 6px; }
     .form-group.full { grid-column: 1/-1; }
@@ -37,16 +40,11 @@
     input, select, textarea { padding: 10px 14px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 14px; font-family: 'Noto Sans KR', sans-serif; transition: border 0.2s; outline: none; }
     input:focus, select:focus, textarea:focus { border-color: #c5a149; }
     textarea { resize: vertical; min-height: 80px; }
-
-    /* 버튼 */
-    .btn { padding: 11px 24px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; transition: all 0.2s; }
+    .btn { padding: 11px 24px; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; border: none; transition: all 0.2s; font-family: 'Noto Sans KR', sans-serif; }
     .btn-primary { background: linear-gradient(135deg, #c5a149, #e8c96a); color: #0d1b4b; }
-    .btn-primary:hover { opacity: 0.9; }
     .btn-secondary { background: #f0f2f5; color: #555; }
     .btn-danger { background: #fff0f0; color: #e53e3e; border: 1px solid #fecaca; }
     .btn-sm { padding: 6px 14px; font-size: 12px; }
-
-    /* 학생 목록 */
     .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
     .student-card { background: #f8f9fc; border: 1.5px solid #e8e0cc; border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.2s; }
     .student-card:hover, .student-card.selected { border-color: #c5a149; background: #fefbf3; }
@@ -54,43 +52,24 @@
     .student-name { font-size: 15px; font-weight: 700; color: #0d1b4b; }
     .student-info { font-size: 12px; color: #888; margin-top: 3px; }
     .student-count { font-size: 11px; color: #c5a149; font-weight: 600; margin-top: 6px; }
-
-    /* 업로드 영역 */
-    .upload-area { border: 2px dashed #c5a149; border-radius: 12px; padding: 32px; text-align: center; cursor: pointer; transition: all 0.2s; background: #fefbf3; }
-    .upload-area:hover { background: #fdf6e3; }
-    .upload-icon { font-size: 36px; margin-bottom: 10px; }
-    .upload-text { font-size: 14px; color: #888; }
-    .upload-text strong { color: #0d1b4b; }
+    .upload-area { border: 2px dashed #c5a149; border-radius: 12px; padding: 32px; text-align: center; cursor: pointer; background: #fefbf3; }
     .preview-img { max-width: 100%; max-height: 300px; border-radius: 8px; margin-top: 16px; }
-
-    /* 평가 결과 */
     .eval-header { background: linear-gradient(135deg, #0d1b4b, #1a2f6b); border-radius: 12px; padding: 24px; color: #fff; margin-bottom: 20px; }
     .eval-student { font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 4px; }
     .eval-title { font-family: 'Noto Serif KR', serif; font-size: 22px; font-weight: 700; color: #e8c96a; margin-bottom: 8px; }
     .eval-date { font-size: 12px; color: rgba(255,255,255,0.5); }
     .eval-total { font-size: 36px; font-weight: 700; color: #e8c96a; margin-top: 12px; }
     .eval-total span { font-size: 16px; color: rgba(255,255,255,0.6); }
-
-    /* 점수 그리드 */
     .score-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
     .score-item { background: #f8f9fc; border-radius: 10px; padding: 14px; text-align: center; }
     .score-label { font-size: 12px; color: #888; margin-bottom: 6px; }
-    .score-value { font-size: 24px; font-weight: 700; color: #0d1b4b; }
+    .score-value { font-size: 24px; font-weight: 700; }
     .score-value.high { color: #2f855a; }
     .score-value.mid { color: #c5a149; }
     .score-value.low { color: #e53e3e; }
     .score-bar { height: 4px; background: #e0e0e0; border-radius: 2px; margin-top: 8px; }
     .score-bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #c5a149, #e8c96a); }
-
-    /* 평가 텍스트 */
-    .eval-section { margin-bottom: 16px; }
-    .eval-section-title { font-size: 13px; font-weight: 700; color: #0d1b4b; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
     .eval-text { font-size: 14px; color: #444; line-height: 1.75; background: #f8f9fc; border-radius: 8px; padding: 14px; }
-    .badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
-    .badge-good { background: #f0fff4; color: #2f855a; }
-    .badge-bad { background: #fff5f5; color: #c53030; }
-
-    /* 비교 */
     .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .compare-card { border-radius: 10px; padding: 16px; }
     .compare-card.good { background: #f0fff4; border: 1px solid #c6f6d5; }
@@ -98,108 +77,35 @@
     .compare-title { font-size: 13px; font-weight: 700; margin-bottom: 10px; }
     .compare-title.good { color: #2f855a; }
     .compare-title.bad { color: #c53030; }
-    .compare-item { font-size: 13px; color: #555; margin-bottom: 6px; display: flex; gap: 6px; line-height: 1.5; }
-
-    /* 글 기록 목록 */
-    .record-list { display: flex; flex-direction: column; gap: 12px; }
-    .record-item { background: #f8f9fc; border: 1px solid #e0e0e0; border-radius: 10px; padding: 16px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s; }
+    .compare-item { font-size: 13px; color: #555; margin-bottom: 6px; line-height: 1.5; }
+    .record-item { background: #f8f9fc; border: 1px solid #e0e0e0; border-radius: 10px; padding: 16px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s; margin-bottom: 10px; }
     .record-item:hover { border-color: #c5a149; background: #fefbf3; }
-    .record-date { font-size: 12px; color: #888; min-width: 80px; }
+    .record-date { font-size: 12px; color: #888; min-width: 90px; }
     .record-title { font-size: 14px; font-weight: 600; color: #0d1b4b; flex: 1; }
     .record-score { font-size: 20px; font-weight: 700; color: #c5a149; min-width: 50px; text-align: right; }
-    .record-change { font-size: 12px; font-weight: 600; }
-    .record-change.up { color: #2f855a; }
-    .record-change.down { color: #e53e3e; }
-    .record-change.same { color: #888; }
-
-    /* 로딩 */
+    .record-change.up { color: #2f855a; font-size:12px; font-weight:600; }
+    .record-change.down { color: #e53e3e; font-size:12px; font-weight:600; }
     .loading { display: none; text-align: center; padding: 40px; }
     .loading.show { display: block; }
     .spinner { width: 40px; height: 40px; border: 3px solid #e0e0e0; border-top-color: #c5a149; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { font-size: 14px; color: #888; }
-
-    /* 페이지 */
     .page { display: none; }
     .page.active { display: block; }
-
-    /* 빈 상태 */
     .empty { text-align: center; padding: 48px; color: #aaa; }
     .empty-icon { font-size: 48px; margin-bottom: 12px; }
-    .empty-text { font-size: 15px; }
-
-    /* 모달 */
     .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
-    .modal-bg.show { display: flex; }
+    .modal-bg.open { display: flex; }
     .modal { background: #fff; border-radius: 16px; padding: 28px; width: 90%; max-width: 500px; }
     .modal-title { font-size: 18px; font-weight: 700; color: #0d1b4b; margin-bottom: 20px; }
     .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
-
-
-    /* 비밀번호 화면 */
-    .pw-screen {
-      position: fixed; inset: 0; z-index: 9999;
-      background: linear-gradient(160deg, #0d1b4b 0%, #1a2f6b 60%, #0d1b4b 100%);
-      display: flex; align-items: center; justify-content: center;
-    }
-    .pw-box {
-      background: #fff; border-radius: 20px; padding: 48px 40px;
-      width: 90%; max-width: 400px; text-align: center;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-    }
-    .pw-logo { font-family: 'Noto Serif KR', serif; font-size: 28px; font-weight: 700; color: #0d1b4b; margin-bottom: 6px; }
-    .pw-logo span { color: #c5a149; }
-    .pw-sub { font-size: 13px; color: #888; margin-bottom: 32px; }
-    .pw-label { font-size: 14px; font-weight: 600; color: #555; margin-bottom: 8px; text-align: left; }
-    .pw-input { width: 100%; padding: 14px 18px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px; font-family: 'Noto Sans KR', sans-serif; outline: none; text-align: center; letter-spacing: 4px; transition: border 0.2s; }
-    .pw-input:focus { border-color: #c5a149; }
-    .pw-btn { width: 100%; margin-top: 16px; padding: 14px; background: linear-gradient(135deg, #c5a149, #e8c96a); color: #0d1b4b; font-weight: 700; font-size: 15px; border: none; border-radius: 10px; cursor: pointer; font-family: 'Noto Sans KR', sans-serif; }
-    .pw-btn:hover { opacity: 0.9; }
-    .pw-error { color: #e53e3e; font-size: 13px; margin-top: 10px; display: none; }
-    .pw-error.show { display: block; }
-
     @media (max-width: 768px) {
       .score-grid { grid-template-columns: repeat(2, 1fr); }
       .compare-grid { grid-template-columns: 1fr; }
       .form-grid { grid-template-columns: 1fr; }
     }
   </style>
-  <!-- Firebase -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyC5nf84GbQQ_5vIDwhIvTZ5zPqf7nrnSxU",
-      authDomain: "starspoon-120d7.firebaseapp.com",
-      projectId: "starspoon-120d7",
-      storageBucket: "starspoon-120d7.firebasestorage.app",
-      messagingSenderId: "672370227821",
-      appId: "1:672370227821:web:aea1d9c6ca8587842a5d64"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    // 전역으로 노출
-    window.db = db;
-    window.fbCollection = collection;
-    window.fbAddDoc = addDoc;
-    window.fbGetDocs = getDocs;
-    window.fbQuery = query;
-    window.fbWhere = where;
-    window.fbOrderBy = orderBy;
-    window.fbDeleteDoc = deleteDoc;
-    window.fbDoc = doc;
-    window.fbReady = true;
-
-    // Firebase 준비 완료 후 데이터 로드
-    window.dispatchEvent(new Event('firebaseReady'));
-  </script>
 </head>
 <body>
-
-<!-- 헤더 -->
 
 <!-- 비밀번호 화면 -->
 <div class="pw-screen" id="pwScreen">
@@ -207,18 +113,19 @@
     <div class="pw-logo">글답 <span>관리자</span></div>
     <div class="pw-sub">글쓰기 성장 관리 시스템</div>
     <div class="pw-label">비밀번호를 입력하세요</div>
-    <input class="pw-input" type="password" id="pwInput" placeholder="●●●●" onkeydown="if(event.key==='Enter') checkPassword()">
-    <button class="pw-btn" onclick="checkPassword()">🔐 로그인</button>
+    <input class="pw-input" type="password" id="pwInput" placeholder="●●●●" onkeydown="if(event.key==='Enter') checkPw()">
+    <button class="pw-btn" onclick="checkPw()">🔐 로그인</button>
     <div class="pw-error" id="pwError">비밀번호가 올바르지 않습니다</div>
   </div>
 </div>
 
+<!-- 헤더 -->
 <div class="header">
   <div>
     <div class="header-title">글답 <span>글쓰기 성장</span> 관리 시스템</div>
     <div class="header-sub">AI 기반 학생 글쓰기 평가 · 성장 추적</div>
   </div>
-  <button class="btn btn-primary" onclick="showModal('addStudent')">+ 학생 등록</button>
+  <button class="btn btn-primary" onclick="openModal()">+ 학생 등록</button>
 </div>
 
 <!-- 탭 -->
@@ -229,31 +136,22 @@
 </div>
 
 <div class="main">
-
-  <!-- 학생 관리 탭 -->
+  <!-- 학생 관리 -->
   <div class="page active" id="page-students">
     <div class="card">
       <div class="card-title">등록된 학생</div>
-      <div class="student-grid" id="studentGrid">
-        <div class="empty">
-          <div class="empty-icon">👦</div>
-          <div class="empty-text">등록된 학생이 없습니다<br>우측 상단 + 학생 등록을 눌러주세요</div>
-        </div>
-      </div>
+      <div class="student-grid" id="studentGrid"></div>
     </div>
   </div>
 
-  <!-- 업로드 · 평가 탭 -->
+  <!-- 업로드 -->
   <div class="page" id="page-upload">
     <div class="card">
       <div class="card-title">학생 선택</div>
-      <div class="student-grid" id="uploadStudentGrid">
-        <div class="empty"><div class="empty-icon">👦</div><div class="empty-text">먼저 학생을 등록해주세요</div></div>
-      </div>
+      <div class="student-grid" id="uploadStudentGrid"></div>
     </div>
-
     <div class="card" id="uploadSection" style="display:none;">
-      <div class="card-title">글 사진 업로드</div>
+      <div class="card-title">글 정보 입력</div>
       <div class="form-grid">
         <div class="form-group">
           <label>작성 날짜 (과거 글이면 실제 날짜 입력)</label>
@@ -262,66 +160,53 @@
         <div class="form-group">
           <label>글 종류</label>
           <select id="writingType">
-            <option value="독후감">독후감</option>
-            <option value="주제글쓰기">주제글쓰기</option>
-            <option value="논술">논술</option>
-            <option value="수행평가">수행평가</option>
-            <option value="자유글쓰기">자유글쓰기</option>
+            <option>독후감</option>
+            <option>주제글쓰기</option>
+            <option>논술</option>
+            <option>수행평가</option>
+            <option>자유글쓰기</option>
           </select>
         </div>
-        <div class="form-group">
+        <div class="form-group full">
           <label>참고 도서/주제 (선택)</label>
           <input type="text" id="writingTopic" placeholder="예) 잘못 뽑은 반장, 새벽">
         </div>
         <div class="form-group full">
           <label>사진 업로드</label>
           <div class="upload-area" onclick="document.getElementById('fileInput').click()">
-            <div class="upload-icon">📸</div>
-            <div class="upload-text"><strong>클릭하여 사진 선택</strong><br>학생이 쓴 글 사진을 올려주세요</div>
+            <div style="font-size:36px; margin-bottom:10px;">📸</div>
+            <div style="font-size:14px; color:#888;"><strong>클릭하여 사진 선택</strong><br>학생이 쓴 글 사진을 올려주세요</div>
             <img id="previewImg" class="preview-img" style="display:none;">
           </div>
           <input type="file" id="fileInput" accept="image/*" style="display:none;" onchange="previewImage(this)">
         </div>
         <div class="form-group full">
-          <label>글 내용 (OCR 추출 또는 직접 입력)</label>
-          <textarea id="writingContent" rows="8" placeholder="사진에서 자동으로 글을 추출합니다. 또는 직접 입력하세요..."></textarea>
-          <button class="btn btn-secondary btn-sm" style="margin-top:8px; width:fit-content;" onclick="extractFromImage()">📷 사진에서 글 추출</button>
+          <label>글 내용</label>
+          <textarea id="writingContent" rows="8" placeholder="사진에서 자동으로 추출하거나 직접 입력하세요..."></textarea>
+          <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:fit-content;" onclick="extractFromImage()">📷 사진에서 글 추출</button>
         </div>
       </div>
-      <div style="margin-top:20px; display:flex; gap:10px;">
+      <div style="margin-top:20px;">
         <button class="btn btn-primary" onclick="evaluateWriting()">🤖 AI 평가 시작</button>
       </div>
     </div>
-
-    <!-- 로딩 -->
     <div class="loading" id="loadingSection">
       <div class="spinner"></div>
-      <div class="loading-text" id="loadingText">AI가 글을 분석하고 있습니다...</div>
+      <div id="loadingText" style="font-size:14px;color:#888;">AI가 분석 중입니다...</div>
     </div>
-
-    <!-- 평가 결과 -->
     <div id="evalResult" style="display:none;">
       <div class="eval-header" id="evalHeader"></div>
-      <div class="card">
-        <div class="card-title">항목별 점수</div>
-        <div class="score-grid" id="scoreGrid"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">종합 평가</div>
-        <div id="evalSummary"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">이전 글과 비교</div>
-        <div id="evalCompare"></div>
-      </div>
-      <div style="display:flex; gap:10px; justify-content:flex-end; margin-bottom:20px;">
+      <div class="card"><div class="card-title">항목별 점수</div><div class="score-grid" id="scoreGrid"></div></div>
+      <div class="card"><div class="card-title">종합 평가</div><div id="evalSummary"></div></div>
+      <div class="card"><div class="card-title">이전 글과 비교</div><div id="evalCompare"></div></div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-bottom:20px;">
         <button class="btn btn-secondary" onclick="resetUpload()">새 글 평가</button>
         <button class="btn btn-primary" onclick="saveRecord()">💾 기록 저장</button>
       </div>
     </div>
   </div>
 
-  <!-- 평가 기록 탭 -->
+  <!-- 기록 -->
   <div class="page" id="page-records">
     <div class="card">
       <div class="card-title">학생 선택</div>
@@ -329,463 +214,313 @@
     </div>
     <div class="card" id="recordListSection" style="display:none;">
       <div class="card-title" id="recordListTitle">평가 기록</div>
-      <div class="record-list" id="recordList"></div>
+      <div id="recordList"></div>
     </div>
   </div>
-
 </div>
 
 <!-- 학생 등록 모달 -->
-<div class="modal-bg" id="modal-addStudent">
+<div class="modal-bg" id="studentModal">
   <div class="modal">
     <div class="modal-title">학생 등록</div>
     <div class="form-grid">
       <div class="form-group">
         <label>이름</label>
-        <input type="text" id="newStudentName" placeholder="홍길동">
+        <input type="text" id="newName" placeholder="홍길동">
       </div>
       <div class="form-group">
         <label>학년</label>
-        <select id="newStudentGrade">
-          <option>초등 3학년</option>
-          <option>초등 4학년</option>
-          <option>초등 5학년</option>
-          <option>초등 6학년</option>
-          <option>중학교 1학년</option>
-          <option>중학교 2학년</option>
-          <option>중학교 3학년</option>
+        <select id="newGrade">
+          <option>초등 3학년</option><option>초등 4학년</option><option>초등 5학년</option>
+          <option>초등 6학년</option><option>중학교 1학년</option><option>중학교 2학년</option><option>중학교 3학년</option>
         </select>
       </div>
       <div class="form-group full">
         <label>입학일</label>
-        <input type="date" id="newStudentDate">
+        <input type="date" id="newDate">
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-secondary" onclick="hideModal('addStudent')">취소</button>
+      <button class="btn btn-secondary" onclick="closeModal()">취소</button>
       <button class="btn btn-primary" onclick="addStudent()">등록</button>
     </div>
   </div>
 </div>
 
-<script>
-// ===== 상태 =====
-let students = JSON.parse(localStorage.getItem('geuldap_students') || '[]');
-let records = JSON.parse(localStorage.getItem('geuldap_records') || '[]');
-let selectedStudent = null;
-let currentEval = null;
-let uploadedImageBase64 = null;
-
-// ===== 초기화 =====
-window.onload = () => {
-  document.getElementById('newStudentDate').value = new Date().toISOString().split('T')[0];
-  document.getElementById('writingDate').value = new Date().toISOString().split('T')[0];
-  renderStudents();
-};
-
-// Firebase 준비되면 클라우드 데이터 로드
-window.addEventListener('firebaseReady', async () => {
-  try {
-    // 학생 로드
-    const sSnap = await window.fbGetDocs(window.fbCollection(window.db, 'geuldap_students'));
-    if (!sSnap.empty) {
-      const cloudStudents = [];
-      sSnap.forEach(d => cloudStudents.push(d.data()));
-      // 로컬에 없는 학생 추가
-      cloudStudents.forEach(cs => {
-        if (!students.find(s => s.id === cs.id)) students.push(cs);
-      });
-      localStorage.setItem('geuldap_students', JSON.stringify(students));
-    }
-    // 기록 로드
-    const rSnap = await window.fbGetDocs(window.fbCollection(window.db, 'geuldap_records'));
-    if (!rSnap.empty) {
-      const cloudRecords = [];
-      rSnap.forEach(d => cloudRecords.push(d.data()));
-      cloudRecords.forEach(cr => {
-        if (!records.find(r => r.id === cr.id)) records.push(cr);
-      });
-      localStorage.setItem('geuldap_records', JSON.stringify(records));
-    }
-    renderStudents();
-  } catch(e) { console.error('Firebase 로드 오류:', e); }
-});
-
-// ===== 탭 전환 =====
-function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach((t, i) => {
-    t.classList.toggle('active', ['students','upload','records'][i] === tab);
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  const app = initializeApp({
+    apiKey: "AIzaSyC5nf84GbQQ_5vIDwhIvTZ5zPqf7nrnSxU",
+    authDomain: "starspoon-120d7.firebaseapp.com",
+    projectId: "starspoon-120d7",
+    storageBucket: "starspoon-120d7.firebasestorage.app",
+    messagingSenderId: "672370227821",
+    appId: "1:672370227821:web:aea1d9c6ca8587842a5d64"
   });
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.getElementById('page-' + tab).classList.add('active');
-  if (tab === 'upload') renderUploadStudents();
-  if (tab === 'records') renderRecordStudents();
-}
+  const db = getFirestore(app);
+  window._db = db;
+  window._col = collection;
+  window._add = addDoc;
+  window._get = getDocs;
+  window._q = query;
+  window._where = where;
+  window._del = deleteDoc;
+  window._doc = doc;
 
-// ===== 학생 렌더링 =====
-function renderStudents() {
-  const grid = document.getElementById('studentGrid');
-  if (students.length === 0) {
-    grid.innerHTML = '<div class="empty"><div class="empty-icon">👦</div><div class="empty-text">등록된 학생이 없습니다<br>우측 상단 + 학생 등록을 눌러주세요</div></div>';
-    return;
-  }
-  grid.innerHTML = students.map(s => {
-    const cnt = records.filter(r => r.studentId === s.id).length;
-    return `<div class="student-card">
-      <div class="student-avatar">${s.name[0]}</div>
-      <div class="student-name">${s.name}</div>
-      <div class="student-info">${s.grade} · ${s.date}</div>
-      <div class="student-count">📝 ${cnt}편 작성</div>
-      <div style="margin-top:10px; display:flex; gap:6px;">
-        <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}')">삭제</button>
-      </div>
-    </div>`;
-  }).join('');
-}
+  // Firebase에서 데이터 로드
+  try {
+    const ss = await getDocs(collection(db, 'geuldap_students'));
+    ss.forEach(d => { const s = d.data(); if (!window._students.find(x=>x.id===s.id)) window._students.push(s); });
+    const rs = await getDocs(collection(db, 'geuldap_records'));
+    rs.forEach(d => { const r = d.data(); if (!window._records.find(x=>x.id===r.id)) window._records.push(r); });
+    localStorage.setItem('gs', JSON.stringify(window._students));
+    localStorage.setItem('gr', JSON.stringify(window._records));
+  } catch(e) { console.log('Firebase 로드:', e); }
+  renderStudents();
+  window._fbReady = true;
+</script>
 
-function renderUploadStudents() {
-  const grid = document.getElementById('uploadStudentGrid');
-  if (students.length === 0) {
-    grid.innerHTML = '<div class="empty"><div class="empty-icon">👦</div><div class="empty-text">먼저 학생을 등록해주세요</div></div>';
-    return;
+<script>
+  // ===== 비밀번호 =====
+  function checkPw() {
+    if (document.getElementById('pwInput').value === '0147') {
+      document.getElementById('pwScreen').style.display = 'none';
+      sessionStorage.setItem('auth','1');
+    } else {
+      document.getElementById('pwError').classList.add('show');
+      document.getElementById('pwInput').value = '';
+    }
   }
-  grid.innerHTML = students.map(s => `
-    <div class="student-card ${selectedStudent?.id === s.id ? 'selected' : ''}" onclick="selectStudent('${s.id}', 'upload')">
+  if (sessionStorage.getItem('auth') === '1') {
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('pwScreen').style.display = 'none';
+    });
+  }
+
+  // ===== 상태 =====
+  window._students = JSON.parse(localStorage.getItem('gs') || '[]');
+  window._records = JSON.parse(localStorage.getItem('gr') || '[]');
+  let selectedStudent = null;
+  let currentEval = null;
+  let uploadedImageBase64 = null;
+
+  // ===== 초기화 =====
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('newDate').value = new Date().toISOString().split('T')[0];
+    document.getElementById('writingDate').value = new Date().toISOString().split('T')[0];
+    renderStudents();
+  });
+
+  // ===== 탭 =====
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['students','upload','records'][i]===tab));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-'+tab).classList.add('active');
+    if (tab==='upload') renderUploadStudents();
+    if (tab==='records') renderRecordStudents();
+  }
+
+  // ===== 렌더링 =====
+  function renderStudents() {
+    const g = document.getElementById('studentGrid');
+    if (!g) return;
+    if (_students.length===0) { g.innerHTML='<div class="empty"><div class="empty-icon">👦</div><div>등록된 학생이 없습니다<br>+ 학생 등록 버튼을 눌러주세요</div></div>'; return; }
+    g.innerHTML = _students.map(s => {
+      const cnt = _records.filter(r=>r.studentId===s.id).length;
+      return `<div class="student-card">
+        <div class="student-avatar">${s.name[0]}</div>
+        <div class="student-name">${s.name}</div>
+        <div class="student-info">${s.grade} · ${s.date}</div>
+        <div class="student-count">📝 ${cnt}편</div>
+        <div style="margin-top:10px;">
+          <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}')">삭제</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderUploadStudents() {
+    const g = document.getElementById('uploadStudentGrid');
+    if (_students.length===0) { g.innerHTML='<div class="empty"><div class="empty-icon">👦</div><div>먼저 학생을 등록해주세요</div></div>'; return; }
+    g.innerHTML = _students.map(s=>`<div class="student-card ${selectedStudent?.id===s.id?'selected':''}" onclick="selectStudent('${s.id}')">
       <div class="student-avatar">${s.name[0]}</div>
       <div class="student-name">${s.name}</div>
       <div class="student-info">${s.grade}</div>
     </div>`).join('');
-}
-
-function renderRecordStudents() {
-  const grid = document.getElementById('recordStudentGrid');
-  if (students.length === 0) {
-    grid.innerHTML = '<div class="empty"><div class="empty-icon">👦</div><div class="empty-text">등록된 학생이 없습니다</div></div>';
-    return;
   }
-  grid.innerHTML = students.map(s => {
-    const cnt = records.filter(r => r.studentId === s.id).length;
-    return `<div class="student-card" onclick="showStudentRecords('${s.id}')">
-      <div class="student-avatar">${s.name[0]}</div>
-      <div class="student-name">${s.name}</div>
-      <div class="student-info">${s.grade}</div>
-      <div class="student-count">📝 ${cnt}편</div>
-    </div>`;
-  }).join('');
-}
 
-// ===== 학생 선택 =====
-function selectStudent(id, mode) {
-  selectedStudent = students.find(s => s.id === id);
-  if (mode === 'upload') {
+  function renderRecordStudents() {
+    const g = document.getElementById('recordStudentGrid');
+    if (_students.length===0) { g.innerHTML='<div class="empty"><div class="empty-icon">👦</div><div>등록된 학생이 없습니다</div></div>'; return; }
+    g.innerHTML = _students.map(s=>{
+      const cnt = _records.filter(r=>r.studentId===s.id).length;
+      return `<div class="student-card" onclick="showRecords('${s.id}')">
+        <div class="student-avatar">${s.name[0]}</div>
+        <div class="student-name">${s.name}</div>
+        <div class="student-info">${s.grade}</div>
+        <div class="student-count">📝 ${cnt}편</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ===== 모달 =====
+  function openModal() { document.getElementById('studentModal').classList.add('open'); }
+  function closeModal() { document.getElementById('studentModal').classList.remove('open'); }
+
+  // ===== 학생 추가 =====
+  function addStudent() {
+    const name = document.getElementById('newName').value.trim();
+    const grade = document.getElementById('newGrade').value;
+    const date = document.getElementById('newDate').value;
+    if (!name) { alert('이름을 입력해주세요'); return; }
+    const s = { id: Date.now().toString(), name, grade, date };
+    _students.push(s);
+    localStorage.setItem('gs', JSON.stringify(_students));
+    if (window._fbReady) window._add(window._col(window._db,'geuldap_students'), s).catch(console.error);
+    closeModal();
+    document.getElementById('newName').value = '';
+    renderStudents();
+  }
+
+  // ===== 학생 삭제 =====
+  function deleteStudent(id) {
+    if (!confirm('삭제할까요?')) return;
+    window._students = _students.filter(s=>s.id!==id);
+    window._records = _records.filter(r=>r.studentId!==id);
+    localStorage.setItem('gs', JSON.stringify(_students));
+    localStorage.setItem('gr', JSON.stringify(_records));
+    renderStudents();
+  }
+
+  // ===== 학생 선택 =====
+  function selectStudent(id) {
+    selectedStudent = _students.find(s=>s.id===id);
     renderUploadStudents();
-    document.getElementById('uploadSection').style.display = 'block';
-    document.getElementById('evalResult').style.display = 'none';
-  }
-}
-
-// ===== 학생 추가/삭제 =====
-function addStudent() {
-  const name = document.getElementById('newStudentName').value.trim();
-  const grade = document.getElementById('newStudentGrade').value;
-  const date = document.getElementById('newStudentDate').value;
-  if (!name) { alert('이름을 입력해주세요'); return; }
-  const newStudent = { id: Date.now().toString(), name, grade, date };
-  students.push(newStudent);
-  localStorage.setItem('geuldap_students', JSON.stringify(students));
-  // Firebase 저장
-  if (window.fbReady) {
-    window.fbAddDoc(window.fbCollection(window.db, 'geuldap_students'), newStudent).catch(console.error);
-  }
-  hideModal('addStudent');
-  document.getElementById('newStudentName').value = '';
-  renderStudents();
-}
-
-function deleteStudent(id) {
-  if (!confirm('학생을 삭제하면 관련 기록도 모두 삭제됩니다. 계속할까요?')) return;
-  students = students.filter(s => s.id !== id);
-  records = records.filter(r => r.studentId !== id);
-  localStorage.setItem('geuldap_students', JSON.stringify(students));
-  localStorage.setItem('geuldap_records', JSON.stringify(records));
-  // Firebase 삭제
-  if (window.fbReady) {
-    const sSnap = await window.fbGetDocs(window.fbQuery(window.fbCollection(window.db, 'geuldap_students'), window.fbWhere('id', '==', id)));
-    sSnap.forEach(d => window.fbDeleteDoc(window.fbDoc(window.db, 'geuldap_students', d.id)));
-    const rSnap = await window.fbGetDocs(window.fbQuery(window.fbCollection(window.db, 'geuldap_records'), window.fbWhere('studentId', '==', id)));
-    rSnap.forEach(d => window.fbDeleteDoc(window.fbDoc(window.db, 'geuldap_records', d.id)));
-  }
-  renderStudents();
-}
-
-// ===== 이미지 미리보기 =====
-function previewImage(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    uploadedImageBase64 = e.target.result.split(',')[1];
-    const img = document.getElementById('previewImg');
-    img.src = e.target.result;
-    img.style.display = 'block';
-  };
-  reader.readAsDataURL(file);
-}
-
-// ===== OCR 추출 =====
-async function extractFromImage() {
-  if (!uploadedImageBase64) { alert('사진을 먼저 업로드해주세요'); return; }
-  setLoading(true, '사진에서 글을 추출하고 있습니다...');
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: uploadedImageBase64 } },
-            { type: 'text', text: '이 사진에서 학생이 쓴 글의 텍스트만 정확하게 추출해주세요. 제목도 포함해서 글 내용만 출력하세요.' }
-          ]
-        }]
-      })
-    });
-    const data = await res.json();
-    document.getElementById('writingContent').value = data.content[0].text;
-  } catch(e) { alert('추출 중 오류가 발생했습니다'); }
-  setLoading(false);
-}
-
-// ===== AI 평가 =====
-async function evaluateWriting() {
-  if (!selectedStudent) { alert('학생을 선택해주세요'); return; }
-  const content = document.getElementById('writingContent').value.trim();
-  if (!content) { alert('글 내용을 입력하거나 사진에서 추출해주세요'); return; }
-
-  const type = document.getElementById('writingType').value;
-  const topic = document.getElementById('writingTopic').value;
-  const grade = selectedStudent.grade;
-
-  // 이전 글 가져오기
-  const prevRecords = records.filter(r => r.studentId === selectedStudent.id).slice(-3);
-  const prevInfo = prevRecords.length > 0
-    ? '이전 글들: ' + prevRecords.map(r => `[${r.date}] 총점 ${r.totalScore}점 - ${r.summary?.substring(0,50)}`).join(' / ')
-    : '이전 글 없음 (첫 번째 글)';
-
-  setLoading(true, 'AI가 글을 분석하고 있습니다...');
-  document.getElementById('evalResult').style.display = 'none';
-
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: `당신은 22년 경력의 국어 교사입니다. ${grade} 학생의 ${type} 글을 냉정하고 전문적으로 평가해주세요.
-
-[학생 정보]
-학년: ${grade}
-글 종류: ${type}
-${topic ? '주제/도서: ' + topic : ''}
-${prevInfo}
-
-[학생 글]
-${content}
-
-아래 JSON 형식으로만 응답하세요. 다른 텍스트 없이 JSON만 출력하세요:
-{
-  "title": "글 제목 (첫 줄에서 추출, 없으면 주제 요약)",
-  "scores": {
-    "논리성": 점수,
-    "소재참신성": 점수,
-    "어휘풍부성": 점수,
-    "문장구성력": 점수,
-    "표현다양성": 점수,
-    "주제일관성": 점수,
-    "감수성창의성": 점수,
-    "맞춤법": 점수
-  },
-  "strengths": ["잘된 점 1", "잘된 점 2", "잘된 점 3"],
-  "improvements": ["아쉬운 점 1", "아쉬운 점 2"],
-  "summary": "전체 총평 (3-4문장, 냉정하고 구체적으로)",
-  "compare": "${prevRecords.length > 0 ? '이전 글과 비교하여 달라진 점 (구체적으로)' : '첫 번째 글이므로 앞으로의 방향 제시'}",
-  "encouragement": "학생에게 전하는 한마디 (따뜻하게)"
-}`
-        }]
-      })
-    });
-    const data = await res.json();
-    const text = data.content[0].text.replace(/```json|```/g, '').trim();
-    currentEval = JSON.parse(text);
-    currentEval.studentId = selectedStudent.id;
-    currentEval.studentName = selectedStudent.name;
-    currentEval.grade = selectedStudent.grade;
-    currentEval.type = type;
-    currentEval.topic = topic;
-    currentEval.content = content;
-    const writingDateVal = document.getElementById('writingDate').value;
-  currentEval.date = writingDateVal 
-    ? new Date(writingDateVal).toLocaleDateString('ko-KR') 
-    : new Date().toLocaleDateString('ko-KR');
-    currentEval.totalScore = Math.round(Object.values(currentEval.scores).reduce((a,b) => a+b, 0) / 8 * 10) / 10;
-    renderEvalResult();
-  } catch(e) {
-    alert('평가 중 오류가 발생했습니다. 다시 시도해주세요.');
-    console.error(e);
-  }
-  setLoading(false);
-}
-
-// ===== 평가 결과 렌더링 =====
-function renderEvalResult() {
-  const e = currentEval;
-
-  // 헤더
-  document.getElementById('evalHeader').innerHTML = `
-    <div class="eval-student">${e.studentName} · ${e.grade} · ${e.type}</div>
-    <div class="eval-title">${e.title}</div>
-    <div class="eval-date">${e.date}</div>
-    <div class="eval-total">${e.totalScore}<span> / 10점</span></div>`;
-
-  // 점수 그리드
-  const scoreNames = { '논리성':'🧠','소재참신성':'✨','어휘풍부성':'📚','문장구성력':'✏️','표현다양성':'🎨','주제일관성':'🎯','감수성창의성':'💡','맞춤법':'🔤' };
-  document.getElementById('scoreGrid').innerHTML = Object.entries(e.scores).map(([k,v]) => {
-    const cls = v >= 8 ? 'high' : v >= 6 ? 'mid' : 'low';
-    return `<div class="score-item">
-      <div class="score-label">${scoreNames[k] || ''} ${k}</div>
-      <div class="score-value ${cls}">${v}</div>
-      <div class="score-bar"><div class="score-bar-fill" style="width:${v*10}%"></div></div>
-    </div>`;
-  }).join('');
-
-  // 총평
-  document.getElementById('evalSummary').innerHTML = `
-    <div class="eval-section">
-      <div class="eval-section-title">📋 총평</div>
-      <div class="eval-text">${e.summary}</div>
-    </div>
-    <div class="compare-grid" style="margin-top:16px;">
-      <div class="compare-card good">
-        <div class="compare-title good">✅ 잘된 점</div>
-        ${e.strengths.map(s => `<div class="compare-item">• ${s}</div>`).join('')}
-      </div>
-      <div class="compare-card bad">
-        <div class="compare-title bad">📌 보완할 점</div>
-        ${e.improvements.map(s => `<div class="compare-item">• ${s}</div>`).join('')}
-      </div>
-    </div>
-    <div class="eval-section" style="margin-top:16px;">
-      <div class="eval-section-title">💬 학생에게</div>
-      <div class="eval-text" style="background:#fefbf3; border-left:3px solid #c5a149; padding-left:16px;">${e.encouragement}</div>
-    </div>`;
-
-  // 비교
-  document.getElementById('evalCompare').innerHTML = `<div class="eval-text">${e.compare}</div>`;
-
-  document.getElementById('evalResult').style.display = 'block';
-  document.getElementById('evalResult').scrollIntoView({ behavior: 'smooth' });
-}
-
-// ===== 기록 저장 =====
-function saveRecord() {
-  if (!currentEval) return;
-  const newRecord = { ...currentEval, id: Date.now().toString() };
-  records.push(newRecord);
-  localStorage.setItem('geuldap_records', JSON.stringify(records));
-  // Firebase 저장
-  if (window.fbReady) {
-    await window.fbAddDoc(window.fbCollection(window.db, 'geuldap_records'), newRecord).catch(console.error);
-  }
-  alert('저장되었습니다!');
-  renderStudents();
-}
-
-// ===== 학생 기록 보기 =====
-function showStudentRecords(id) {
-  const student = students.find(s => s.id === id);
-  const studentRecords = records.filter(r => r.studentId === id).reverse();
-  document.getElementById('recordListSection').style.display = 'block';
-  document.getElementById('recordListTitle').textContent = `${student.name} 평가 기록 (${studentRecords.length}편)`;
-
-  if (studentRecords.length === 0) {
-    document.getElementById('recordList').innerHTML = '<div class="empty"><div class="empty-icon">📝</div><div class="empty-text">아직 평가 기록이 없습니다</div></div>';
-    return;
+    document.getElementById('uploadSection').style.display='block';
+    document.getElementById('evalResult').style.display='none';
   }
 
-  document.getElementById('recordList').innerHTML = studentRecords.map((r, i) => {
-    const prev = studentRecords[i+1];
-    const diff = prev ? (r.totalScore - prev.totalScore).toFixed(1) : null;
-    const changeEl = diff === null ? '' :
-      diff > 0 ? `<span class="record-change up">▲ ${diff}</span>` :
-      diff < 0 ? `<span class="record-change down">▼ ${Math.abs(diff)}</span>` :
-      `<span class="record-change same">— 동일</span>`;
-
-    return `<div class="record-item" onclick="showRecordDetail('${r.id}')">
-      <div class="record-date">${r.date}</div>
-      <div>
-        <div class="record-title">${r.title}</div>
-        <div style="font-size:12px; color:#888;">${r.type}${r.topic ? ' · ' + r.topic : ''}</div>
-      </div>
-      ${changeEl}
-      <div class="record-score">${r.totalScore}</div>
-    </div>`;
-  }).join('');
-}
-
-// ===== 기록 상세 =====
-function showRecordDetail(id) {
-  currentEval = records.find(r => r.id === id);
-  switchTab('upload');
-  renderEvalResult();
-}
-
-// ===== 리셋 =====
-function resetUpload() {
-  document.getElementById('writingContent').value = '';
-  document.getElementById('writingTopic').value = '';
-  document.getElementById('fileInput').value = '';
-  document.getElementById('previewImg').style.display = 'none';
-  document.getElementById('evalResult').style.display = 'none';
-  uploadedImageBase64 = null;
-  currentEval = null;
-  window.scrollTo(0, 0);
-}
-
-// ===== 로딩 =====
-function setLoading(show, text) {
-  const el = document.getElementById('loadingSection');
-  el.classList.toggle('show', show);
-  if (text) document.getElementById('loadingText').textContent = text;
-  if (show) el.scrollIntoView({ behavior: 'smooth' });
-}
-
-// ===== 모달 =====
-function showModal(id) { document.getElementById('modal-' + id).classList.add('show'); }
-function hideModal(id) { document.getElementById('modal-' + id).classList.remove('show'); }
-</script>
-<script>
-  const ADMIN_PASSWORD = '0147';
-  function checkPassword() {
-    const input = document.getElementById('pwInput').value;
-    if (input === ADMIN_PASSWORD) {
-      document.getElementById('pwScreen').style.display = 'none';
-      sessionStorage.setItem('geuldap_auth', 'true');
-    } else {
-      document.getElementById('pwError').classList.add('show');
-      document.getElementById('pwInput').value = '';
-      document.getElementById('pwInput').focus();
-    }
+  // ===== 이미지 미리보기 =====
+  function previewImage(input) {
+    const file = input.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      uploadedImageBase64 = e.target.result.split(',')[1];
+      const img = document.getElementById('previewImg');
+      img.src = e.target.result; img.style.display='block';
+    };
+    reader.readAsDataURL(file);
   }
-  window.addEventListener('DOMContentLoaded', () => {
-    if (sessionStorage.getItem('geuldap_auth') === 'true') {
-      document.getElementById('pwScreen').style.display = 'none';
-    }
-  });
+
+  // ===== OCR =====
+  async function extractFromImage() {
+    if (!uploadedImageBase64) { alert('사진을 먼저 업로드해주세요'); return; }
+    setLoading(true,'사진에서 글을 추출하고 있습니다...');
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1000, messages:[{role:'user',content:[
+          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:uploadedImageBase64}},
+          {type:'text',text:'이 사진에서 학생이 쓴 글의 텍스트만 정확하게 추출해주세요. 제목도 포함해서 글 내용만 출력하세요.'}
+        ]}]})
+      });
+      const data = await res.json();
+      document.getElementById('writingContent').value = data.content[0].text;
+    } catch(e) { alert('추출 오류'); }
+    setLoading(false);
+  }
+
+  // ===== AI 평가 =====
+  async function evaluateWriting() {
+    if (!selectedStudent) { alert('학생을 선택해주세요'); return; }
+    const content = document.getElementById('writingContent').value.trim();
+    if (!content) { alert('글 내용을 입력해주세요'); return; }
+    const type = document.getElementById('writingType').value;
+    const topic = document.getElementById('writingTopic').value;
+    const dateVal = document.getElementById('writingDate').value;
+    const prevRecs = _records.filter(r=>r.studentId===selectedStudent.id).slice(-3);
+    const prevInfo = prevRecs.length>0 ? '이전 글: '+prevRecs.map(r=>`[${r.date}] ${r.totalScore}점`).join(', ') : '첫 번째 글';
+    setLoading(true,'AI가 글을 분석하고 있습니다...');
+    document.getElementById('evalResult').style.display='none';
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1000, messages:[{role:'user',content:
+          `당신은 22년 경력의 국어 교사입니다. ${selectedStudent.grade} 학생의 ${type} 글을 냉정하고 전문적으로 평가해주세요.\n학생: ${selectedStudent.name} (${selectedStudent.grade})\n글 종류: ${type}${topic?'\n주제: '+topic:''}\n${prevInfo}\n\n[학생 글]\n${content}\n\n아래 JSON 형식으로만 응답하세요:\n{"title":"글 제목","scores":{"논리성":점수,"소재참신성":점수,"어휘풍부성":점수,"문장구성력":점수,"표현다양성":점수,"주제일관성":점수,"감수성창의성":점수,"맞춤법":점수},"strengths":["잘된 점1","잘된 점2","잘된 점3"],"improvements":["아쉬운 점1","아쉬운 점2"],"summary":"전체 총평 3-4문장","compare":"이전 글과 비교 또는 앞으로 방향","encouragement":"학생에게 한마디"}`
+        }]})
+      });
+      const data = await res.json();
+      const text = data.content[0].text.replace(/```json|```/g,'').trim();
+      currentEval = JSON.parse(text);
+      currentEval.studentId = selectedStudent.id;
+      currentEval.studentName = selectedStudent.name;
+      currentEval.grade = selectedStudent.grade;
+      currentEval.type = type;
+      currentEval.topic = topic;
+      currentEval.content = content;
+      currentEval.date = dateVal ? new Date(dateVal).toLocaleDateString('ko-KR') : new Date().toLocaleDateString('ko-KR');
+      currentEval.totalScore = Math.round(Object.values(currentEval.scores).reduce((a,b)=>a+b,0)/8*10)/10;
+      renderEval();
+    } catch(e) { alert('평가 오류: '+e.message); }
+    setLoading(false);
+  }
+
+  // ===== 평가 렌더링 =====
+  function renderEval() {
+    const e = currentEval;
+    document.getElementById('evalHeader').innerHTML=`<div class="eval-student">${e.studentName} · ${e.grade} · ${e.type}</div><div class="eval-title">${e.title}</div><div class="eval-date">${e.date}</div><div class="eval-total">${e.totalScore}<span> / 10점</span></div>`;
+    const icons = {'논리성':'🧠','소재참신성':'✨','어휘풍부성':'📚','문장구성력':'✏️','표현다양성':'🎨','주제일관성':'🎯','감수성창의성':'💡','맞춤법':'🔤'};
+    document.getElementById('scoreGrid').innerHTML = Object.entries(e.scores).map(([k,v])=>`<div class="score-item"><div class="score-label">${icons[k]||''} ${k}</div><div class="score-value ${v>=8?'high':v>=6?'mid':'low'}">${v}</div><div class="score-bar"><div class="score-bar-fill" style="width:${v*10}%"></div></div></div>`).join('');
+    document.getElementById('evalSummary').innerHTML=`<div class="eval-text" style="margin-bottom:16px;">${e.summary}</div><div class="compare-grid"><div class="compare-card good"><div class="compare-title good">✅ 잘된 점</div>${e.strengths.map(s=>`<div class="compare-item">• ${s}</div>`).join('')}</div><div class="compare-card bad"><div class="compare-title bad">📌 보완할 점</div>${e.improvements.map(s=>`<div class="compare-item">• ${s}</div>`).join('')}</div></div><div class="eval-text" style="margin-top:16px;background:#fefbf3;border-left:3px solid #c5a149;padding-left:16px;">💬 ${e.encouragement}</div>`;
+    document.getElementById('evalCompare').innerHTML=`<div class="eval-text">${e.compare}</div>`;
+    document.getElementById('evalResult').style.display='block';
+    document.getElementById('evalResult').scrollIntoView({behavior:'smooth'});
+  }
+
+  // ===== 저장 =====
+  async function saveRecord() {
+    if (!currentEval) return;
+    const r = {...currentEval, id: Date.now().toString()};
+    _records.push(r);
+    localStorage.setItem('gr', JSON.stringify(_records));
+    if (window._fbReady) await window._add(window._col(window._db,'geuldap_records'), r).catch(console.error);
+    alert('저장되었습니다!');
+    renderStudents();
+  }
+
+  // ===== 기록 보기 =====
+  function showRecords(id) {
+    const s = _students.find(x=>x.id===id);
+    const recs = _records.filter(r=>r.studentId===id).reverse();
+    document.getElementById('recordListSection').style.display='block';
+    document.getElementById('recordListTitle').textContent=`${s.name} 평가 기록 (${recs.length}편)`;
+    if (recs.length===0) { document.getElementById('recordList').innerHTML='<div class="empty"><div class="empty-icon">📝</div><div>아직 기록이 없습니다</div></div>'; return; }
+    document.getElementById('recordList').innerHTML = recs.map((r,i)=>{
+      const prev = recs[i+1];
+      const diff = prev ? (r.totalScore-prev.totalScore).toFixed(1) : null;
+      const ch = diff===null?'':(diff>0?`<span class="record-change up">▲${diff}</span>`:`<span class="record-change down">▼${Math.abs(diff)}</span>`);
+      return `<div class="record-item"><div class="record-date">${r.date}</div><div><div class="record-title">${r.title}</div><div style="font-size:12px;color:#888;">${r.type}</div></div>${ch}<div class="record-score">${r.totalScore}</div></div>`;
+    }).join('');
+  }
+
+  // ===== 리셋 =====
+  function resetUpload() {
+    document.getElementById('writingContent').value='';
+    document.getElementById('writingTopic').value='';
+    document.getElementById('fileInput').value='';
+    document.getElementById('previewImg').style.display='none';
+    document.getElementById('evalResult').style.display='none';
+    uploadedImageBase64=null; currentEval=null;
+    window.scrollTo(0,0);
+  }
+
+  // ===== 로딩 =====
+  function setLoading(show, text) {
+    document.getElementById('loadingSection').classList.toggle('show', show);
+    if(text) document.getElementById('loadingText').textContent=text;
+  }
 </script>
 </body>
 </html>
