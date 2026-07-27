@@ -464,7 +464,9 @@
         body: JSON.stringify({ prompt })
       });
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      if (!res.ok || data.error || !data.text) {
+        throw new Error(data.error || `서버 오류 (status ${res.status})`);
+      }
       const text = data.text.replace(/```json|```/g,'').trim();
       currentEval = JSON.parse(text);
       currentEval.studentId = selectedStudent.id;
