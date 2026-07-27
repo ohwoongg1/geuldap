@@ -760,5 +760,24 @@ function setLoading(show, text) {
 function showModal(id) { document.getElementById('modal-' + id).classList.add('show'); }
 function hideModal(id) { document.getElementById('modal-' + id).classList.remove('show'); }
 </script>
+<script>
+  const ADMIN_PASSWORD = '0147';
+  function checkPassword() {
+    const input = document.getElementById('pwInput').value;
+    if (input === ADMIN_PASSWORD) {
+      document.getElementById('pwScreen').style.display = 'none';
+      sessionStorage.setItem('geuldap_auth', 'true');
+    } else {
+      document.getElementById('pwError').classList.add('show');
+      document.getElementById('pwInput').value = '';
+      document.getElementById('pwInput').focus();
+    }
+  }
+  window.addEventListener('DOMContentLoaded', () => {
+    if (sessionStorage.getItem('geuldap_auth') === 'true') {
+      document.getElementById('pwScreen').style.display = 'none';
+    }
+  });
+</script>
 </body>
 </html>
