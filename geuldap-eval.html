@@ -186,6 +186,10 @@
         </div>
         <div class="form-group full">
           <label>글 내용</label>
+          <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:#666; font-weight:normal; margin-bottom:6px;">
+            <input type="checkbox" id="isManuscript" style="width:auto;">
+            원고지(칸이 있는 용지)로 촬영했어요 — 체크하면 AI가 더 정확하게 읽어요 (약간의 비용 발생)
+          </label>
           <textarea id="writingContent" rows="8" placeholder="사진에서 자동으로 추출하거나 직접 입력하세요..."></textarea>
           <button class="btn btn-secondary btn-sm" style="margin-top:8px;width:fit-content;" onclick="extractFromImage()">📷 사진에서 글 추출</button>
         </div>
@@ -485,25 +489,79 @@
     renderPreviewList();
   }
 
-  // ===== 글 추출 (Claude Vision 경유 - 원고지 등 특수 서식에 강함) =====
+  // ===== 글 추출 =====
+  // 일반 노트/편지지: Google Vision (무료/저렴, 빠름)
+  // 원고지(칸 있는 용지): Claude Vision (칸선/좁은 글자 배치에 훨씬 강함, 약간의 비용)
+  const GOOGLE_VISION_API_KEY = 'AIzaSyCTpggLimhoo_jWyJQPf7mbTovtO7lABdQ';
+
+  // 원고지처럼 Vision이 한 글자/단어씩 줄바꿈해버리는 문제를 보정.
+  // 글자 단위의 detectedBreak 정보를 이용해 띄어쓰기/줄바꿈을 다시 판단해서 문장을 이어붙인다.
+  function reconstructText(response) {
+    const pages = response?.fullTextAnnotation?.pages;
+    if (!pages || !pages.length) return response?.fullTextAnnotation?.text || '';
+    let result = '';
+    for (const page of pages) {
+      for (const block of page.blocks || []) {
+        for (const para of block.paragraphs || []) {
+          for (const word of para.words || []) {
+            for (const symbol of word.symbols || []) {
+              result += symbol.text || '';
+              const breakType = symbol.property?.detectedBreak?.type;
+              if (breakType === 'SPACE' || breakType === 'SURE_SPACE') {
+                result += ' ';
+              } else if (breakType === 'EOL_SURE_SPACE' || breakType === 'LINE_BREAK') {
+                result += '\n';
+              }
+            }
+          }
+          result += '\n';
+        }
+      }
+    }
+    return result.replace(/\n{3,}/g, '\n\n').trim();
+  }
+
+  async function extractWithGoogleVision(img, index) {
+    const res = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_API_KEY}`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ requests:[{
+        image:{ content: img.base64 },
+        features:[{ type:'DOCUMENT_TEXT_DETECTION' }],
+        imageContext:{ languageHints:['ko'] }
+      }]})
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(`(사진 ${index+1}) ` + data.error.message);
+    return reconstructText(data.responses?.[0]);
+  }
+
+  async function extractWithClaudeVision(img, index) {
+    const prompt = '이 사진은 학생이 원고지 또는 노트에 손으로 쓴 글입니다. 사진 속 글자를 빠짐없이 정확하게 그대로 옮겨 적어주세요. 원고지의 칸 구분이나 교정부호, 페이지 번호 같은 것은 무시하고, 실제로 학생이 쓴 문장만 자연스럽게 이어서 작성하세요. 설명이나 사족 없이 옮겨 적은 글 내용만 출력하세요.';
+    const res = await fetch(EVAL_FUNCTION_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ prompt, image: { data: img.base64, mediaType: 'image/jpeg' } })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error || !data.text) {
+      throw new Error(`(사진 ${index+1}) ` + (data.error || `서버 오류 (status ${res.status})`));
+    }
+    return data.text.trim();
+  }
+
   async function extractFromImage() {
     if (!uploadedImages.length) { alert('사진을 먼저 업로드해주세요'); return; }
+    const isManuscript = document.getElementById('isManuscript').checked;
     setLoading(true, `사진 ${uploadedImages.length}장에서 글을 추출하고 있습니다...`);
     try {
       const texts = [];
       for (let i = 0; i < uploadedImages.length; i++) {
         setLoading(true, `사진 ${i+1}/${uploadedImages.length}에서 글을 추출하고 있습니다...`);
-        const prompt = '이 사진은 학생이 원고지 또는 노트에 손으로 쓴 글입니다. 사진 속 글자를 빠짐없이 정확하게 그대로 옮겨 적어주세요. 원고지의 칸 구분이나 교정부호, 페이지 번호 같은 것은 무시하고, 실제로 학생이 쓴 문장만 자연스럽게 이어서 작성하세요. 설명이나 사족 없이 옮겨 적은 글 내용만 출력하세요.';
-        const res = await fetch(EVAL_FUNCTION_URL, {
-          method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ prompt, image: { data: uploadedImages[i].base64, mediaType: 'image/jpeg' } })
-        });
-        const data = await res.json();
-        if (!res.ok || data.error || !data.text) {
-          throw new Error(`(사진 ${i+1}) ` + (data.error || `서버 오류 (status ${res.status})`));
-        }
-        texts.push(data.text.trim());
+        const text = isManuscript
+          ? await extractWithClaudeVision(uploadedImages[i], i)
+          : await extractWithGoogleVision(uploadedImages[i], i);
+        if (text) texts.push(text);
       }
+      if (!texts.length) { alert('글자를 인식하지 못했습니다. 사진이 선명한지 확인해주세요.'); setLoading(false); return; }
       document.getElementById('writingContent').value = texts.join('\n\n');
     } catch(e) { alert('추출 오류: '+e.message); }
     setLoading(false);
