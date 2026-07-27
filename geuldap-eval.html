@@ -256,6 +256,10 @@
       <div class="card-title">글 사진 업로드</div>
       <div class="form-grid">
         <div class="form-group">
+          <label>작성 날짜 (과거 글이면 실제 날짜 입력)</label>
+          <input type="date" id="writingDate">
+        </div>
+        <div class="form-group">
           <label>글 종류</label>
           <select id="writingType">
             <option value="독후감">독후감</option>
@@ -375,6 +379,7 @@ let uploadedImageBase64 = null;
 // ===== 초기화 =====
 window.onload = () => {
   document.getElementById('newStudentDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('writingDate').value = new Date().toISOString().split('T')[0];
   renderStudents();
 };
 
@@ -623,7 +628,10 @@ ${content}
     currentEval.type = type;
     currentEval.topic = topic;
     currentEval.content = content;
-    currentEval.date = new Date().toLocaleDateString('ko-KR');
+    const writingDateVal = document.getElementById('writingDate').value;
+  currentEval.date = writingDateVal 
+    ? new Date(writingDateVal).toLocaleDateString('ko-KR') 
+    : new Date().toLocaleDateString('ko-KR');
     currentEval.totalScore = Math.round(Object.values(currentEval.scores).reduce((a,b) => a+b, 0) / 8 * 10) / 10;
     renderEvalResult();
   } catch(e) {
