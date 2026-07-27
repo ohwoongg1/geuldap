@@ -414,21 +414,31 @@
     reader.readAsDataURL(file);
   }
 
-  // ===== OCR =====
+  // ===== OCR (Google Cloud Vision API) =====
+  const GOOGLE_VISION_API_KEY = 'AIzaSyCTpggLimhoo_jWyJQPf7mbTovtO7lABdQ';
+
   async function extractFromImage() {
     if (!uploadedImageBase64) { alert('사진을 먼저 업로드해주세요'); return; }
+    if (!GOOGLE_VISION_API_KEY || GOOGLE_VISION_API_KEY === 'YOUR_GOOGLE_VISION_API_KEY') {
+      alert('Google Vision API 키가 설정되지 않았습니다. 코드 상단의 GOOGLE_VISION_API_KEY 값을 채워주세요.');
+      return;
+    }
     setLoading(true,'사진에서 글을 추출하고 있습니다...');
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${GOOGLE_VISION_API_KEY}`, {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1000, messages:[{role:'user',content:[
-          {type:'image',source:{type:'base64',media_type:'image/jpeg',data:uploadedImageBase64}},
-          {type:'text',text:'이 사진에서 학생이 쓴 글의 텍스트만 정확하게 추출해주세요. 제목도 포함해서 글 내용만 출력하세요.'}
-        ]}]})
+        body: JSON.stringify({ requests:[{
+          image:{ content: uploadedImageBase64 },
+          features:[{ type:'DOCUMENT_TEXT_DETECTION' }],
+          imageContext:{ languageHints:['ko'] }
+        }]})
       });
       const data = await res.json();
-      document.getElementById('writingContent').value = data.content[0].text;
-    } catch(e) { alert('추출 오류'); }
+      if (data.error) throw new Error(data.error.message);
+      const text = data.responses?.[0]?.fullTextAnnotation?.text;
+      if (!text) { alert('글자를 인식하지 못했습니다. 사진이 선명한지 확인해주세요.'); setLoading(false); return; }
+      document.getElementById('writingContent').value = text;
+    } catch(e) { alert('추출 오류: '+e.message); }
     setLoading(false);
   }
 
