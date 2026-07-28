@@ -324,7 +324,7 @@
     <textarea id="parentReportEditor" rows="16" style="width:100%; font-size:14px; line-height:1.7; padding:12px; border:1px solid #ddd; border-radius:8px; font-family:inherit; resize:vertical;"></textarea>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeParentReport()">닫기</button>
-      <button class="btn btn-secondary" onclick="regenerateParentReport()">↩️ 기본 문구로 되돌리기</button>
+      <button class="btn btn-secondary" onclick="regenerateParentReport()">🔄 다시 다듬기</button>
       <button class="btn btn-secondary" onclick="saveParentReportEdit()">💾 수정 내용 저장</button>
       <button class="btn btn-primary" onclick="copyParentReport()">📋 복사하기</button>
     </div>
@@ -805,7 +805,7 @@
     return `<div class="eval-text" style="margin-bottom:16px;">${e.summary}</div><div class="compare-grid"><div class="compare-card good"><div class="compare-title good">✅ 잘된 점</div>${e.strengths.map(s=>`<div class="compare-item">• ${s}</div>`).join('')}</div><div class="compare-card bad"><div class="compare-title bad">📌 보완할 점</div>${e.improvements.map(s=>`<div class="compare-item">• ${s}</div>`).join('')}</div></div><div class="eval-text" style="margin-top:16px;background:#fefbf3;border-left:3px solid #c5a149;padding-left:16px;">💬 ${e.encouragement}</div>`;
   }
 
-  // ===== 학부모 보고서 (AI 문장 없이, 인사말 + 학생이 쓴 글 원문만. 완전 무료) =====
+  // ===== 학부모 보고서 (인사말 + 학생이 쓴 글을, 띄어쓰기/맞춤법만 다듬어서 전달) =====
 
   // 한글 글자에 받침이 있는지 확인해서 '이가'/'가' 조사를 올바르게 붙인다.
   function hasBatchim(ch) {
@@ -818,9 +818,38 @@
     return hasBatchim(name[name.length-1]) ? '이가' : '가';
   }
 
-  function buildParentReportText(source) {
-    const content = source.content || '(원문이 저장되어 있지 않습니다)';
-    return `안녕하세요, ${source.studentName}${subjectParticle(source.studentName)} 쓴 글 타이핑해서 보내드립니다.\n\n${content}`;
+  // 성을 뺀 이름만 추출(복성은 예외 처리). 완벽하진 않지만 일반적인 한국 이름엔 잘 맞는다.
+  const COMPOUND_SURNAMES = ['남궁','황보','제갈','선우','서문','사공','독고','동방'];
+  function givenName(fullName) {
+    if (!fullName) return '';
+    for (const sn of COMPOUND_SURNAMES) {
+      if (fullName.startsWith(sn) && fullName.length > sn.length) return fullName.slice(sn.length);
+    }
+    return fullName.length > 1 ? fullName.slice(1) : fullName;
+  }
+
+  // 내용/표현은 그대로 두고 띄어쓰기와 명백한 맞춤법 오류만 다듬는다.
+  // (채점에 쓰인 원본 content 자체는 건드리지 않고, 학부모 보고서에만 이 교정본을 쓴다.)
+  async function correctSpacingAndSpelling(text) {
+    const prompt = `다음은 학생이 손으로 쓴 글을 그대로 옮겨 적은 것입니다. 문장 내용, 표현, 문체는 절대 바꾸지 말고, 오직 띄어쓰기와 명백한 맞춤법 오류만 자연스럽게 고쳐주세요. 다른 설명이나 표시 없이, 고친 글 내용만 그대로 출력하세요.\n\n[원문]\n${text}`;
+    const res = await fetch(EVAL_FUNCTION_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ prompt })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error || !data.text) {
+      throw new Error(data.error || `서버 오류 (status ${res.status})`);
+    }
+    return data.text.trim();
+  }
+
+  async function buildParentReportText(source) {
+    const gname = givenName(source.studentName);
+    if (!source.content) {
+      return `안녕하세요, ${gname}${subjectParticle(gname)} 수업 시간에 쓴 글 읽기 쉽게 타이핑해서 보내드립니다.\n\n(저장된 원문이 없습니다)`;
+    }
+    const corrected = await correctSpacingAndSpelling(source.content);
+    return `안녕하세요, ${gname}${subjectParticle(gname)} 수업 시간에 쓴 글 읽기 쉽게 타이핑해서 보내드립니다.\n\n${corrected}`;
   }
 
   // 수정한 내용을 해당 기록에 저장. 이미 저장된 기록이면 로컬/클라우드에도 즉시 반영,
@@ -840,18 +869,43 @@
   }
 
   let parentReportSource = null;
-  function openParentReport(source) {
+  async function openParentReport(source) {
     if (!source) { alert('보고서를 만들 평가 데이터를 찾을 수 없어요.'); return; }
     parentReportSource = source;
     document.getElementById('parentReportHeader').innerHTML = `<div style="font-weight:700; font-size:16px;">${source.studentName} 학생 · ${source.grade}</div><div style="color:#888; font-size:13px;">${source.date} · ${source.type}${source.topic?(' · '+source.topic):''}</div>`;
     document.getElementById('parentReportModal').classList.add('open');
-    document.getElementById('parentReportEditor').value = source.parentReportText || buildParentReportText(source);
+    const editor = document.getElementById('parentReportEditor');
+    if (source.parentReportText) { editor.value = source.parentReportText; return; }
+    editor.value = '';
+    editor.disabled = true;
+    editor.placeholder = '띄어쓰기와 맞춤법을 다듬고 있습니다...';
+    try {
+      const text = await buildParentReportText(source);
+      editor.value = text;
+      persistParentReportText(source, text, { silent: true }); // 최초 1회만 비용 발생, 이후엔 캐시된 걸 재사용
+    } catch(e) {
+      editor.value = `(교정 중 오류: ${e.message})\n원문을 직접 붙여넣어 주세요.\n\n${source.content||''}`;
+    } finally {
+      editor.disabled = false;
+    }
   }
 
-  // AI 호출 없이, 처음 기본 문구(인사말+원문)로 되돌린다.
-  function regenerateParentReport() {
+  async function regenerateParentReport() {
     if (!parentReportSource) return;
-    document.getElementById('parentReportEditor').value = buildParentReportText(parentReportSource);
+    const editor = document.getElementById('parentReportEditor');
+    const prev = editor.value;
+    editor.disabled = true;
+    editor.value = '';
+    editor.placeholder = '다시 다듬고 있습니다...';
+    try {
+      const text = await buildParentReportText(parentReportSource);
+      editor.value = text;
+    } catch(e) {
+      editor.value = prev;
+      alert('다시 만들기 오류: ' + e.message);
+    } finally {
+      editor.disabled = false;
+    }
   }
 
   function closeParentReport() {
