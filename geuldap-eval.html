@@ -324,6 +324,7 @@
     <textarea id="parentReportEditor" rows="16" style="width:100%; font-size:14px; line-height:1.7; padding:12px; border:1px solid #ddd; border-radius:8px; font-family:inherit; resize:vertical;"></textarea>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeParentReport()">닫기</button>
+      <button class="btn btn-secondary" onclick="regenerateParentReport()">🔄 AI로 새로 작성</button>
       <button class="btn btn-secondary" onclick="saveParentReportEdit()">💾 수정 내용 저장</button>
       <button class="btn btn-primary" onclick="copyParentReport()">📋 복사하기</button>
     </div>
@@ -804,52 +805,95 @@
     return `<div class="eval-text" style="margin-bottom:16px;">${e.summary}</div><div class="compare-grid"><div class="compare-card good"><div class="compare-title good">✅ 잘된 점</div>${e.strengths.map(s=>`<div class="compare-item">• ${s}</div>`).join('')}</div><div class="compare-card bad"><div class="compare-title bad">📌 보완할 점</div>${e.improvements.map(s=>`<div class="compare-item">• ${s}</div>`).join('')}</div></div><div class="eval-text" style="margin-top:16px;background:#fefbf3;border-left:3px solid #c5a149;padding-left:16px;">💬 ${e.encouragement}</div>`;
   }
 
-  // ===== 학부모 보고서 (점수 대신 서술형 표현, 편집 후 저장 가능) =====
-  const SCORE_DESCRIPTORS = [
-    {min:90, label:'매우 뛰어나요', cls:'high'},
-    {min:80, label:'우수해요', cls:'high'},
-    {min:70, label:'잘 하고 있어요', cls:'mid'},
-    {min:60, label:'노력하면 더 좋아질 거예요', cls:'mid'},
-    {min:0,  label:'조금 더 신경 써주시면 좋겠어요', cls:'low'},
-  ];
-  function scoreDescriptor(v) { return SCORE_DESCRIPTORS.find(d => v >= d.min); }
+  // ===== 학부모 보고서 (핵심 항목별로 이 글에서 실제로 찾은 근거를 AI가 짧게 언급, 편집 후 저장 가능) =====
+  const PARENT_CATEGORIES = ['논리성','주제의 일관성','근거의 타당성','자연스러운 표현(문맥·어휘풍부성)','소재의 참신성'];
 
-  // 서술형 보고서의 기본(초안) 텍스트를 만든다. 선생님이 이후 자유롭게 고칠 수 있다.
-  function buildParentReportText(e) {
-    const overall = scoreDescriptor(e.totalScore).label;
-    const catLines = Object.entries(e.scores).map(([k,v]) => `- ${k}: ${scoreDescriptor(v).label}`).join('\n');
-    return `종합 평가: ${overall}\n\n${catLines}\n\n[총평]\n${e.summary}\n\n[잘하고 있는 점]\n${e.strengths.map(s=>'- '+s).join('\n')}\n\n[함께 도와주면 좋은 점]\n${e.improvements.map(s=>'- '+s).join('\n')}\n\n${e.encouragement}`;
+  // AI에게 이 학생 글을 다시 보여주고, 각 항목에 대해 구체적 근거가 있을 때만 한 줄씩 언급하게 한다.
+  // 특별히 언급할 내용이 없는 항목은 결과에서 아예 빠진다(패스).
+  async function generateParentReportDraft(source) {
+    const prompt = `당신은 국어 교사입니다. 아래는 ${source.studentName} 학생(${source.grade})이 쓴 글과 그 글에 대한 평가 정보입니다.\n\n[학생 글]\n${source.content || '(원문 없음)'}\n\n[교사 평가 요약]\n총평: ${source.summary}\n잘된 점: ${(source.strengths||[]).join('; ')}\n아쉬운 점: ${(source.improvements||[]).join('; ')}\n\n학부모님께 보내드릴 서술형 보고서 초안을 작성해주세요. 다음 다섯 항목 각각에 대해, 추상적인 말("잘 하고 있어요" 등) 대신 이 글에서 실제로 확인할 수 있는 구체적인 내용을 근거로 1문장 정도로 짧게 언급하세요. 해당 항목에 대해 이 글에서 특별히 언급할 만한 내용이 없다면, 그 항목은 결과에서 완전히 제외하세요(패스).\n\n항목: ${PARENT_CATEGORIES.join(', ')}\n\n아래 JSON 형식으로만 응답하세요(다른 설명 없이):\n{"categories":[{"name":"항목명","comment":"이 글에서 확인한 구체적 내용 1문장"}],"overall":"부모님께 전할 전체 총평 2~3문장, 친절하고 이해하기 쉬운 어투로"}`;
+    const res = await fetch(EVAL_FUNCTION_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ prompt })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error || !data.text) {
+      throw new Error(data.error || `서버 오류 (status ${res.status})`);
+    }
+    const parsed = JSON.parse(data.text.replace(/```json|```/g,'').trim());
+    const catLines = (parsed.categories||[]).map(c => `- ${c.name}: ${c.comment}`).join('\n');
+    return `[항목별로 살펴본 점]\n${catLines || '(특별히 짚을 항목이 없습니다)'}\n\n[총평]\n${parsed.overall || source.summary}\n\n${source.encouragement || ''}`;
+  }
+
+  // 생성/수정된 텍스트를 해당 기록에 반영. 이미 저장된 기록이면 로컬/클라우드에도 즉시 반영,
+  // 아직 저장 전(방금 채점만 한 상태)이면 "기록 저장" 누를 때 함께 저장되도록 currentEval에 반영.
+  function persistParentReportText(source, text, { silent } = {}) {
+    source.parentReportText = text;
+    const idx = _records.findIndex(r => r === source);
+    if (idx > -1) {
+      localStorage.setItem('gr', JSON.stringify(_records));
+      if (window._fbReady && source.id) {
+        window._updateByFieldId('geuldap_records', source.id, source).catch(console.error);
+      }
+      if (!silent) alert('학부모 보고서 내용이 저장되었습니다.');
+    } else if (!silent) {
+      alert('수정 내용이 반영되었습니다. "기록 저장"을 누르면 이 보고서 내용도 함께 저장돼요.');
+    }
   }
 
   let parentReportSource = null;
-  function openParentReport(source) {
+  async function openParentReport(source) {
     if (!source) { alert('보고서를 만들 평가 데이터를 찾을 수 없어요.'); return; }
     parentReportSource = source;
     document.getElementById('parentReportHeader').innerHTML = `<div style="font-weight:700; font-size:16px;">${source.studentName} 학생 · ${source.grade}</div><div style="color:#888; font-size:13px;">${source.date} · ${source.type}${source.topic?(' · '+source.topic):''}</div>`;
-    document.getElementById('parentReportEditor').value = source.parentReportText || buildParentReportText(source);
     document.getElementById('parentReportModal').classList.add('open');
+    const editor = document.getElementById('parentReportEditor');
+    if (source.parentReportText) {
+      editor.value = source.parentReportText;
+      return;
+    }
+    editor.value = '';
+    editor.disabled = true;
+    editor.placeholder = 'AI가 이 글을 다시 보고 학부모 보고서 초안을 작성하고 있습니다...';
+    try {
+      const draft = await generateParentReportDraft(source);
+      editor.value = draft;
+      persistParentReportText(source, draft, { silent: true }); // 최초 생성분은 조용히 캐싱(재생성 없이는 다시 비용 안 들도록)
+    } catch(e) {
+      editor.placeholder = '';
+      editor.value = `(보고서 초안 생성 오류: ${e.message})\n직접 작성해주세요.`;
+    } finally {
+      editor.disabled = false;
+    }
   }
+
+  async function regenerateParentReport() {
+    if (!parentReportSource) return;
+    const editor = document.getElementById('parentReportEditor');
+    editor.disabled = true;
+    const prevValue = editor.value;
+    editor.value = '';
+    editor.placeholder = 'AI가 새로 작성하고 있습니다...';
+    try {
+      const draft = await generateParentReportDraft(parentReportSource);
+      editor.value = draft;
+    } catch(e) {
+      editor.value = prevValue;
+      alert('재작성 오류: ' + e.message);
+    } finally {
+      editor.disabled = false;
+    }
+  }
+
   function closeParentReport() {
     document.getElementById('parentReportModal').classList.remove('open');
     parentReportSource = null;
   }
 
-  // 수정한 내용을 해당 기록에 저장. 이미 저장된 기록이면 로컬/클라우드에도 즉시 반영,
-  // 아직 저장 전(방금 채점만 한 상태)이면 "기록 저장" 누를 때 함께 저장되도록 currentEval에 반영.
   function saveParentReportEdit() {
     if (!parentReportSource) return;
     const text = document.getElementById('parentReportEditor').value;
-    parentReportSource.parentReportText = text;
-    const idx = _records.findIndex(r => r === parentReportSource);
-    if (idx > -1) {
-      localStorage.setItem('gr', JSON.stringify(_records));
-      if (window._fbReady && parentReportSource.id) {
-        window._updateByFieldId('geuldap_records', parentReportSource.id, parentReportSource).catch(console.error);
-      }
-      alert('학부모 보고서 내용이 저장되었습니다.');
-    } else {
-      alert('수정 내용이 반영되었습니다. "기록 저장"을 누르면 이 보고서 내용도 함께 저장돼요.');
-    }
+    persistParentReportText(parentReportSource, text);
   }
 
   function copyParentReport() {
