@@ -822,7 +822,8 @@
     }
     const parsed = JSON.parse(data.text.replace(/```json|```/g,'').trim());
     const catLines = (parsed.categories||[]).map(c => `- ${c.name}: ${c.comment}`).join('\n');
-    return `[항목별로 살펴본 점]\n${catLines || '(특별히 짚을 항목이 없습니다)'}\n\n[총평]\n${parsed.overall || source.summary}\n\n${source.encouragement || ''}`;
+    const originalText = source.content ? `[${source.studentName} 학생이 쓴 글]\n${source.content}\n\n` : '';
+    return `${originalText}[항목별로 살펴본 점]\n${catLines || '(특별히 짚을 항목이 없습니다)'}\n\n[총평]\n${parsed.overall || source.summary}\n\n${source.encouragement || ''}`;
   }
 
   // 생성/수정된 텍스트를 해당 기록에 반영. 이미 저장된 기록이면 로컬/클라우드에도 즉시 반영,
