@@ -319,9 +319,12 @@
 <div class="modal-bg" id="parentReportModal">
   <div class="modal" style="max-width:600px; max-height:85vh; overflow-y:auto; text-align:left;">
     <div class="modal-title">학부모 보고서</div>
-    <div id="parentReportBody" style="font-size:14px; line-height:1.8;"></div>
+    <div id="parentReportHeader" style="font-size:14px; margin-bottom:10px; color:#555;"></div>
+    <div style="font-size:12px; color:#888; margin-bottom:6px;">아래 내용을 자유롭게 수정한 뒤 저장하거나 복사해서 보내세요.</div>
+    <textarea id="parentReportEditor" rows="16" style="width:100%; font-size:14px; line-height:1.7; padding:12px; border:1px solid #ddd; border-radius:8px; font-family:inherit; resize:vertical;"></textarea>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeParentReport()">닫기</button>
+      <button class="btn btn-secondary" onclick="saveParentReportEdit()">💾 수정 내용 저장</button>
       <button class="btn btn-primary" onclick="copyParentReport()">📋 복사하기</button>
     </div>
   </div>
@@ -801,7 +804,7 @@
     return `<div class="eval-text" style="margin-bottom:16px;">${e.summary}</div><div class="compare-grid"><div class="compare-card good"><div class="compare-title good">✅ 잘된 점</div>${e.strengths.map(s=>`<div class="compare-item">• ${s}</div>`).join('')}</div><div class="compare-card bad"><div class="compare-title bad">📌 보완할 점</div>${e.improvements.map(s=>`<div class="compare-item">• ${s}</div>`).join('')}</div></div><div class="eval-text" style="margin-top:16px;background:#fefbf3;border-left:3px solid #c5a149;padding-left:16px;">💬 ${e.encouragement}</div>`;
   }
 
-  // ===== 학부모 보고서 (점수 대신 서술형 표현) =====
+  // ===== 학부모 보고서 (점수 대신 서술형 표현, 편집 후 저장 가능) =====
   const SCORE_DESCRIPTORS = [
     {min:90, label:'매우 뛰어나요', cls:'high'},
     {min:80, label:'우수해요', cls:'high'},
@@ -811,46 +814,48 @@
   ];
   function scoreDescriptor(v) { return SCORE_DESCRIPTORS.find(d => v >= d.min); }
 
-  function parentReportHTML(e) {
-    const catRows = Object.entries(e.scores).map(([k,v]) => {
-      const d = scoreDescriptor(v);
-      return `<div class="score-item"><div class="score-label">${SCORE_ICONS[k]||''} ${k}</div><div class="score-value ${d.cls}" style="font-size:15px;">${d.label}</div></div>`;
-    }).join('');
-    const overall = scoreDescriptor(e.totalScore);
-    return `
-      <div style="margin-bottom:14px;">
-        <div style="font-weight:700; font-size:16px;">${e.studentName} 학생 · ${e.grade}</div>
-        <div style="color:#888; font-size:13px;">${e.date} · ${e.type}${e.topic?(' · '+e.topic):''}</div>
-        <div style="margin-top:6px; font-weight:600;">종합 평가: ${overall.label}</div>
-      </div>
-      <div class="score-grid" style="margin-bottom:16px;">${catRows}</div>
-      <div class="eval-text" style="margin-bottom:12px;">${e.summary}</div>
-      <div class="compare-grid">
-        <div class="compare-card good"><div class="compare-title good">✅ 잘하고 있는 점</div>${e.strengths.map(s=>`<div class="compare-item">• ${s}</div>`).join('')}</div>
-        <div class="compare-card bad"><div class="compare-title bad">📌 함께 도와주면 좋은 점</div>${e.improvements.map(s=>`<div class="compare-item">• ${s}</div>`).join('')}</div>
-      </div>
-      <div class="eval-text" style="margin-top:16px;background:#fefbf3;border-left:3px solid #c5a149;padding-left:16px;">💬 ${e.encouragement}</div>
-    `;
+  // 서술형 보고서의 기본(초안) 텍스트를 만든다. 선생님이 이후 자유롭게 고칠 수 있다.
+  function buildParentReportText(e) {
+    const overall = scoreDescriptor(e.totalScore).label;
+    const catLines = Object.entries(e.scores).map(([k,v]) => `- ${k}: ${scoreDescriptor(v).label}`).join('\n');
+    return `종합 평가: ${overall}\n\n${catLines}\n\n[총평]\n${e.summary}\n\n[잘하고 있는 점]\n${e.strengths.map(s=>'- '+s).join('\n')}\n\n[함께 도와주면 좋은 점]\n${e.improvements.map(s=>'- '+s).join('\n')}\n\n${e.encouragement}`;
   }
 
   let parentReportSource = null;
   function openParentReport(source) {
     if (!source) { alert('보고서를 만들 평가 데이터를 찾을 수 없어요.'); return; }
     parentReportSource = source;
-    document.getElementById('parentReportBody').innerHTML = parentReportHTML(source);
+    document.getElementById('parentReportHeader').innerHTML = `<div style="font-weight:700; font-size:16px;">${source.studentName} 학생 · ${source.grade}</div><div style="color:#888; font-size:13px;">${source.date} · ${source.type}${source.topic?(' · '+source.topic):''}</div>`;
+    document.getElementById('parentReportEditor').value = source.parentReportText || buildParentReportText(source);
     document.getElementById('parentReportModal').classList.add('open');
   }
   function closeParentReport() {
     document.getElementById('parentReportModal').classList.remove('open');
     parentReportSource = null;
   }
+
+  // 수정한 내용을 해당 기록에 저장. 이미 저장된 기록이면 로컬/클라우드에도 즉시 반영,
+  // 아직 저장 전(방금 채점만 한 상태)이면 "기록 저장" 누를 때 함께 저장되도록 currentEval에 반영.
+  function saveParentReportEdit() {
+    if (!parentReportSource) return;
+    const text = document.getElementById('parentReportEditor').value;
+    parentReportSource.parentReportText = text;
+    const idx = _records.findIndex(r => r === parentReportSource);
+    if (idx > -1) {
+      localStorage.setItem('gr', JSON.stringify(_records));
+      if (window._fbReady && parentReportSource.id) {
+        window._updateByFieldId('geuldap_records', parentReportSource.id, parentReportSource).catch(console.error);
+      }
+      alert('학부모 보고서 내용이 저장되었습니다.');
+    } else {
+      alert('수정 내용이 반영되었습니다. "기록 저장"을 누르면 이 보고서 내용도 함께 저장돼요.');
+    }
+  }
+
   function copyParentReport() {
-    const e = parentReportSource;
-    if (!e) return;
-    const overall = scoreDescriptor(e.totalScore).label;
-    const catLines = Object.entries(e.scores).map(([k,v]) => `- ${k}: ${scoreDescriptor(v).label}`).join('\n');
-    const text = `[${e.studentName} 학생 글쓰기 평가 보고서]\n${e.date} · ${e.type}${e.topic?(' · '+e.topic):''}\n\n종합 평가: ${overall}\n\n${catLines}\n\n[총평]\n${e.summary}\n\n[잘하고 있는 점]\n${e.strengths.map(s=>'- '+s).join('\n')}\n\n[함께 도와주면 좋은 점]\n${e.improvements.map(s=>'- '+s).join('\n')}\n\n${e.encouragement}`;
-    navigator.clipboard.writeText(text)
+    if (!parentReportSource) return;
+    const text = document.getElementById('parentReportEditor').value;
+    navigator.clipboard.writeText(`[${parentReportSource.studentName} 학생 글쓰기 평가 보고서]\n${parentReportSource.date} · ${parentReportSource.type}${parentReportSource.topic?(' · '+parentReportSource.topic):''}\n\n${text}`)
       .then(()=> alert('복사되었습니다! 카카오톡이나 문자에 붙여넣으세요.'))
       .catch(()=> alert('복사에 실패했어요. 화면의 내용을 직접 선택해서 복사해주세요.'));
   }
