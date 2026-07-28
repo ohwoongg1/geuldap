@@ -850,7 +850,15 @@
     document.getElementById('parentReportModal').classList.add('open');
     const editor = document.getElementById('parentReportEditor');
     if (source.parentReportText) {
-      editor.value = source.parentReportText;
+      let text = source.parentReportText;
+      const marker = `${source.studentName} 학생이 쓴 글`;
+      // 예전에 만들어둔 보고서엔 원문 글이 안 붙어있을 수 있는데, 이미 저장된 원문을 그냥 앞에 붙이면
+      // 되는 거라 AI를 다시 부를 필요가 없다(무료로 처리).
+      if (source.content && !text.includes(marker)) {
+        text = `[${marker}]\n${source.content}\n\n${text}`;
+        persistParentReportText(source, text, { silent: true });
+      }
+      editor.value = text;
       return;
     }
     editor.value = '';
