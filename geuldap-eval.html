@@ -324,7 +324,7 @@
     <textarea id="parentReportEditor" rows="16" style="width:100%; font-size:14px; line-height:1.7; padding:12px; border:1px solid #ddd; border-radius:8px; font-family:inherit; resize:vertical;"></textarea>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeParentReport()">닫기</button>
-      <button class="btn btn-secondary" onclick="regenerateParentReport()">🔄 AI로 새로 작성</button>
+      <button class="btn btn-secondary" onclick="regenerateParentReport()">↩️ 기본 문구로 되돌리기</button>
       <button class="btn btn-secondary" onclick="saveParentReportEdit()">💾 수정 내용 저장</button>
       <button class="btn btn-primary" onclick="copyParentReport()">📋 복사하기</button>
     </div>
@@ -805,28 +805,25 @@
     return `<div class="eval-text" style="margin-bottom:16px;">${e.summary}</div><div class="compare-grid"><div class="compare-card good"><div class="compare-title good">✅ 잘된 점</div>${e.strengths.map(s=>`<div class="compare-item">• ${s}</div>`).join('')}</div><div class="compare-card bad"><div class="compare-title bad">📌 보완할 점</div>${e.improvements.map(s=>`<div class="compare-item">• ${s}</div>`).join('')}</div></div><div class="eval-text" style="margin-top:16px;background:#fefbf3;border-left:3px solid #c5a149;padding-left:16px;">💬 ${e.encouragement}</div>`;
   }
 
-  // ===== 학부모 보고서 (핵심 항목별로 이 글에서 실제로 찾은 근거를 AI가 짧게 언급, 편집 후 저장 가능) =====
-  const PARENT_CATEGORIES = ['논리성','주제의 일관성','근거의 타당성','자연스러운 표현(문맥·어휘풍부성)','소재의 참신성'];
+  // ===== 학부모 보고서 (AI 문장 없이, 인사말 + 학생이 쓴 글 원문만. 완전 무료) =====
 
-  // AI에게 이 학생 글을 다시 보여주고, 각 항목에 대해 구체적 근거가 있을 때만 한 줄씩 언급하게 한다.
-  // 특별히 언급할 내용이 없는 항목은 결과에서 아예 빠진다(패스).
-  async function generateParentReportDraft(source) {
-    const prompt = `당신은 국어 교사입니다. 아래는 ${source.studentName} 학생(${source.grade})이 쓴 글과 그 글에 대한 평가 정보입니다.\n\n[학생 글]\n${source.content || '(원문 없음)'}\n\n[교사 평가 요약]\n총평: ${source.summary}\n잘된 점: ${(source.strengths||[]).join('; ')}\n아쉬운 점: ${(source.improvements||[]).join('; ')}\n\n학부모님께 보내드릴 서술형 보고서 초안을 작성해주세요. 문체는 반드시 정중한 "습니다체"로 작성하세요(예: "~돋보입니다", "~필요합니다", "~좋겠습니다" 등. "~돋보여요", "~좋겠어요" 같은 "요체"는 사용하지 마세요). 다음 다섯 항목 각각에 대해, 추상적인 말("잘 하고 있습니다" 등) 대신 이 글에서 실제로 확인할 수 있는 구체적인 내용을 근거로 1문장 정도로 짧게 언급하세요. 해당 항목에 대해 이 글에서 특별히 언급할 만한 내용이 없다면, 그 항목은 결과에서 완전히 제외하세요(패스).\n\n항목: ${PARENT_CATEGORIES.join(', ')}\n\n아래 JSON 형식으로만 응답하세요(다른 설명 없이):\n{"categories":[{"name":"항목명","comment":"이 글에서 확인한 구체적 내용 1문장(습니다체)"}],"overall":"부모님께 전할 전체 총평 2~3문장, 정중한 습니다체로"}`;
-    const res = await fetch(EVAL_FUNCTION_URL, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ prompt })
-    });
-    const data = await res.json();
-    if (!res.ok || data.error || !data.text) {
-      throw new Error(data.error || `서버 오류 (status ${res.status})`);
-    }
-    const parsed = JSON.parse(data.text.replace(/```json|```/g,'').trim());
-    const catLines = (parsed.categories||[]).map(c => `- ${c.name}: ${c.comment}`).join('\n');
-    const originalText = source.content ? `[${source.studentName} 학생이 쓴 글]\n${source.content}\n\n` : '';
-    return `${originalText}[항목별로 살펴본 점]\n${catLines || '(특별히 짚을 항목이 없습니다)'}\n\n[총평]\n${parsed.overall || source.summary}\n\n${source.encouragement || ''}`;
+  // 한글 글자에 받침이 있는지 확인해서 '이가'/'가' 조사를 올바르게 붙인다.
+  function hasBatchim(ch) {
+    const code = (ch||'').charCodeAt(0) - 0xAC00;
+    if (code < 0 || code > 11171) return false;
+    return (code % 28) !== 0;
+  }
+  function subjectParticle(name) {
+    if (!name) return '가';
+    return hasBatchim(name[name.length-1]) ? '이가' : '가';
   }
 
-  // 생성/수정된 텍스트를 해당 기록에 반영. 이미 저장된 기록이면 로컬/클라우드에도 즉시 반영,
+  function buildParentReportText(source) {
+    const content = source.content || '(원문이 저장되어 있지 않습니다)';
+    return `안녕하세요, ${source.studentName}${subjectParticle(source.studentName)} 쓴 글 타이핑해서 보내드립니다.\n\n${content}`;
+  }
+
+  // 수정한 내용을 해당 기록에 저장. 이미 저장된 기록이면 로컬/클라우드에도 즉시 반영,
   // 아직 저장 전(방금 채점만 한 상태)이면 "기록 저장" 누를 때 함께 저장되도록 currentEval에 반영.
   function persistParentReportText(source, text, { silent } = {}) {
     source.parentReportText = text;
@@ -843,55 +840,18 @@
   }
 
   let parentReportSource = null;
-  async function openParentReport(source) {
+  function openParentReport(source) {
     if (!source) { alert('보고서를 만들 평가 데이터를 찾을 수 없어요.'); return; }
     parentReportSource = source;
     document.getElementById('parentReportHeader').innerHTML = `<div style="font-weight:700; font-size:16px;">${source.studentName} 학생 · ${source.grade}</div><div style="color:#888; font-size:13px;">${source.date} · ${source.type}${source.topic?(' · '+source.topic):''}</div>`;
     document.getElementById('parentReportModal').classList.add('open');
-    const editor = document.getElementById('parentReportEditor');
-    if (source.parentReportText) {
-      let text = source.parentReportText;
-      const marker = `${source.studentName} 학생이 쓴 글`;
-      // 예전에 만들어둔 보고서엔 원문 글이 안 붙어있을 수 있는데, 이미 저장된 원문을 그냥 앞에 붙이면
-      // 되는 거라 AI를 다시 부를 필요가 없다(무료로 처리).
-      if (source.content && !text.includes(marker)) {
-        text = `[${marker}]\n${source.content}\n\n${text}`;
-        persistParentReportText(source, text, { silent: true });
-      }
-      editor.value = text;
-      return;
-    }
-    editor.value = '';
-    editor.disabled = true;
-    editor.placeholder = 'AI가 이 글을 다시 보고 학부모 보고서 초안을 작성하고 있습니다...';
-    try {
-      const draft = await generateParentReportDraft(source);
-      editor.value = draft;
-      persistParentReportText(source, draft, { silent: true }); // 최초 생성분은 조용히 캐싱(재생성 없이는 다시 비용 안 들도록)
-    } catch(e) {
-      editor.placeholder = '';
-      editor.value = `(보고서 초안 생성 오류: ${e.message})\n직접 작성해주세요.`;
-    } finally {
-      editor.disabled = false;
-    }
+    document.getElementById('parentReportEditor').value = source.parentReportText || buildParentReportText(source);
   }
 
-  async function regenerateParentReport() {
+  // AI 호출 없이, 처음 기본 문구(인사말+원문)로 되돌린다.
+  function regenerateParentReport() {
     if (!parentReportSource) return;
-    const editor = document.getElementById('parentReportEditor');
-    editor.disabled = true;
-    const prevValue = editor.value;
-    editor.value = '';
-    editor.placeholder = 'AI가 새로 작성하고 있습니다...';
-    try {
-      const draft = await generateParentReportDraft(parentReportSource);
-      editor.value = draft;
-    } catch(e) {
-      editor.value = prevValue;
-      alert('재작성 오류: ' + e.message);
-    } finally {
-      editor.disabled = false;
-    }
+    document.getElementById('parentReportEditor').value = buildParentReportText(parentReportSource);
   }
 
   function closeParentReport() {
@@ -908,7 +868,7 @@
   function copyParentReport() {
     if (!parentReportSource) return;
     const text = document.getElementById('parentReportEditor').value;
-    navigator.clipboard.writeText(`[${parentReportSource.studentName} 학생 글쓰기 평가 보고서]\n${parentReportSource.date} · ${parentReportSource.type}${parentReportSource.topic?(' · '+parentReportSource.topic):''}\n\n${text}`)
+    navigator.clipboard.writeText(text)
       .then(()=> alert('복사되었습니다! 카카오톡이나 문자에 붙여넣으세요.'))
       .catch(()=> alert('복사에 실패했어요. 화면의 내용을 직접 선택해서 복사해주세요.'));
   }
