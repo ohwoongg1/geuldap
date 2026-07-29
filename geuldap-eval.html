@@ -140,6 +140,7 @@
   <div class="tab" onclick="switchTab('records')">평가 기록</div>
   <div class="tab" onclick="switchTab('attendance')">출석부</div>
   <div class="tab" onclick="switchTab('leads')">상담일지</div>
+  <div class="tab" onclick="switchTab('timetable')">시간표</div>
 </div>
 
 <div class="main">
@@ -383,6 +384,18 @@
       <div id="leadsList"></div>
     </div>
   </div>
+
+  <!-- 시간표 -->
+  <div class="page" id="page-timetable">
+    <div class="card">
+      <div class="card-title">전체 시간표</div>
+      <div style="font-size:12px; color:#888; margin-bottom:12px;">학생 등록/수정에서 입력한 수업 요일·시각을 기준으로 자동 정리됩니다. 시각을 입력하지 않은 학생은 표 아래에 따로 모아 보여드려요.</div>
+      <div style="overflow-x:auto;">
+        <table id="timetableGrid" style="border-collapse:collapse; width:100%; font-size:13px;"></table>
+      </div>
+      <div id="timetableNoTime" style="margin-top:16px;"></div>
+    </div>
+  </div>
 </div>
 
 <!-- 상담 등록 모달 -->
@@ -592,6 +605,10 @@
           <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="토" style="width:auto;">토</label>
           <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="일" style="width:auto;">일</label>
         </div>
+      </div>
+      <div class="form-group full">
+        <label>수업 시작 시각</label>
+        <input type="time" id="newClassTime">
       </div>
     </div>
     <div class="modal-actions">
@@ -1148,6 +1165,42 @@
     document.getElementById('newGrade').value = l.grade;
   }
 
+  // ===== 전체 시간표 =====
+  const TIMETABLE_DAYS = ['월','화','수','목','금','토','일'];
+
+  function renderTimetable() {
+    const active = _students.filter(s => s.active !== false && (s.schedule||[]).length);
+    const withTime = active.filter(s => s.classTime);
+    const withoutTime = active.filter(s => !s.classTime);
+
+    const times = Array.from(new Set(withTime.map(s=>s.classTime))).sort();
+
+    const grid = document.getElementById('timetableGrid');
+    if (!times.length) {
+      grid.innerHTML = '<tr><td style="padding:16px; color:#888;">수업 시각이 입력된 학생이 없습니다. 학생 관리에서 수업 시각을 입력해주세요.</td></tr>';
+    } else {
+      let thead = '<tr><th style="border:1px solid #eee; padding:8px; background:#faf8f3;">시각</th>' + TIMETABLE_DAYS.map(d=>`<th style="border:1px solid #eee; padding:8px; background:#faf8f3;">${d}</th>`).join('') + '</tr>';
+      let tbody = times.map(t => {
+        let row = `<tr><td style="border:1px solid #eee; padding:8px; font-weight:600; white-space:nowrap;">${t}</td>`;
+        TIMETABLE_DAYS.forEach(d => {
+          const names = withTime.filter(s => s.classTime===t && (s.schedule||[]).includes(d)).map(s=>s.name);
+          row += `<td style="border:1px solid #eee; padding:6px; vertical-align:top;">${names.map(n=>`<div style="background:#eaf3ec; color:#3a5f45; border-radius:6px; padding:2px 6px; margin-bottom:3px; display:inline-block;">${n}</div>`).join('')}</td>`;
+        });
+        row += '</tr>';
+        return row;
+      }).join('');
+      grid.innerHTML = thead + tbody;
+    }
+
+    const noTimeBox = document.getElementById('timetableNoTime');
+    if (withoutTime.length) {
+      noTimeBox.innerHTML = `<div style="font-size:13px; font-weight:600; color:#888; margin-bottom:6px;">시각 미입력 학생 (${withoutTime.length}명)</div>` +
+        withoutTime.map(s => `<div style="font-size:13px; color:#666; padding:2px 0;">${s.name} · ${(s.schedule||[]).join(', ')}</div>`).join('');
+    } else {
+      noTimeBox.innerHTML = '';
+    }
+  }
+
   // ===== 초기화 =====
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('newDate').value = todayLocalDateStr();
@@ -1159,7 +1212,7 @@
 
   // ===== 탭 =====
   function switchTab(tab) {
-    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['students','upload','quiz','records','attendance','leads'][i]===tab));
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['students','upload','quiz','records','attendance','leads','timetable'][i]===tab));
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById('page-'+tab).classList.add('active');
     if (tab==='upload') renderUploadStudents();
@@ -1167,6 +1220,7 @@
     if (tab==='records') renderRecordStudents();
     if (tab==='attendance') loadAttendanceForDate(document.getElementById('attDate').value || todayLocalDateStr());
     if (tab==='leads') renderLeads();
+    if (tab==='timetable') renderTimetable();
   }
 
   // ===== 렌더링 =====
@@ -1275,6 +1329,7 @@
     document.getElementById('newGrade').selectedIndex = 0;
     document.getElementById('newDate').value = todayLocalDateStr();
     document.querySelectorAll('#newScheduleDays input[type=checkbox]').forEach(cb=>cb.checked=false);
+    document.getElementById('newClassTime').value = '';
     document.getElementById('studentModal').classList.add('open');
   }
   function closeModal() { document.getElementById('studentModal').classList.remove('open'); }
@@ -1291,6 +1346,7 @@
     document.getElementById('newDate').value = s.date;
     const sch = s.schedule || [];
     document.querySelectorAll('#newScheduleDays input[type=checkbox]').forEach(cb=>cb.checked = sch.includes(cb.value));
+    document.getElementById('newClassTime').value = s.classTime || '';
     document.getElementById('studentModal').classList.add('open');
   }
 
@@ -1300,19 +1356,20 @@
     const grade = document.getElementById('newGrade').value;
     const date = document.getElementById('newDate').value;
     const schedule = Array.from(document.querySelectorAll('#newScheduleDays input[type=checkbox]:checked')).map(cb=>cb.value);
+    const classTime = document.getElementById('newClassTime').value;
     if (!name) { alert('이름을 입력해주세요'); return; }
 
     if (editingStudentId) {
       const idx = _students.findIndex(s=>s.id===editingStudentId);
       if (idx > -1) {
-        _students[idx] = { ..._students[idx], name, grade, date, schedule };
+        _students[idx] = { ..._students[idx], name, grade, date, schedule, classTime };
         localStorage.setItem('gs', JSON.stringify(_students));
         if (window._fbReady) {
-          window._updateByFieldId('geuldap_students', editingStudentId, { name, grade, date, schedule }).catch(console.error);
+          window._updateByFieldId('geuldap_students', editingStudentId, { name, grade, date, schedule, classTime }).catch(console.error);
         }
       }
     } else {
-      const s = { id: Date.now().toString(), name, grade, date, schedule };
+      const s = { id: Date.now().toString(), name, grade, date, schedule, classTime };
       _students.push(s);
       localStorage.setItem('gs', JSON.stringify(_students));
       if (window._fbReady) window._add(window._col(window._db,'geuldap_students'), s).catch(console.error);
