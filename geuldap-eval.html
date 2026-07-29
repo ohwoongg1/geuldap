@@ -138,6 +138,7 @@
   <div class="tab" onclick="switchTab('upload')">글 업로드 · 평가</div>
   <div class="tab" onclick="switchTab('quiz')">문제 채점</div>
   <div class="tab" onclick="switchTab('records')">평가 기록</div>
+  <div class="tab" onclick="switchTab('attendance')">출석부</div>
 </div>
 
 <div class="main">
@@ -300,6 +301,27 @@
       <div id="recordList"></div>
     </div>
   </div>
+
+  <!-- 출석부 -->
+  <div class="page" id="page-attendance">
+    <div class="card">
+      <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <span>출석부</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="changeAttendanceDate(-1)">◀</button>
+          <input type="date" id="attDate" style="width:auto;" onchange="loadAttendanceForDate(this.value)">
+          <button class="btn btn-secondary btn-sm" onclick="changeAttendanceDate(1)">▶</button>
+        </div>
+      </div>
+      <div id="attSummary" style="font-size:13px; color:#888; margin-bottom:12px;"></div>
+      <div id="attList"></div>
+      <div style="display:flex; gap:8px; margin-top:16px; align-items:center; flex-wrap:wrap;">
+        <select id="attAddSelect" style="width:auto; min-width:180px;"><option value="">+ 오늘 추가로 온 학생...</option></select>
+        <button class="btn btn-secondary btn-sm" onclick="addExtraAttendanceStudent()">추가</button>
+        <button class="btn btn-primary" style="margin-left:auto;" onclick="saveAttendance()">💾 출석 저장</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- 기록 상세 모달 -->
@@ -373,6 +395,18 @@
         <label>입학일</label>
         <input type="date" id="newDate">
       </div>
+      <div class="form-group full">
+        <label>수업 요일 (출석부 기본값)</label>
+        <div id="newScheduleDays" style="display:flex; gap:12px; flex-wrap:wrap;">
+          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="월" style="width:auto;">월</label>
+          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="화" style="width:auto;">화</label>
+          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="수" style="width:auto;">수</label>
+          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="목" style="width:auto;">목</label>
+          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="금" style="width:auto;">금</label>
+          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="토" style="width:auto;">토</label>
+          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="일" style="width:auto;">일</label>
+        </div>
+      </div>
     </div>
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeModal()">취소</button>
@@ -444,9 +478,12 @@
     rs.forEach(d => { const r = d.data(); if (!window._records.find(x=>x.id===r.id)) window._records.push(r); });
     const qs = await getDocs(collection(db, 'geuldap_quizzes'));
     qs.forEach(d => { const q2 = d.data(); if (!window._quizzes.find(x=>x.id===q2.id)) window._quizzes.push(q2); });
+    const as_ = await getDocs(collection(db, 'geuldap_attendance'));
+    as_.forEach(d => { const a = d.data(); if (!window._attendance.find(x=>x.id===a.id)) window._attendance.push(a); });
     localStorage.setItem('gs', JSON.stringify(window._students));
     localStorage.setItem('gr', JSON.stringify(window._records));
     localStorage.setItem('gq', JSON.stringify(window._quizzes));
+    localStorage.setItem('ga', JSON.stringify(window._attendance));
   } catch(e) { console.log('Firebase 로드:', e); }
   renderStudents();
   window._fbReady = true;
@@ -473,6 +510,7 @@
   window._students = JSON.parse(localStorage.getItem('gs') || '[]');
   window._records = JSON.parse(localStorage.getItem('gr') || '[]');
   window._quizzes = JSON.parse(localStorage.getItem('gq') || '[]');
+  window._attendance = JSON.parse(localStorage.getItem('ga') || '[]');
   let selectedStudent = null;
   let currentEval = null;
 
@@ -486,21 +524,144 @@
     return `${y}-${m}-${day}`;
   }
 
+  // ===== 출석부 =====
+  // 학생마다 정해둔 수업 요일(schedule)을 기준으로, 그 날짜에 예정된 학생은 기본 출석(present=true)으로 채워두고
+  // 결석/추가 등원 등 변동사항이 있을 때만 체크를 바꾸는 방식.
+  let attRows = [];
+  let attCurrentDate = todayLocalDateStr();
+  const WEEKDAY_KOR = ['일','월','화','수','목','금','토'];
+
+  function weekdayKorFromDateStr(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    return WEEKDAY_KOR[d.getDay()];
+  }
+
+  function loadAttendanceForDate(dateStr) {
+    attCurrentDate = dateStr;
+    document.getElementById('attDate').value = dateStr;
+    const wk = weekdayKorFromDateStr(dateStr);
+    const existing = window._attendance.filter(a => a.date === dateStr);
+    const existingMap = {};
+    existing.forEach(a => { existingMap[a.studentId] = a; });
+
+    const scheduled = _students.filter(s => (s.schedule||[]).includes(wk));
+    const rows = [];
+    const seen = new Set();
+
+    scheduled.forEach(s => {
+      const ex = existingMap[s.id];
+      rows.push({ studentId: s.id, studentName: s.name, grade: s.grade, scheduled: true, present: ex ? ex.present : true });
+      seen.add(s.id);
+    });
+    // 예정에는 없지만 이 날짜에 이미 저장된 기록(예: 추가 등원)이 있는 학생도 이어서 보여준다.
+    existing.forEach(a => {
+      if (!seen.has(a.studentId)) {
+        const s = _students.find(x=>x.id===a.studentId);
+        rows.push({ studentId: a.studentId, studentName: a.studentName, grade: s?s.grade:(a.grade||''), scheduled: false, present: a.present });
+        seen.add(a.studentId);
+      }
+    });
+
+    attRows = rows;
+    renderAttendanceList();
+  }
+
+  function renderAttendanceList() {
+    const list = document.getElementById('attList');
+    if (!attRows.length) {
+      list.innerHTML = '<div class="empty" style="padding:20px 0;">이 날짜에 예정된 학생이 없습니다. 아래에서 학생을 추가해주세요.</div>';
+    } else {
+      list.innerHTML = attRows.map((r,i) => `
+        <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f0f0f0;">
+          <label style="display:flex; align-items:center; gap:8px; flex:1; cursor:pointer; font-weight:400;">
+            <input type="checkbox" ${r.present?'checked':''} onchange="toggleAttendancePresent(${i}, this.checked)">
+            <span style="${r.present?'':'color:#bbb; text-decoration:line-through;'}">${r.studentName} · ${r.grade}</span>
+          </label>
+          ${r.scheduled ? '<span style="font-size:11px; color:#4a7c59; background:#eaf3ec; padding:2px 6px; border-radius:6px;">정규</span>' : '<span style="font-size:11px; color:#a66; background:#fbeaea; padding:2px 6px; border-radius:6px;">추가</span>'}
+          ${!r.scheduled ? `<button class="thumb-remove" style="position:static;" onclick="removeAttendanceRow(${i})">✕</button>` : ''}
+        </div>
+      `).join('');
+    }
+    const presentCount = attRows.filter(r=>r.present).length;
+    document.getElementById('attSummary').textContent = `총 ${attRows.length}명 중 출석 ${presentCount}명 · 결석 ${attRows.length-presentCount}명`;
+
+    const addSelect = document.getElementById('attAddSelect');
+    const shownIds = new Set(attRows.map(r=>r.studentId));
+    const remaining = _students.filter(s=>!shownIds.has(s.id));
+    addSelect.innerHTML = '<option value="">+ 오늘 추가로 온 학생...</option>' + remaining.map(s=>`<option value="${s.id}">${s.name} · ${s.grade}</option>`).join('');
+  }
+
+  function toggleAttendancePresent(i, checked) {
+    attRows[i].present = checked;
+    renderAttendanceList();
+  }
+
+  function removeAttendanceRow(i) {
+    attRows.splice(i,1);
+    renderAttendanceList();
+  }
+
+  function addExtraAttendanceStudent() {
+    const sel = document.getElementById('attAddSelect');
+    const id = sel.value;
+    if (!id) return;
+    const s = _students.find(x=>x.id===id);
+    if (!s) return;
+    attRows.push({ studentId: s.id, studentName: s.name, grade: s.grade, scheduled: false, present: true });
+    renderAttendanceList();
+  }
+
+  function changeAttendanceDate(delta) {
+    const d = new Date(attCurrentDate + 'T00:00:00');
+    d.setDate(d.getDate()+delta);
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+    loadAttendanceForDate(`${y}-${m}-${day}`);
+  }
+
+  async function saveAttendance() {
+    const dateStr = attCurrentDate;
+    window._attendance = window._attendance.filter(a => a.date !== dateStr);
+    const newRecords = attRows.map(r => ({
+      id: dateStr + '_' + r.studentId,
+      date: dateStr,
+      studentId: r.studentId,
+      studentName: r.studentName,
+      grade: r.grade,
+      present: r.present
+    }));
+    window._attendance.push(...newRecords);
+    localStorage.setItem('ga', JSON.stringify(window._attendance));
+
+    if (window._fbReady) {
+      try {
+        const q = window._q(window._col(window._db,'geuldap_attendance'), window._where('date','==', dateStr));
+        const snap = await window._get(q);
+        const jobs = [];
+        snap.forEach(d => jobs.push(window._del(d.ref)));
+        await Promise.all(jobs);
+        await Promise.all(newRecords.map(r => window._add(window._col(window._db,'geuldap_attendance'), r)));
+      } catch(e) { console.error('출석 저장 오류', e); }
+    }
+    alert('출석부가 저장되었습니다.');
+  }
+
   // ===== 초기화 =====
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('newDate').value = todayLocalDateStr();
     document.getElementById('writingDate').value = todayLocalDateStr();
+    document.getElementById('attDate').value = todayLocalDateStr();
     renderStudents();
   });
 
   // ===== 탭 =====
   function switchTab(tab) {
-    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['students','upload','quiz','records'][i]===tab));
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['students','upload','quiz','records','attendance'][i]===tab));
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById('page-'+tab).classList.add('active');
     if (tab==='upload') renderUploadStudents();
     if (tab==='quiz') renderQuizStudents();
     if (tab==='records') renderRecordStudents();
+    if (tab==='attendance') loadAttendanceForDate(document.getElementById('attDate').value || todayLocalDateStr());
   }
 
   // ===== 렌더링 =====
@@ -583,6 +744,7 @@
     document.getElementById('newName').value = '';
     document.getElementById('newGrade').selectedIndex = 0;
     document.getElementById('newDate').value = todayLocalDateStr();
+    document.querySelectorAll('#newScheduleDays input[type=checkbox]').forEach(cb=>cb.checked=false);
     document.getElementById('studentModal').classList.add('open');
   }
   function closeModal() { document.getElementById('studentModal').classList.remove('open'); }
@@ -597,6 +759,8 @@
     document.getElementById('newName').value = s.name;
     document.getElementById('newGrade').value = s.grade;
     document.getElementById('newDate').value = s.date;
+    const sch = s.schedule || [];
+    document.querySelectorAll('#newScheduleDays input[type=checkbox]').forEach(cb=>cb.checked = sch.includes(cb.value));
     document.getElementById('studentModal').classList.add('open');
   }
 
@@ -605,19 +769,20 @@
     const name = document.getElementById('newName').value.trim();
     const grade = document.getElementById('newGrade').value;
     const date = document.getElementById('newDate').value;
+    const schedule = Array.from(document.querySelectorAll('#newScheduleDays input[type=checkbox]:checked')).map(cb=>cb.value);
     if (!name) { alert('이름을 입력해주세요'); return; }
 
     if (editingStudentId) {
       const idx = _students.findIndex(s=>s.id===editingStudentId);
       if (idx > -1) {
-        _students[idx] = { ..._students[idx], name, grade, date };
+        _students[idx] = { ..._students[idx], name, grade, date, schedule };
         localStorage.setItem('gs', JSON.stringify(_students));
         if (window._fbReady) {
-          window._updateByFieldId('geuldap_students', editingStudentId, { name, grade, date }).catch(console.error);
+          window._updateByFieldId('geuldap_students', editingStudentId, { name, grade, date, schedule }).catch(console.error);
         }
       }
     } else {
-      const s = { id: Date.now().toString(), name, grade, date };
+      const s = { id: Date.now().toString(), name, grade, date, schedule };
       _students.push(s);
       localStorage.setItem('gs', JSON.stringify(_students));
       if (window._fbReady) window._add(window._col(window._db,'geuldap_students'), s).catch(console.error);
