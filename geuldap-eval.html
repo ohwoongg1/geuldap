@@ -625,7 +625,8 @@
     return `${ampm} ${h12}시 ${min}분`;
   }
 
-  // 등원/하원 버튼: 현재 시각을 기록하고, 학부모께 보낼 문구를 만들어 공유(또는 복사)한다.
+  // 등원/하원 버튼: 현재 시각을 기록하고, 학부모께 보낼 문구를 만들어 바로 클립보드에 복사한다.
+  // (카카오톡 파트너센터는 시스템 공유 목록에 등록된 앱이 아니라 공유창에는 뜨지 않으므로, 복사 후 직접 붙여넣기 하는 방식)
   async function markCheckInOut(i, type) {
     const r = attRows[i];
     if (!r) return;
@@ -638,9 +639,6 @@
     const verb = type === 'in' ? '등원' : '하원';
     const message = `${r.studentName} 학생이 ${timeStr}에 ${verb}하였습니다.`;
 
-    if (navigator.share) {
-      try { await navigator.share({ text: message }); return; } catch(e) { /* 공유 취소 시 아래 복사로 대체 */ }
-    }
     try {
       await navigator.clipboard.writeText(message);
       alert('메시지가 복사되었습니다. 카카오톡 파트너센터에 붙여넣기 해주세요.\n\n' + message);
