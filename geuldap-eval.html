@@ -727,7 +727,9 @@
     const list = document.getElementById('previewList');
     list.innerHTML = uploadedImages.map((img, i) => `
       <div class="thumb-wrap" onclick="event.stopPropagation()" style="${img.selected===false?'opacity:0.4;':''}">
-        <img src="${img.dataUrl}">
+        <a href="${img.dataUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+          <img src="${img.dataUrl}">
+        </a>
         <span class="thumb-num">${i+1}</span>
         <label style="position:absolute; top:2px; left:2px; background:rgba(255,255,255,0.9); border-radius:4px; padding:1px 4px; font-size:11px; display:flex; align-items:center; gap:2px; cursor:pointer;" onclick="event.stopPropagation()">
           <input type="checkbox" style="margin:0;" ${img.selected!==false?'checked':''} onchange="toggleImageSelected(${i}, this.checked)"> 추출
