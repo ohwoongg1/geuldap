@@ -544,7 +544,7 @@
     const existingMap = {};
     existing.forEach(a => { existingMap[a.studentId] = a; });
 
-    const scheduled = _students.filter(s => (s.schedule||[]).includes(wk));
+    const scheduled = _students.filter(s => s.active !== false && (s.schedule||[]).includes(wk));
     const rows = [];
     const seen = new Set();
 
@@ -587,7 +587,7 @@
 
     const addSelect = document.getElementById('attAddSelect');
     const shownIds = new Set(attRows.map(r=>r.studentId));
-    const remaining = _students.filter(s=>!shownIds.has(s.id));
+    const remaining = _students.filter(s=>!shownIds.has(s.id) && s.active !== false);
     addSelect.innerHTML = '<option value="">+ 오늘 추가로 온 학생...</option>' + remaining.map(s=>`<option value="${s.id}">${s.name} · ${s.grade}</option>`).join('');
   }
 
@@ -669,19 +669,44 @@
     const g = document.getElementById('studentGrid');
     if (!g) return;
     if (_students.length===0) { g.innerHTML='<div class="empty"><div class="empty-icon">👦</div><div>등록된 학생이 없습니다<br>+ 학생 등록 버튼을 눌러주세요</div></div>'; return; }
-    g.innerHTML = _students.map(s => {
+    const activeStudents = _students.filter(s => s.active !== false);
+    const pausedStudents = _students.filter(s => s.active === false);
+
+    function studentCardHTML(s, paused) {
       const cnt = _records.filter(r=>r.studentId===s.id).length;
-      return `<div class="student-card">
+      return `<div class="student-card" style="${paused?'opacity:0.55;':''}">
         <div class="student-avatar">${s.name[0]}</div>
         <div class="student-name">${s.name}</div>
         <div class="student-info">${s.grade} · ${s.date}</div>
         <div class="student-count">📝 ${cnt}편</div>
-        <div style="margin-top:10px; display:flex; gap:6px; justify-content:center;">
+        <div style="margin-top:10px; display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
           <button class="btn btn-secondary btn-sm" onclick="editStudent('${s.id}')">수정</button>
+          <button class="btn ${paused?'btn-primary':'btn-secondary'} btn-sm" onclick="toggleStudentActive('${s.id}')">${paused?'복귀':'휴원 처리'}</button>
           <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}')">삭제</button>
         </div>
       </div>`;
-    }).join('');
+    }
+
+    let html = activeStudents.map(s => studentCardHTML(s, false)).join('');
+    if (pausedStudents.length) {
+      html += `<div style="grid-column:1/-1; margin-top:20px; font-size:13px; font-weight:600; color:#888;">휴원 중인 학생 (${pausedStudents.length}명)</div>`;
+      html += pausedStudents.map(s => studentCardHTML(s, true)).join('');
+    }
+    g.innerHTML = html;
+  }
+
+  // 휴원/복귀 전환. 휴원 중인 학생은 출석부 기본 목록(요일 스케줄)에서 자동 제외된다.
+  // 요일 스케줄 자체는 그대로 남아있어서, 복귀만 하면 예전에 설정해둔 요일이 그대로 출석부에 다시 반영된다.
+  function toggleStudentActive(id) {
+    const idx = _students.findIndex(s=>s.id===id);
+    if (idx === -1) return;
+    const nextActive = _students[idx].active === false ? true : false;
+    _students[idx] = { ..._students[idx], active: nextActive };
+    localStorage.setItem('gs', JSON.stringify(_students));
+    if (window._fbReady) {
+      window._updateByFieldId('geuldap_students', id, { active: nextActive }).catch(console.error);
+    }
+    renderStudents();
   }
 
   function renderUploadStudents() {
