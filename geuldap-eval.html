@@ -567,14 +567,14 @@
 
     scheduled.forEach(s => {
       const ex = existingMap[s.id];
-      rows.push({ studentId: s.id, studentName: s.name, grade: s.grade, scheduled: true, present: ex ? ex.present : true });
+      rows.push({ studentId: s.id, studentName: s.name, grade: s.grade, scheduled: true, present: ex ? ex.present : true, checkInTime: ex?ex.checkInTime:null, checkOutTime: ex?ex.checkOutTime:null });
       seen.add(s.id);
     });
     // 예정에는 없지만 이 날짜에 이미 저장된 기록(예: 추가 등원)이 있는 학생도 이어서 보여준다.
     existing.forEach(a => {
       if (!seen.has(a.studentId)) {
         const s = _students.find(x=>x.id===a.studentId);
-        rows.push({ studentId: a.studentId, studentName: a.studentName, grade: s?s.grade:(a.grade||''), scheduled: false, present: a.present });
+        rows.push({ studentId: a.studentId, studentName: a.studentName, grade: s?s.grade:(a.grade||''), scheduled: false, present: a.present, checkInTime: a.checkInTime||null, checkOutTime: a.checkOutTime||null });
         seen.add(a.studentId);
       }
     });
@@ -589,13 +589,21 @@
       list.innerHTML = '<div class="empty" style="padding:20px 0;">이 날짜에 예정된 학생이 없습니다. 아래에서 학생을 추가해주세요.</div>';
     } else {
       list.innerHTML = attRows.map((r,i) => `
-        <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f0f0f0;">
-          <label style="display:flex; align-items:center; gap:8px; flex:1; cursor:pointer; font-weight:400;">
-            <input type="checkbox" ${r.present?'checked':''} onchange="toggleAttendancePresent(${i}, this.checked)">
-            <span style="${r.present?'':'color:#bbb; text-decoration:line-through;'}">${r.studentName} · ${r.grade}</span>
-          </label>
-          ${r.scheduled ? '<span style="font-size:11px; color:#4a7c59; background:#eaf3ec; padding:2px 6px; border-radius:6px;">정규</span>' : '<span style="font-size:11px; color:#a66; background:#fbeaea; padding:2px 6px; border-radius:6px;">추가</span>'}
-          ${!r.scheduled ? `<button class="thumb-remove" style="position:static;" onclick="removeAttendanceRow(${i})">✕</button>` : ''}
+        <div style="padding:8px 0; border-bottom:1px solid #f0f0f0;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <label style="display:flex; align-items:center; gap:8px; flex:1; cursor:pointer; font-weight:400;">
+              <input type="checkbox" ${r.present?'checked':''} onchange="toggleAttendancePresent(${i}, this.checked)">
+              <span style="${r.present?'':'color:#bbb; text-decoration:line-through;'}">${r.studentName} · ${r.grade}</span>
+            </label>
+            ${r.scheduled ? '<span style="font-size:11px; color:#4a7c59; background:#eaf3ec; padding:2px 6px; border-radius:6px;">정규</span>' : '<span style="font-size:11px; color:#a66; background:#fbeaea; padding:2px 6px; border-radius:6px;">추가</span>'}
+            ${!r.scheduled ? `<button class="thumb-remove" style="position:static;" onclick="removeAttendanceRow(${i})">✕</button>` : ''}
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; margin:6px 0 0 32px; flex-wrap:wrap;">
+            <button class="btn btn-secondary btn-sm" onclick="markCheckInOut(${i}, 'in')">🚪 등원 알림</button>
+            <button class="btn btn-secondary btn-sm" onclick="markCheckInOut(${i}, 'out')">🏠 하원 알림</button>
+            ${r.checkInTime ? `<span style="font-size:12px; color:#888;">등원 ${r.checkInTime}</span>` : ''}
+            ${r.checkOutTime ? `<span style="font-size:12px; color:#888;">하원 ${r.checkOutTime}</span>` : ''}
+          </div>
         </div>
       `).join('');
     }
@@ -606,6 +614,39 @@
     const shownIds = new Set(attRows.map(r=>r.studentId));
     const remaining = _students.filter(s=>!shownIds.has(s.id) && s.active !== false);
     addSelect.innerHTML = '<option value="">+ 오늘 추가로 온 학생...</option>' + remaining.map(s=>`<option value="${s.id}">${s.name} · ${s.grade}</option>`).join('');
+  }
+
+  // 오전/오후 X시 X분 형태의 한국어 시각 문자열
+  function formatKoreanTime(d) {
+    const h = d.getHours();
+    const ampm = h < 12 ? '오전' : '오후';
+    let h12 = h % 12; if (h12 === 0) h12 = 12;
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${ampm} ${h12}시 ${min}분`;
+  }
+
+  // 등원/하원 버튼: 현재 시각을 기록하고, 학부모께 보낼 문구를 만들어 공유(또는 복사)한다.
+  async function markCheckInOut(i, type) {
+    const r = attRows[i];
+    if (!r) return;
+    const now = new Date();
+    const timeStr = formatKoreanTime(now);
+    if (type === 'in') { r.checkInTime = timeStr; r.present = true; }
+    else { r.checkOutTime = timeStr; }
+    renderAttendanceList();
+
+    const verb = type === 'in' ? '등원' : '하원';
+    const message = `${r.studentName} 학생이 ${timeStr}에 ${verb}하였습니다.`;
+
+    if (navigator.share) {
+      try { await navigator.share({ text: message }); return; } catch(e) { /* 공유 취소 시 아래 복사로 대체 */ }
+    }
+    try {
+      await navigator.clipboard.writeText(message);
+      alert('메시지가 복사되었습니다. 카카오톡 파트너센터에 붙여넣기 해주세요.\n\n' + message);
+    } catch(e) {
+      prompt('아래 문구를 복사해서 카카오톡 파트너센터에 붙여넣기 해주세요.', message);
+    }
   }
 
   function toggleAttendancePresent(i, checked) {
@@ -644,7 +685,9 @@
       studentId: r.studentId,
       studentName: r.studentName,
       grade: r.grade,
-      present: r.present
+      present: r.present,
+      checkInTime: r.checkInTime || null,
+      checkOutTime: r.checkOutTime || null
     }));
     window._attendance.push(...newRecords);
     localStorage.setItem('ga', JSON.stringify(window._attendance));
