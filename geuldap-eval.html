@@ -394,6 +394,23 @@
         <table id="timetableGrid" style="border-collapse:collapse; width:100%; font-size:13px;"></table>
       </div>
       <div id="timetableNoTime" style="margin-top:16px;"></div>
+
+      <div style="margin-top:24px; padding-top:16px; border-top:1px solid #eee;">
+        <div style="font-size:13px; font-weight:600; margin-bottom:8px;">새 학생 추가 가능 여부 확인</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <select id="ttCheckDay" style="width:auto;">
+            <option value="월">월</option><option value="화">화</option><option value="수">수</option>
+            <option value="목">목</option><option value="금">금</option><option value="토">토</option><option value="일">일</option>
+          </select>
+          <input type="time" id="ttCheckTime" style="width:auto;">
+          <select id="ttCheckDuration" style="width:auto;">
+            <option value="60">1시간</option><option value="90">1시간30분</option><option value="120">2시간</option>
+            <option value="150">2시간30분</option><option value="180">3시간</option>
+          </select>
+          <button class="btn btn-primary btn-sm" onclick="checkTimetableAvailability()">확인</button>
+        </div>
+        <div id="ttCheckResult" style="margin-top:10px; font-size:14px;"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1215,10 +1232,9 @@
     }).length;
   }
 
-  function renderTimetable() {
+  // 학생 하나가 요일마다 다른 시각을 가질 수 있으므로, (학생, 요일, 시각, 시간) 낱개 항목으로 펼쳐서 반환
+  function getTimetableEntries() {
     const active = _students.filter(s => s.active !== false && (s.schedule||[]).length);
-
-    // 학생 하나가 요일마다 다른 시각을 가질 수 있으므로, (학생, 요일, 시각, 시간) 낱개 항목으로 펼친다.
     const withTimeEntries = []; // {name, day, time, duration}
     const withoutTimeEntries = []; // {name, day}
     active.forEach(s => {
@@ -1227,6 +1243,11 @@
         else withoutTimeEntries.push({ name: s.name, day: e.day });
       });
     });
+    return { withTimeEntries, withoutTimeEntries };
+  }
+
+  function renderTimetable() {
+    const { withTimeEntries, withoutTimeEntries } = getTimetableEntries();
 
     const times = Array.from(new Set(withTimeEntries.map(e=>e.time))).sort();
 
@@ -1269,6 +1290,45 @@
         Object.entries(byStudent).map(([name, days]) => `<div style="font-size:13px; color:#666; padding:2px 0;">${name} · ${days.join(', ')}</div>`).join('');
     } else {
       noTimeBox.innerHTML = '';
+    }
+  }
+
+  // 새 학생을 특정 요일·시각·수업시간으로 추가할 수 있는지 확인.
+  // 시작 순간뿐 아니라 수업이 진행되는 전체 구간 동안 정원(6명)을 넘는 순간이 있는지까지 검사한다.
+  function checkTimetableAvailability() {
+    const day = document.getElementById('ttCheckDay').value;
+    const time = document.getElementById('ttCheckTime').value;
+    const duration = Number(document.getElementById('ttCheckDuration').value) || 60;
+    const resultBox = document.getElementById('ttCheckResult');
+    if (!time) { resultBox.innerHTML = '<div style="color:#c0392b;">시작 시각을 입력해주세요.</div>'; return; }
+
+    const { withTimeEntries } = getTimetableEntries();
+    const startMin = timeToMinutes(time);
+    const endMin = startMin + duration;
+
+    // 이 구간과 조금이라도 겹치는 기존 학생들의 시작/끝 지점을 모아 '검사할 순간들'로 삼는다.
+    // (겹치는 두 구간의 최대 동시 인원은 항상 어느 한쪽의 시작 지점에서 나타난다는 성질을 이용)
+    const dayEntries = withTimeEntries.filter(e => e.day === day);
+    const checkPoints = new Set([startMin]);
+    dayEntries.forEach(e => {
+      const eStart = timeToMinutes(e.time);
+      const eEnd = eStart + e.duration;
+      if (eStart > startMin && eStart < endMin) checkPoints.add(eStart);
+    });
+
+    let maxCount = 0, maxAt = startMin;
+    checkPoints.forEach(pt => {
+      const count = concurrentCountAt(withTimeEntries, day, pt);
+      if (count > maxCount) { maxCount = count; maxAt = pt; }
+    });
+
+    const remaining = TIMETABLE_CAPACITY - maxCount;
+    const endTimeStr = addMinutesToTime(time, duration);
+    if (remaining > 0) {
+      resultBox.innerHTML = `<div style="color:#2e7d32; font-weight:600;">✅ 가능합니다. ${day}요일 ${time}~${endTimeStr} 구간 중 가장 붐빌 때가 ${maxCount}명이라, ${remaining}자리 더 받을 수 있어요.</div>`;
+    } else {
+      const maxAtStr = String(Math.floor(maxAt/60)).padStart(2,'0')+':'+String(maxAt%60).padStart(2,'0');
+      resultBox.innerHTML = `<div style="color:#c0392b; font-weight:600;">❌ 어렵습니다. ${day}요일 ${maxAtStr}에 이미 ${maxCount}명이라 정원(${TIMETABLE_CAPACITY}명)이 꽉 차요. 시작 시각이나 수업 시간을 조정해보세요.</div>`;
     }
   }
 
