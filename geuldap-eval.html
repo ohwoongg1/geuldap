@@ -139,6 +139,7 @@
   <div class="tab" onclick="switchTab('quiz')">문제 채점</div>
   <div class="tab" onclick="switchTab('records')">평가 기록</div>
   <div class="tab" onclick="switchTab('attendance')">출석부</div>
+  <div class="tab" onclick="switchTab('leads')">상담일지</div>
 </div>
 
 <div class="main">
@@ -339,6 +340,162 @@
       </div>
     </div>
   </div>
+
+  <!-- 상담일지 -->
+  <div class="page" id="page-leads">
+    <div class="card">
+      <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <span>상담일지 (등록 여부 상담)</span>
+        <button class="btn btn-primary btn-sm" onclick="openLeadModal()">+ 상담 등록</button>
+      </div>
+      <div style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;">
+        <input type="text" id="leadSearch" placeholder="이름·연락처·메모 검색" style="flex:1; min-width:160px;" oninput="renderLeads()">
+        <select id="leadTagFilter" style="width:auto;" onchange="renderLeads()">
+          <option value="">전체 사유</option>
+          <option value="요일 안 맞음">요일 안 맞음</option>
+          <option value="거리">거리</option>
+          <option value="가격">가격</option>
+          <option value="타 학원 재원 중">타 학원 재원 중</option>
+          <option value="고민 중">고민 중</option>
+          <option value="기타">기타</option>
+        </select>
+        <select id="leadStatusFilter" style="width:auto;" onchange="renderLeads()">
+          <option value="">전체 상태</option>
+          <option value="new">신규 문의</option>
+          <option value="followup">재상담 대기</option>
+          <option value="registered">등록 완료</option>
+          <option value="declined">미등록</option>
+        </select>
+      </div>
+      <div id="leadsUpcoming"></div>
+      <div id="leadsList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 상담 등록 모달 -->
+<div class="modal-bg" id="leadModal">
+  <div class="modal" style="max-width:520px; max-height:85vh; overflow-y:auto;">
+    <div class="modal-title">상담 등록</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>이름</label>
+        <input type="text" id="leadName" placeholder="홍길동">
+      </div>
+      <div class="form-group">
+        <label>연락처</label>
+        <input type="text" id="leadPhone" placeholder="010-0000-0000">
+      </div>
+      <div class="form-group">
+        <label>학년</label>
+        <select id="leadGrade">
+          <option>초등 3학년</option><option>초등 4학년</option><option>초등 5학년</option>
+          <option>초등 6학년</option><option>중학교 1학년</option><option>중학교 2학년</option><option>중학교 3학년</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>유입경로</label>
+        <select id="leadSource">
+          <option>지인 소개</option><option>전단지</option><option>블로그/SNS</option><option>간판/지나가다</option><option>기타</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>상담일</label>
+        <input type="date" id="leadDate">
+      </div>
+      <div class="form-group">
+        <label>상담 방법</label>
+        <select id="leadMethod">
+          <option>전화</option><option>방문</option><option>카카오톡</option><option>기타</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>상담 내용</label>
+        <textarea id="leadMemo" rows="3" placeholder="상담 내용을 자유롭게 적어주세요"></textarea>
+      </div>
+      <div class="form-group full">
+        <label>미등록 사유 (해당 시 체크, 여러 개 가능)</label>
+        <div id="leadTags" style="display:flex; gap:10px; flex-wrap:wrap;">
+          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="요일 안 맞음" style="width:auto;">요일 안 맞음</label>
+          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="거리" style="width:auto;">거리</label>
+          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="가격" style="width:auto;">가격</label>
+          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="타 학원 재원 중" style="width:auto;">타 학원 재원 중</label>
+          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="고민 중" style="width:auto;">고민 중</label>
+          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="기타" style="width:auto;">기타</label>
+        </div>
+      </div>
+      <div class="form-group full">
+        <label>다음 상담(재상담) 예정일 - 선택</label>
+        <input type="date" id="leadNextDate">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeLeadModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveLead()">등록</button>
+    </div>
+  </div>
+</div>
+
+<!-- 상담 상세 모달 -->
+<div class="modal-bg" id="leadDetailModal">
+  <div class="modal" style="max-width:600px; max-height:85vh; overflow-y:auto; text-align:left;">
+    <div class="modal-title" id="leadDetailTitle">상담 상세</div>
+    <div id="leadDetailInfo" style="font-size:13px; color:#555; margin-bottom:14px;"></div>
+
+    <div style="font-size:13px; font-weight:600; margin-bottom:6px;">상담 이력</div>
+    <div id="leadTimeline" style="margin-bottom:16px;"></div>
+
+    <div style="font-size:13px; font-weight:600; margin-bottom:6px;">새 상담 추가</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>상담일</label>
+        <input type="date" id="leadDetailDate">
+      </div>
+      <div class="form-group">
+        <label>상담 방법</label>
+        <select id="leadDetailMethod">
+          <option>전화</option><option>방문</option><option>카카오톡</option><option>기타</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>상담 내용</label>
+        <textarea id="leadDetailMemo" rows="3" placeholder="상담 내용을 자유롭게 적어주세요"></textarea>
+      </div>
+      <div class="form-group full">
+        <label>미등록 사유 (해당 시 체크)</label>
+        <div id="leadDetailTags" style="display:flex; gap:10px; flex-wrap:wrap;">
+          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="요일 안 맞음" style="width:auto;">요일 안 맞음</label>
+          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="거리" style="width:auto;">거리</label>
+          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="가격" style="width:auto;">가격</label>
+          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="타 학원 재원 중" style="width:auto;">타 학원 재원 중</label>
+          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="고민 중" style="width:auto;">고민 중</label>
+          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="기타" style="width:auto;">기타</label>
+        </div>
+      </div>
+      <div class="form-group full">
+        <label>다음 상담(재상담) 예정일 - 선택</label>
+        <input type="date" id="leadDetailNextDate">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="addLeadConsultation()">💬 상담 내용 추가</button>
+      <button class="btn btn-secondary" onclick="copyLeadMessage()">📋 문자 초안 복사</button>
+    </div>
+
+    <div style="font-size:13px; font-weight:600; margin:16px 0 6px;">상태</div>
+    <select id="leadDetailStatus" onchange="updateLeadStatus()" style="margin-bottom:10px;">
+      <option value="new">신규 문의</option>
+      <option value="followup">재상담 대기</option>
+      <option value="registered">등록 완료</option>
+      <option value="declined">미등록</option>
+    </select>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeLeadDetail()">닫기</button>
+      <button class="btn btn-danger" onclick="deleteLead()">삭제</button>
+      <button class="btn btn-primary" onclick="convertLeadToStudent()">🎓 학생으로 등록</button>
+    </div>
+  </div>
 </div>
 
 <!-- 기록 상세 모달 -->
@@ -497,10 +654,13 @@
     qs.forEach(d => { const q2 = d.data(); if (!window._quizzes.find(x=>x.id===q2.id)) window._quizzes.push(q2); });
     const as_ = await getDocs(collection(db, 'geuldap_attendance'));
     as_.forEach(d => { const a = d.data(); if (!window._attendance.find(x=>x.id===a.id)) window._attendance.push(a); });
+    const ls_ = await getDocs(collection(db, 'geuldap_leads'));
+    ls_.forEach(d => { const l = d.data(); if (!window._leads.find(x=>x.id===l.id)) window._leads.push(l); });
     localStorage.setItem('gs', JSON.stringify(window._students));
     localStorage.setItem('gr', JSON.stringify(window._records));
     localStorage.setItem('gq', JSON.stringify(window._quizzes));
     localStorage.setItem('ga', JSON.stringify(window._attendance));
+    localStorage.setItem('gl', JSON.stringify(window._leads));
   } catch(e) { console.log('Firebase 로드:', e); }
   renderStudents();
   window._fbReady = true;
@@ -528,8 +688,10 @@
   window._records = JSON.parse(localStorage.getItem('gr') || '[]');
   window._quizzes = JSON.parse(localStorage.getItem('gq') || '[]');
   window._attendance = JSON.parse(localStorage.getItem('ga') || '[]');
+  window._leads = JSON.parse(localStorage.getItem('gl') || '[]');
   let selectedStudent = null;
   let currentEval = null;
+  let convertingLeadId = null;
 
   // toISOString()은 UTC 기준이라 한국 새벽 시간대엔 하루 전 날짜로 나오는 문제가 있어,
   // 로컬(한국) 시간 기준으로 YYYY-MM-DD를 만든다.
@@ -764,23 +926,235 @@
     document.getElementById('attMonthTable').innerHTML = thead + tbody;
   }
 
+  // ===== 상담일지 (등록 여부를 상담 중인 문의자 관리) =====
+  const LEAD_STATUS_LABEL = { new:'신규 문의', followup:'재상담 대기', registered:'등록 완료', declined:'미등록' };
+  let currentLeadId = null;
+
+  function openLeadModal() {
+    document.getElementById('leadName').value = '';
+    document.getElementById('leadPhone').value = '';
+    document.getElementById('leadGrade').selectedIndex = 0;
+    document.getElementById('leadSource').selectedIndex = 0;
+    document.getElementById('leadDate').value = todayLocalDateStr();
+    document.getElementById('leadMethod').selectedIndex = 0;
+    document.getElementById('leadMemo').value = '';
+    document.querySelectorAll('#leadTags input[type=checkbox]').forEach(cb=>cb.checked=false);
+    document.getElementById('leadNextDate').value = '';
+    document.getElementById('leadModal').classList.add('open');
+  }
+
+  function closeLeadModal() {
+    document.getElementById('leadModal').classList.remove('open');
+  }
+
+  async function saveLead() {
+    const name = document.getElementById('leadName').value.trim();
+    if (!name) { alert('이름을 입력해주세요'); return; }
+    const phone = document.getElementById('leadPhone').value.trim();
+    const grade = document.getElementById('leadGrade').value;
+    const source = document.getElementById('leadSource').value;
+    const tags = Array.from(document.querySelectorAll('#leadTags input[type=checkbox]:checked')).map(cb=>cb.value);
+    const entry = {
+      date: document.getElementById('leadDate').value || todayLocalDateStr(),
+      method: document.getElementById('leadMethod').value,
+      memo: document.getElementById('leadMemo').value.trim(),
+      tags,
+      nextDate: document.getElementById('leadNextDate').value || null
+    };
+    const lead = {
+      id: Date.now().toString(),
+      name, phone, grade, source,
+      status: entry.nextDate ? 'followup' : 'new',
+      consultations: [entry]
+    };
+    window._leads.push(lead);
+    localStorage.setItem('gl', JSON.stringify(window._leads));
+    if (window._fbReady) window._add(window._col(window._db,'geuldap_leads'), lead).catch(console.error);
+    closeLeadModal();
+    renderLeads();
+  }
+
+  function leadLatestEntry(lead) {
+    return lead.consultations[lead.consultations.length-1];
+  }
+
+  function renderLeads() {
+    const search = (document.getElementById('leadSearch').value || '').trim().toLowerCase();
+    const tagFilter = document.getElementById('leadTagFilter').value;
+    const statusFilter = document.getElementById('leadStatusFilter').value;
+
+    let leads = window._leads.slice();
+
+    if (search) {
+      leads = leads.filter(l => {
+        const memoMatch = l.consultations.some(c => (c.memo||'').toLowerCase().includes(search));
+        return l.name.toLowerCase().includes(search) || (l.phone||'').includes(search) || memoMatch;
+      });
+    }
+    if (tagFilter) {
+      leads = leads.filter(l => l.consultations.some(c => (c.tags||[]).includes(tagFilter)));
+    }
+    if (statusFilter) {
+      leads = leads.filter(l => l.status === statusFilter);
+    }
+
+    // 재상담 예정: 오늘 포함 앞으로 7일 이내, 또는 이미 지난(놓친) 예정일
+    const today = todayLocalDateStr();
+    const in7days = new Date(); in7days.setDate(in7days.getDate()+7);
+    const in7str = `${in7days.getFullYear()}-${String(in7days.getMonth()+1).padStart(2,'0')}-${String(in7days.getDate()).padStart(2,'0')}`;
+    const upcoming = window._leads.filter(l => {
+      const nd = leadLatestEntry(l).nextDate;
+      return nd && l.status !== 'registered' && l.status !== 'declined' && nd <= in7str;
+    }).sort((a,b)=> leadLatestEntry(a).nextDate.localeCompare(leadLatestEntry(b).nextDate));
+
+    const upcomingBox = document.getElementById('leadsUpcoming');
+    if (upcoming.length) {
+      upcomingBox.innerHTML = `
+        <div style="font-size:13px; font-weight:600; color:#a66; margin-bottom:8px;">📌 재상담 예정 (${upcoming.length}건)</div>
+        <div style="margin-bottom:18px;">${upcoming.map(l => {
+          const nd = leadLatestEntry(l).nextDate;
+          const overdue = nd < today;
+          return `<div style="display:flex; align-items:center; gap:10px; padding:8px 10px; background:#fff8f0; border:1px solid #f0dcc0; border-radius:8px; margin-bottom:6px; cursor:pointer;" onclick="openLeadDetail('${l.id}')">
+            <span style="font-weight:600;">${l.name}</span>
+            <span style="font-size:12px; color:#888;">${l.grade}</span>
+            <span style="font-size:12px; ${overdue?'color:#c0392b; font-weight:600;':'color:#888;'}">${overdue?'지남 · ':''}${nd} 예정</span>
+          </div>`;
+        }).join('')}</div>
+      `;
+    } else {
+      upcomingBox.innerHTML = '';
+    }
+
+    const list = document.getElementById('leadsList');
+    if (!leads.length) {
+      list.innerHTML = '<div class="empty" style="padding:20px 0;">상담 기록이 없습니다. + 상담 등록을 눌러 추가해주세요.</div>';
+      return;
+    }
+    // 최근 상담일 기준 최신순
+    leads.sort((a,b) => leadLatestEntry(b).date.localeCompare(leadLatestEntry(a).date));
+
+    list.innerHTML = leads.map(l => {
+      const last = leadLatestEntry(l);
+      const statusColor = { new:'#4a7c59', followup:'#a66', registered:'#2e7d32', declined:'#999' }[l.status] || '#888';
+      return `
+        <div style="padding:10px 0; border-bottom:1px solid #f0f0f0; cursor:pointer;" onclick="openLeadDetail('${l.id}')">
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <span style="font-weight:600;">${l.name}</span>
+            <span style="font-size:12px; color:#888;">${l.grade}${l.phone?(' · '+l.phone):''}</span>
+            <span style="font-size:11px; color:#fff; background:${statusColor}; padding:2px 8px; border-radius:10px;">${LEAD_STATUS_LABEL[l.status]}</span>
+          </div>
+          <div style="font-size:13px; color:#666; margin-top:4px;">${last.date} · ${last.method} — ${(last.memo||'').slice(0,60)}${(last.memo||'').length>60?'…':''}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function openLeadDetail(id) {
+    currentLeadId = id;
+    const l = window._leads.find(x=>x.id===id);
+    if (!l) return;
+    document.getElementById('leadDetailTitle').textContent = l.name + ' 상담 상세';
+    document.getElementById('leadDetailInfo').innerHTML = `${l.grade} · ${l.phone||'연락처 미입력'} · 유입경로: ${l.source||'-'}`;
+    document.getElementById('leadTimeline').innerHTML = l.consultations.slice().reverse().map(c => `
+      <div style="padding:8px 10px; background:#fafafa; border-radius:8px; margin-bottom:6px; font-size:13px;">
+        <div style="font-weight:600;">${c.date} · ${c.method}${c.nextDate?(' · 다음 상담 '+c.nextDate):''}</div>
+        <div style="color:#666; margin-top:2px; white-space:pre-wrap;">${c.memo||''}</div>
+        ${(c.tags&&c.tags.length)?`<div style="margin-top:4px;">${c.tags.map(t=>`<span style="font-size:11px; background:#eee; padding:1px 6px; border-radius:6px; margin-right:4px;">${t}</span>`).join('')}</div>`:''}
+      </div>
+    `).join('');
+    document.getElementById('leadDetailDate').value = todayLocalDateStr();
+    document.getElementById('leadDetailMethod').selectedIndex = 0;
+    document.getElementById('leadDetailMemo').value = '';
+    document.querySelectorAll('#leadDetailTags input[type=checkbox]').forEach(cb=>cb.checked=false);
+    document.getElementById('leadDetailNextDate').value = '';
+    document.getElementById('leadDetailStatus').value = l.status;
+    document.getElementById('leadDetailModal').classList.add('open');
+  }
+
+  function closeLeadDetail() {
+    document.getElementById('leadDetailModal').classList.remove('open');
+    currentLeadId = null;
+    renderLeads();
+  }
+
+  async function addLeadConsultation() {
+    const l = window._leads.find(x=>x.id===currentLeadId);
+    if (!l) return;
+    const entry = {
+      date: document.getElementById('leadDetailDate').value || todayLocalDateStr(),
+      method: document.getElementById('leadDetailMethod').value,
+      memo: document.getElementById('leadDetailMemo').value.trim(),
+      tags: Array.from(document.querySelectorAll('#leadDetailTags input[type=checkbox]:checked')).map(cb=>cb.value),
+      nextDate: document.getElementById('leadDetailNextDate').value || null
+    };
+    l.consultations.push(entry);
+    if (entry.nextDate && l.status !== 'registered' && l.status !== 'declined') l.status = 'followup';
+    localStorage.setItem('gl', JSON.stringify(window._leads));
+    if (window._fbReady) window._updateByFieldId('geuldap_leads', l.id, { consultations: l.consultations, status: l.status }).catch(console.error);
+    openLeadDetail(l.id);
+  }
+
+  async function updateLeadStatus() {
+    const l = window._leads.find(x=>x.id===currentLeadId);
+    if (!l) return;
+    l.status = document.getElementById('leadDetailStatus').value;
+    localStorage.setItem('gl', JSON.stringify(window._leads));
+    if (window._fbReady) window._updateByFieldId('geuldap_leads', l.id, { status: l.status }).catch(console.error);
+  }
+
+  async function copyLeadMessage() {
+    const l = window._leads.find(x=>x.id===currentLeadId);
+    if (!l) return;
+    const message = `안녕하세요, ${l.name} 학생 관련하여 상담해주셔서 감사합니다. 문의하신 내용 확인 후 다시 안내드리겠습니다.`;
+    try {
+      await navigator.clipboard.writeText(message);
+      alert('메시지가 복사되었습니다. 카카오톡이나 문자에 붙여넣기 해주세요.\n\n' + message);
+    } catch(e) {
+      prompt('아래 문구를 복사해서 보내주세요.', message);
+    }
+  }
+
+  function deleteLead() {
+    const l = window._leads.find(x=>x.id===currentLeadId);
+    if (!l) return;
+    if (!confirm(`${l.name} 상담 기록을 삭제할까요?`)) return;
+    window._leads = window._leads.filter(x=>x.id!==currentLeadId);
+    localStorage.setItem('gl', JSON.stringify(window._leads));
+    if (window._fbReady) window._deleteByFieldId('geuldap_leads', currentLeadId).catch(console.error);
+    document.getElementById('leadDetailModal').classList.remove('open');
+    currentLeadId = null;
+    renderLeads();
+  }
+
+  function convertLeadToStudent() {
+    const l = window._leads.find(x=>x.id===currentLeadId);
+    if (!l) return;
+    convertingLeadId = l.id;
+    document.getElementById('leadDetailModal').classList.remove('open');
+    openModal();
+    document.getElementById('newName').value = l.name;
+    document.getElementById('newGrade').value = l.grade;
+  }
+
   // ===== 초기화 =====
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('newDate').value = todayLocalDateStr();
     document.getElementById('writingDate').value = todayLocalDateStr();
     document.getElementById('attDate').value = todayLocalDateStr();
+    document.getElementById('leadDate').value = todayLocalDateStr();
     renderStudents();
   });
 
   // ===== 탭 =====
   function switchTab(tab) {
-    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['students','upload','quiz','records','attendance'][i]===tab));
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['students','upload','quiz','records','attendance','leads'][i]===tab));
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById('page-'+tab).classList.add('active');
     if (tab==='upload') renderUploadStudents();
     if (tab==='quiz') renderQuizStudents();
     if (tab==='records') renderRecordStudents();
     if (tab==='attendance') loadAttendanceForDate(document.getElementById('attDate').value || todayLocalDateStr());
+    if (tab==='leads') renderLeads();
   }
 
   // ===== 렌더링 =====
@@ -933,6 +1307,17 @@
     }
     closeModal();
     renderStudents();
+
+    // 상담(리드)을 학생으로 전환하는 중이었다면, 그 상담 건을 '등록 완료' 상태로 표시
+    if (convertingLeadId) {
+      const lead = window._leads.find(l=>l.id===convertingLeadId);
+      if (lead) {
+        lead.status = 'registered';
+        localStorage.setItem('gl', JSON.stringify(window._leads));
+        if (window._fbReady) window._updateByFieldId('geuldap_leads', lead.id, { status: 'registered' }).catch(console.error);
+      }
+      convertingLeadId = null;
+    }
   }
 
   // ===== 학생 삭제 =====
