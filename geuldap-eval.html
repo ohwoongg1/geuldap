@@ -595,20 +595,44 @@
         <input type="date" id="newDate">
       </div>
       <div class="form-group full">
-        <label>수업 요일 (출석부 기본값)</label>
-        <div id="newScheduleDays" style="display:flex; gap:12px; flex-wrap:wrap;">
-          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="월" style="width:auto;">월</label>
-          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="화" style="width:auto;">화</label>
-          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="수" style="width:auto;">수</label>
-          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="목" style="width:auto;">목</label>
-          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="금" style="width:auto;">금</label>
-          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="토" style="width:auto;">토</label>
-          <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; cursor:pointer;"><input type="checkbox" value="일" style="width:auto;">일</label>
+        <label>수업 요일 · 시각 · 시간 (요일마다 다르게 설정 가능)</label>
+        <div id="newScheduleRows">
+          <div class="sched-row" data-day="월" style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+            <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; width:32px; cursor:pointer;"><input type="checkbox" class="sched-day-cb" value="월" style="width:auto;">월</label>
+            <input type="time" class="sched-time" style="width:auto;">
+            <select class="sched-dur" style="width:auto;"><option value="60">1시간</option><option value="90">1시간30분</option><option value="120">2시간</option><option value="150">2시간30분</option><option value="180">3시간</option></select>
+          </div>
+          <div class="sched-row" data-day="화" style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+            <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; width:32px; cursor:pointer;"><input type="checkbox" class="sched-day-cb" value="화" style="width:auto;">화</label>
+            <input type="time" class="sched-time" style="width:auto;">
+            <select class="sched-dur" style="width:auto;"><option value="60">1시간</option><option value="90">1시간30분</option><option value="120">2시간</option><option value="150">2시간30분</option><option value="180">3시간</option></select>
+          </div>
+          <div class="sched-row" data-day="수" style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+            <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; width:32px; cursor:pointer;"><input type="checkbox" class="sched-day-cb" value="수" style="width:auto;">수</label>
+            <input type="time" class="sched-time" style="width:auto;">
+            <select class="sched-dur" style="width:auto;"><option value="60">1시간</option><option value="90">1시간30분</option><option value="120">2시간</option><option value="150">2시간30분</option><option value="180">3시간</option></select>
+          </div>
+          <div class="sched-row" data-day="목" style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+            <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; width:32px; cursor:pointer;"><input type="checkbox" class="sched-day-cb" value="목" style="width:auto;">목</label>
+            <input type="time" class="sched-time" style="width:auto;">
+            <select class="sched-dur" style="width:auto;"><option value="60">1시간</option><option value="90">1시간30분</option><option value="120">2시간</option><option value="150">2시간30분</option><option value="180">3시간</option></select>
+          </div>
+          <div class="sched-row" data-day="금" style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+            <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; width:32px; cursor:pointer;"><input type="checkbox" class="sched-day-cb" value="금" style="width:auto;">금</label>
+            <input type="time" class="sched-time" style="width:auto;">
+            <select class="sched-dur" style="width:auto;"><option value="60">1시간</option><option value="90">1시간30분</option><option value="120">2시간</option><option value="150">2시간30분</option><option value="180">3시간</option></select>
+          </div>
+          <div class="sched-row" data-day="토" style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+            <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; width:32px; cursor:pointer;"><input type="checkbox" class="sched-day-cb" value="토" style="width:auto;">토</label>
+            <input type="time" class="sched-time" style="width:auto;">
+            <select class="sched-dur" style="width:auto;"><option value="60">1시간</option><option value="90">1시간30분</option><option value="120">2시간</option><option value="150">2시간30분</option><option value="180">3시간</option></select>
+          </div>
+          <div class="sched-row" data-day="일" style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+            <label style="display:flex; align-items:center; gap:4px; font-weight:400; font-size:14px; width:32px; cursor:pointer;"><input type="checkbox" class="sched-day-cb" value="일" style="width:auto;">일</label>
+            <input type="time" class="sched-time" style="width:auto;">
+            <select class="sched-dur" style="width:auto;"><option value="60">1시간</option><option value="90">1시간30분</option><option value="120">2시간</option><option value="150">2시간30분</option><option value="180">3시간</option></select>
+          </div>
         </div>
-      </div>
-      <div class="form-group full">
-        <label>수업 시작 시각</label>
-        <input type="time" id="newClassTime">
       </div>
     </div>
     <div class="modal-actions">
@@ -752,7 +776,7 @@
     const existingMap = {};
     existing.forEach(a => { existingMap[a.studentId] = a; });
 
-    const scheduled = _students.filter(s => s.active !== false && (s.schedule||[]).includes(wk));
+    const scheduled = _students.filter(s => s.active !== false && studentScheduleEntries(s).some(e=>e.day===wk));
     const rows = [];
     const seen = new Set();
 
@@ -1168,12 +1192,28 @@
   // ===== 전체 시간표 =====
   const TIMETABLE_DAYS = ['월','화','수','목','금','토','일'];
 
+  function addMinutesToTime(timeStr, minutes) {
+    const [h, m] = timeStr.split(':').map(Number);
+    const total = h*60 + m + minutes;
+    const nh = Math.floor((total % (24*60)) / 60);
+    const nm = total % 60;
+    return String(nh).padStart(2,'0') + ':' + String(nm).padStart(2,'0');
+  }
+
   function renderTimetable() {
     const active = _students.filter(s => s.active !== false && (s.schedule||[]).length);
-    const withTime = active.filter(s => s.classTime);
-    const withoutTime = active.filter(s => !s.classTime);
 
-    const times = Array.from(new Set(withTime.map(s=>s.classTime))).sort();
+    // 학생 하나가 요일마다 다른 시각을 가질 수 있으므로, (학생, 요일, 시각, 시간) 낱개 항목으로 펼친다.
+    const withTimeEntries = []; // {name, day, time, duration}
+    const withoutTimeEntries = []; // {name, day}
+    active.forEach(s => {
+      studentScheduleEntries(s).forEach(e => {
+        if (e.time) withTimeEntries.push({ name: s.name, day: e.day, time: e.time, duration: e.duration });
+        else withoutTimeEntries.push({ name: s.name, day: e.day });
+      });
+    });
+
+    const times = Array.from(new Set(withTimeEntries.map(e=>e.time))).sort();
 
     const grid = document.getElementById('timetableGrid');
     if (!times.length) {
@@ -1183,8 +1223,11 @@
       let tbody = times.map(t => {
         let row = `<tr><td style="border:1px solid #eee; padding:8px; font-weight:600; white-space:nowrap;">${t}</td>`;
         TIMETABLE_DAYS.forEach(d => {
-          const names = withTime.filter(s => s.classTime===t && (s.schedule||[]).includes(d)).map(s=>s.name);
-          row += `<td style="border:1px solid #eee; padding:6px; vertical-align:top;">${names.map(n=>`<div style="background:#eaf3ec; color:#3a5f45; border-radius:6px; padding:2px 6px; margin-bottom:3px; display:inline-block;">${n}</div>`).join('')}</td>`;
+          const matched = withTimeEntries.filter(e => e.time===t && e.day===d);
+          row += `<td style="border:1px solid #eee; padding:6px; vertical-align:top;">${matched.map(e=>{
+            const endTime = addMinutesToTime(e.time, e.duration);
+            return `<div style="background:#eaf3ec; color:#3a5f45; border-radius:6px; padding:2px 6px; margin-bottom:3px;">${e.name} <span style="font-size:11px; opacity:0.75;">(${e.time}~${endTime})</span></div>`;
+          }).join('')}</td>`;
         });
         row += '</tr>';
         return row;
@@ -1193,9 +1236,12 @@
     }
 
     const noTimeBox = document.getElementById('timetableNoTime');
-    if (withoutTime.length) {
-      noTimeBox.innerHTML = `<div style="font-size:13px; font-weight:600; color:#888; margin-bottom:6px;">시각 미입력 학생 (${withoutTime.length}명)</div>` +
-        withoutTime.map(s => `<div style="font-size:13px; color:#666; padding:2px 0;">${s.name} · ${(s.schedule||[]).join(', ')}</div>`).join('');
+    if (withoutTimeEntries.length) {
+      // 학생별로 시각 미입력 요일을 묶어서 표시
+      const byStudent = {};
+      withoutTimeEntries.forEach(e => { (byStudent[e.name] = byStudent[e.name] || []).push(e.day); });
+      noTimeBox.innerHTML = `<div style="font-size:13px; font-weight:600; color:#888; margin-bottom:6px;">시각 미입력 (${Object.keys(byStudent).length}명)</div>` +
+        Object.entries(byStudent).map(([name, days]) => `<div style="font-size:13px; color:#666; padding:2px 0;">${name} · ${days.join(', ')}</div>`).join('');
     } else {
       noTimeBox.innerHTML = '';
     }
@@ -1321,6 +1367,52 @@
 
   // ===== 모달 =====
   let editingStudentId = null;
+  // 학생의 schedule을 항상 [{day, time, duration}] 형태로 정규화해서 반환.
+  // 예전 데이터(요일 문자열 배열 + 학생 전체에 공통 classTime/classDuration)도 그대로 호환된다.
+  function studentScheduleEntries(s) {
+    const sch = s.schedule || [];
+    return sch.map(e => {
+      if (typeof e === 'string') {
+        return { day: e, time: s.classTime || '', duration: s.classDuration || 60 };
+      }
+      return { day: e.day, time: e.time || '', duration: e.duration || 60 };
+    });
+  }
+
+  function resetScheduleRows() {
+    document.querySelectorAll('#newScheduleRows .sched-row').forEach(row => {
+      row.querySelector('.sched-day-cb').checked = false;
+      row.querySelector('.sched-time').value = '';
+      row.querySelector('.sched-dur').value = '60';
+    });
+  }
+
+  function populateScheduleRows(s) {
+    resetScheduleRows();
+    const entries = studentScheduleEntries(s);
+    entries.forEach(entry => {
+      const row = document.querySelector(`#newScheduleRows .sched-row[data-day="${entry.day}"]`);
+      if (!row) return;
+      row.querySelector('.sched-day-cb').checked = true;
+      row.querySelector('.sched-time').value = entry.time || '';
+      row.querySelector('.sched-dur').value = entry.duration || 60;
+    });
+  }
+
+  function collectScheduleRows() {
+    const result = [];
+    document.querySelectorAll('#newScheduleRows .sched-row').forEach(row => {
+      if (row.querySelector('.sched-day-cb').checked) {
+        result.push({
+          day: row.dataset.day,
+          time: row.querySelector('.sched-time').value || '',
+          duration: Number(row.querySelector('.sched-dur').value) || 60
+        });
+      }
+    });
+    return result;
+  }
+
   function openModal() {
     editingStudentId = null;
     document.getElementById('studentModalTitle').textContent = '학생 등록';
@@ -1328,8 +1420,7 @@
     document.getElementById('newName').value = '';
     document.getElementById('newGrade').selectedIndex = 0;
     document.getElementById('newDate').value = todayLocalDateStr();
-    document.querySelectorAll('#newScheduleDays input[type=checkbox]').forEach(cb=>cb.checked=false);
-    document.getElementById('newClassTime').value = '';
+    resetScheduleRows();
     document.getElementById('studentModal').classList.add('open');
   }
   function closeModal() { document.getElementById('studentModal').classList.remove('open'); }
@@ -1344,9 +1435,7 @@
     document.getElementById('newName').value = s.name;
     document.getElementById('newGrade').value = s.grade;
     document.getElementById('newDate').value = s.date;
-    const sch = s.schedule || [];
-    document.querySelectorAll('#newScheduleDays input[type=checkbox]').forEach(cb=>cb.checked = sch.includes(cb.value));
-    document.getElementById('newClassTime').value = s.classTime || '';
+    populateScheduleRows(s);
     document.getElementById('studentModal').classList.add('open');
   }
 
@@ -1355,21 +1444,20 @@
     const name = document.getElementById('newName').value.trim();
     const grade = document.getElementById('newGrade').value;
     const date = document.getElementById('newDate').value;
-    const schedule = Array.from(document.querySelectorAll('#newScheduleDays input[type=checkbox]:checked')).map(cb=>cb.value);
-    const classTime = document.getElementById('newClassTime').value;
+    const schedule = collectScheduleRows();
     if (!name) { alert('이름을 입력해주세요'); return; }
 
     if (editingStudentId) {
       const idx = _students.findIndex(s=>s.id===editingStudentId);
       if (idx > -1) {
-        _students[idx] = { ..._students[idx], name, grade, date, schedule, classTime };
+        _students[idx] = { ..._students[idx], name, grade, date, schedule };
         localStorage.setItem('gs', JSON.stringify(_students));
         if (window._fbReady) {
-          window._updateByFieldId('geuldap_students', editingStudentId, { name, grade, date, schedule, classTime }).catch(console.error);
+          window._updateByFieldId('geuldap_students', editingStudentId, { name, grade, date, schedule }).catch(console.error);
         }
       }
     } else {
-      const s = { id: Date.now().toString(), name, grade, date, schedule, classTime };
+      const s = { id: Date.now().toString(), name, grade, date, schedule };
       _students.push(s);
       localStorage.setItem('gs', JSON.stringify(_students));
       if (window._fbReady) window._add(window._col(window._db,'geuldap_students'), s).catch(console.error);
