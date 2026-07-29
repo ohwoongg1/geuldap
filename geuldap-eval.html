@@ -215,6 +215,13 @@
         <div style="font-size:12px; color:#888; margin-bottom:10px;">체크한 것만 학부모 보고서에 들어가요. 체크 안 하면 다듬어진 글 내용만 전달돼요. 체크한 문구는 아래에서 자유롭게 고칠 수 있어요.</div>
         <div id="parentCommentsList"></div>
       </div>
+      <div class="card">
+        <div class="card-title">완성 상태</div>
+        <div style="display:flex; gap:16px; font-size:14px;">
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="radio" name="completionStatus" id="completionStatusDone" value="완성" style="width:auto;" checked>완성</label>
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="radio" name="completionStatus" value="미완성" style="width:auto;">미완성 (고쳐쓰기 필요)</label>
+        </div>
+      </div>
       <div style="display:flex;gap:10px;justify-content:flex-end;margin-bottom:20px;">
         <button class="btn btn-secondary" onclick="resetUpload()">새 글 평가</button>
         <button class="btn btn-secondary" onclick="openParentReport(currentEval)">👪 학부모 보고서</button>
@@ -299,6 +306,11 @@
     </div>
     <div class="card" id="recordListSection" style="display:none;">
       <div class="card-title" id="recordListTitle">평가 기록</div>
+      <div style="display:flex; gap:6px; margin-bottom:10px;">
+        <button class="btn btn-secondary btn-sm" id="recordFilterAllBtn" onclick="filterRecordList('all')">전체</button>
+        <button class="btn btn-secondary btn-sm" id="recordFilterDoneBtn" onclick="filterRecordList('완성')">완성</button>
+        <button class="btn btn-secondary btn-sm" id="recordFilterUndoneBtn" onclick="filterRecordList('미완성')">미완성</button>
+      </div>
       <div id="recordList"></div>
     </div>
   </div>
@@ -1621,14 +1633,15 @@
     return fullName.length > 1 ? fullName.slice(1) : fullName;
   }
 
-  // 인사말 후보 3개. 0번(기존 문구)이 기본 선택.
+  // 인사말 후보. 0번(기존 문구)이 기본 선택.
   function greetingOptions(source) {
     const gname = givenName(source.studentName);
     const p = subjectParticle(gname);
     return [
       `안녕하세요, ${gname}${p} 수업 시간에 쓴 글 읽기 쉽게 타이핑해서 보내드립니다.`,
       `안녕하세요, ${gname}${p} 수업 시간에 선생님과 대화를 통해서 스스로 고쳐 쓴 글을 읽기 쉽게 타이핑해서 보내드립니다.`,
-      `안녕하세요, ${gname}${p} 오늘 정성껏 쓴 글을 타이핑해서 보내드립니다.`,
+      `안녕하세요, ${gname}${p} 오늘 수업 시간에 한 내용 보내드립니다.`,
+      `안녕하세요, ${gname}${p} 오늘 수업 시간에 한 내용 보내드립니다. 대화를 통한 아이 스스로 고쳐쓰기는 다음 시간에 진행하겠습니다.`,
     ];
   }
 
@@ -1801,6 +1814,9 @@
     document.getElementById('evalSummary').innerHTML = evalSummaryHTML(e);
     document.getElementById('evalCompare').innerHTML=`<div class="eval-text">${e.compare}</div>`;
     renderParentComments(e);
+    const isDone = e.completionStatus !== '미완성';
+    document.getElementById('completionStatusDone').checked = isDone;
+    document.querySelector('input[name="completionStatus"][value="미완성"]').checked = !isDone;
     document.getElementById('evalResult').style.display='block';
     document.getElementById('evalResult').scrollIntoView({behavior:'smooth'});
   }
@@ -1832,6 +1848,7 @@
   // ===== 저장 (수정 후 재평가한 경우엔 기존 기록을 덮어씀) =====
   async function saveRecord() {
     if (!currentEval) return;
+    currentEval.completionStatus = document.querySelector('input[name="completionStatus"]:checked').value;
     if (editingRecordId) {
       const idx = _records.findIndex(r=>r.id===editingRecordId);
       if (idx > -1) {
@@ -1867,10 +1884,15 @@
   // ===== 기록 보기 =====
   let currentRecordsStudentId = null;
 
+  let currentRecordsAll = [];
+  let currentRecordFilter = 'all';
+
   function showRecords(id) {
     const s = _students.find(x=>x.id===id);
     const recs = _records.filter(r=>r.studentId===id).reverse();
     currentRecordsStudentId = id;
+    currentRecordsAll = recs;
+    currentRecordFilter = 'all';
     document.getElementById('recordListSection').style.display='block';
     document.getElementById('recordListTitle').textContent=`${s.name} 평가 기록 (${recs.length}편)`;
 
@@ -1881,13 +1903,34 @@
       : '기록이 2편 이상 쌓이면 성장 리포트를 만들 수 있어요.';
 
     renderGrowthChart(recs);
+    renderRecordList();
+  }
+
+  function filterRecordList(status) {
+    currentRecordFilter = status;
+    renderRecordList();
+  }
+
+  function renderRecordList() {
+    const recs = currentRecordsAll;
+    document.getElementById('recordFilterAllBtn').classList.toggle('btn-primary', currentRecordFilter==='all');
+    document.getElementById('recordFilterAllBtn').classList.toggle('btn-secondary', currentRecordFilter!=='all');
+    document.getElementById('recordFilterDoneBtn').classList.toggle('btn-primary', currentRecordFilter==='완성');
+    document.getElementById('recordFilterDoneBtn').classList.toggle('btn-secondary', currentRecordFilter!=='완성');
+    document.getElementById('recordFilterUndoneBtn').classList.toggle('btn-primary', currentRecordFilter==='미완성');
+    document.getElementById('recordFilterUndoneBtn').classList.toggle('btn-secondary', currentRecordFilter!=='미완성');
 
     if (recs.length===0) { document.getElementById('recordList').innerHTML='<div class="empty"><div class="empty-icon">📝</div><div>아직 기록이 없습니다</div></div>'; return; }
-    document.getElementById('recordList').innerHTML = recs.map((r,i)=>{
+    const filtered = currentRecordFilter==='all' ? recs : recs.filter(r => (r.completionStatus || '완성') === currentRecordFilter);
+    if (filtered.length===0) { document.getElementById('recordList').innerHTML=`<div class="empty"><div class="empty-icon">📝</div><div>'${currentRecordFilter}' 상태인 기록이 없습니다</div></div>`; return; }
+    document.getElementById('recordList').innerHTML = filtered.map((r)=>{
+      const i = recs.indexOf(r);
       const prev = recs[i+1];
       const diff = prev ? (r.totalScore-prev.totalScore).toFixed(1) : null;
       const ch = diff===null?'':(diff>0?`<span class="record-change up">▲${diff}</span>`:`<span class="record-change down">▼${Math.abs(diff)}</span>`);
-      return `<div class="record-item" onclick="openRecordDetail('${r.id}')"><div class="record-date">${r.date}</div><div><div class="record-title">${r.title}</div><div style="font-size:12px;color:#888;">${r.type}</div></div>${ch}<div class="record-score">${r.totalScore}</div></div>`;
+      const status = r.completionStatus || '완성';
+      const statusBadge = `<span style="font-size:11px; color:#fff; background:${status==='완성'?'#4a7c59':'#c0392b'}; padding:2px 7px; border-radius:8px; margin-left:6px;">${status}</span>`;
+      return `<div class="record-item" onclick="openRecordDetail('${r.id}')"><div class="record-date">${r.date}</div><div><div class="record-title">${r.title}${statusBadge}</div><div style="font-size:12px;color:#888;">${r.type}</div></div>${ch}<div class="record-score">${r.totalScore}</div></div>`;
     }).join('');
   }
 
