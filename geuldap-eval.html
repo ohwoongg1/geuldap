@@ -512,14 +512,41 @@
     </div>`).join('');
   }
 
+  // "2026. 7. 28." 같은 한국어 표기 날짜 문자열을 Date 객체로 변환
+  function parseKoreanDate(str) {
+    if (!str) return null;
+    const m = str.match(/(\d+)\D+(\d+)\D+(\d+)/);
+    if (!m) return null;
+    return new Date(parseInt(m[1]), parseInt(m[2])-1, parseInt(m[3]));
+  }
+  function daysSince(dateStr) {
+    const d = parseKoreanDate(dateStr);
+    if (!d) return null;
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    d.setHours(0,0,0,0);
+    return Math.round((today - d) / (1000*60*60*24));
+  }
+
   function renderRecordStudents() {
     const g = document.getElementById('recordStudentGrid');
     if (_students.length===0) { g.innerHTML='<div class="empty"><div class="empty-icon">👦</div><div>등록된 학생이 없습니다</div></div>'; return; }
     g.innerHTML = _students.map(s=>{
-      const cnt = _records.filter(r=>r.studentId===s.id).length;
+      const recs = _records.filter(r=>r.studentId===s.id);
+      const cnt = recs.length;
+      let warn = '';
+      if (cnt === 0) {
+        warn = `<span style="color:#e53e3e; font-size:11px; font-weight:600;"> · ⚠️ 평가 기록 없음</span>`;
+      } else {
+        const latest = recs.slice().sort((a,b)=> (a.id > b.id ? -1 : 1))[0];
+        const days = daysSince(latest.date);
+        if (days !== null && days >= 10) {
+          warn = `<span style="color:#e53e3e; font-size:11px; font-weight:600;"> · ⚠️ ${days}일째 평가 없음</span>`;
+        }
+      }
       return `<div class="student-card" onclick="showRecords('${s.id}')">
         <div class="student-avatar">${s.name[0]}</div>
-        <div class="student-name">${s.name}</div>
+        <div class="student-name">${s.name}${warn}</div>
         <div class="student-info">${s.grade}</div>
         <div class="student-count">📝 ${cnt}편</div>
       </div>`;
