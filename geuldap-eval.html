@@ -307,18 +307,35 @@
     <div class="card">
       <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
         <span>출석부</span>
-        <div style="display:flex; align-items:center; gap:8px;">
+        <div style="display:flex; gap:6px;">
+          <button class="btn btn-primary btn-sm" id="attViewDayBtn" onclick="switchAttendanceView('day')">일별 보기</button>
+          <button class="btn btn-secondary btn-sm" id="attViewMonthBtn" onclick="switchAttendanceView('month')">월별 보기</button>
+        </div>
+      </div>
+
+      <div id="attDayView">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
           <button class="btn btn-secondary btn-sm" onclick="changeAttendanceDate(-1)">◀</button>
           <input type="date" id="attDate" style="width:auto;" onchange="loadAttendanceForDate(this.value)">
           <button class="btn btn-secondary btn-sm" onclick="changeAttendanceDate(1)">▶</button>
         </div>
+        <div id="attSummary" style="font-size:13px; color:#888; margin-bottom:12px;"></div>
+        <div id="attList"></div>
+        <div style="display:flex; gap:8px; margin-top:16px; align-items:center; flex-wrap:wrap;">
+          <select id="attAddSelect" style="width:auto; min-width:180px;"><option value="">+ 오늘 추가로 온 학생...</option></select>
+          <button class="btn btn-secondary btn-sm" onclick="addExtraAttendanceStudent()">추가</button>
+          <button class="btn btn-primary" style="margin-left:auto;" onclick="saveAttendance()">💾 출석 저장</button>
+        </div>
       </div>
-      <div id="attSummary" style="font-size:13px; color:#888; margin-bottom:12px;"></div>
-      <div id="attList"></div>
-      <div style="display:flex; gap:8px; margin-top:16px; align-items:center; flex-wrap:wrap;">
-        <select id="attAddSelect" style="width:auto; min-width:180px;"><option value="">+ 오늘 추가로 온 학생...</option></select>
-        <button class="btn btn-secondary btn-sm" onclick="addExtraAttendanceStudent()">추가</button>
-        <button class="btn btn-primary" style="margin-left:auto;" onclick="saveAttendance()">💾 출석 저장</button>
+
+      <div id="attMonthView" style="display:none;">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+          <input type="month" id="attMonth" style="width:auto;" onchange="loadAttendanceMonth(this.value)">
+        </div>
+        <div style="overflow-x:auto;">
+          <table id="attMonthTable" style="border-collapse:collapse; font-size:13px; white-space:nowrap;"></table>
+        </div>
+        <div style="font-size:12px; color:#888; margin-top:10px;">O = 출석 · X = 결석 · 빈칸 = 그날 수업 예정 없음(또는 아직 저장 안 함)</div>
       </div>
     </div>
   </div>
@@ -643,6 +660,67 @@
       } catch(e) { console.error('출석 저장 오류', e); }
     }
     alert('출석부가 저장되었습니다.');
+  }
+
+  // ===== 출석부: 월별 전체 학생 보기 =====
+  function switchAttendanceView(view) {
+    document.getElementById('attDayView').style.display = view==='day' ? 'block' : 'none';
+    document.getElementById('attMonthView').style.display = view==='month' ? 'block' : 'none';
+    document.getElementById('attViewDayBtn').classList.toggle('btn-primary', view==='day');
+    document.getElementById('attViewDayBtn').classList.toggle('btn-secondary', view!=='day');
+    document.getElementById('attViewMonthBtn').classList.toggle('btn-primary', view==='month');
+    document.getElementById('attViewMonthBtn').classList.toggle('btn-secondary', view!=='month');
+    if (view==='month') {
+      const monthInput = document.getElementById('attMonth');
+      if (!monthInput.value) monthInput.value = todayLocalDateStr().slice(0,7);
+      loadAttendanceMonth(monthInput.value);
+    }
+  }
+
+  function loadAttendanceMonth(monthStr) {
+    if (!monthStr) return;
+    document.getElementById('attMonth').value = monthStr;
+    const [y, m] = monthStr.split('-').map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+
+    // 그 달에 기록이 있는 학생 + 현재 재원 중인 학생을 합쳐서, 이름순으로 정렬
+    const recordsThisMonth = window._attendance.filter(a => a.date.startsWith(monthStr));
+    const idsWithRecords = new Set(recordsThisMonth.map(r=>r.studentId));
+    const studentMap = new Map();
+    _students.forEach(s => { if (s.active !== false) studentMap.set(s.id, s); });
+    recordsThisMonth.forEach(r => { if (!studentMap.has(r.studentId)) studentMap.set(r.studentId, { id:r.studentId, name:r.studentName, grade:r.grade||'' }); });
+    const rowsStudents = Array.from(studentMap.values()).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+
+    const recordLookup = {};
+    recordsThisMonth.forEach(r => { recordLookup[r.studentId+'_'+r.date] = r.present; });
+
+    let thead = '<tr><th style="position:sticky; left:0; background:#fff; border:1px solid #eee; padding:6px 10px; text-align:left;">학생</th>';
+    for (let d=1; d<=daysInMonth; d++) thead += `<th style="border:1px solid #eee; padding:4px 6px; font-weight:400; color:#888;">${d}</th>`;
+    thead += '</tr>';
+
+    let tbody = '';
+    if (!rowsStudents.length) {
+      tbody = `<tr><td colspan="${daysInMonth+1}" style="padding:20px; text-align:center; color:#888; border:1px solid #eee;">이 달에는 출석 기록이 없습니다.</td></tr>`;
+    } else {
+      rowsStudents.forEach(s => {
+        let row = `<tr><td style="position:sticky; left:0; background:#fff; border:1px solid #eee; padding:6px 10px; text-align:left; font-weight:600;">${s.name}</td>`;
+        for (let d=1; d<=daysInMonth; d++) {
+          const dateStr = `${monthStr}-${String(d).padStart(2,'0')}`;
+          const key = s.id+'_'+dateStr;
+          let cell = '';
+          if (key in recordLookup) {
+            cell = recordLookup[key]
+              ? '<span style="color:#4a7c59; font-weight:700;">O</span>'
+              : '<span style="color:#c0392b; font-weight:700;">X</span>';
+          }
+          row += `<td style="border:1px solid #eee; padding:4px 6px; text-align:center;">${cell}</td>`;
+        }
+        row += '</tr>';
+        tbody += row;
+      });
+    }
+
+    document.getElementById('attMonthTable').innerHTML = thead + tbody;
   }
 
   // ===== 초기화 =====
