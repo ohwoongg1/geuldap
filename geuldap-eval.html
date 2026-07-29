@@ -180,7 +180,7 @@
           <label>사진 업로드 (여러 장 가능)</label>
           <div class="upload-area" onclick="document.getElementById('fileInput').click()">
             <div style="font-size:36px; margin-bottom:10px;">📸</div>
-            <div style="font-size:14px; color:#888;"><strong>클릭하여 사진 선택</strong><br>학생이 쓴 글 사진을 여러 장 올릴 수 있어요 (여러 페이지)</div>
+            <div style="font-size:14px; color:#888;"><strong>클릭하여 사진 선택</strong><br>학생이 쓴 글 사진을 여러 장 올릴 수 있어요 (여러 페이지)<br>모든 사진은 저장되고, 사진 위 "추출" 체크박스로 AI 글 추출에 쓸 사진만 고를 수 있어요</div>
             <div id="previewList" style="display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; justify-content:center;"></div>
           </div>
           <input type="file" id="fileInput" accept="image/*" multiple style="display:none;" onchange="previewImage(this)">
@@ -334,7 +334,7 @@
 
     <div id="parentReportPhotosSection" style="margin-bottom:16px; display:none;">
       <div style="font-size:13px; font-weight:600; margin-bottom:6px;">원본 사진</div>
-      <div style="font-size:12px; color:#888; margin-bottom:8px;">사진에 마우스 우클릭 → "이미지 복사"를 누르면 카카오톡이나 문자에 바로 붙여넣을 수 있어요.</div>
+      <div style="font-size:12px; color:#888; margin-bottom:8px;">사진에 마우스 우클릭 → "이미지 복사"를 누르면 카카오톡이나 문자에 바로 붙여넣을 수 있어요. 저장된 사진 전체가 보이며, 체크박스로 학부모께 보낼 사진만 골라 표시(테두리 강조)해둘 수 있어요.</div>
       <div id="parentReportPhotosList" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
     </div>
 
@@ -714,7 +714,7 @@
     for (const file of files) {
       try {
         const dataUrl = await loadOrientedImage(file);
-        uploadedImages.push({ base64: dataUrl.split(',')[1], dataUrl });
+        uploadedImages.push({ base64: dataUrl.split(',')[1], dataUrl, selected: true });
         renderPreviewList();
       } catch (e) {
         alert('사진 처리 중 오류: ' + e.message);
@@ -726,12 +726,20 @@
   function renderPreviewList() {
     const list = document.getElementById('previewList');
     list.innerHTML = uploadedImages.map((img, i) => `
-      <div class="thumb-wrap" onclick="event.stopPropagation()">
+      <div class="thumb-wrap" onclick="event.stopPropagation()" style="${img.selected===false?'opacity:0.4;':''}">
         <img src="${img.dataUrl}">
         <span class="thumb-num">${i+1}</span>
+        <label style="position:absolute; top:2px; left:2px; background:rgba(255,255,255,0.9); border-radius:4px; padding:1px 4px; font-size:11px; display:flex; align-items:center; gap:2px; cursor:pointer;" onclick="event.stopPropagation()">
+          <input type="checkbox" style="margin:0;" ${img.selected!==false?'checked':''} onchange="toggleImageSelected(${i}, this.checked)"> 추출
+        </label>
         <button class="thumb-remove" onclick="event.stopPropagation(); removeImage(${i})">✕</button>
       </div>
     `).join('');
+  }
+
+  function toggleImageSelected(i, checked) {
+    if (uploadedImages[i]) uploadedImages[i].selected = checked;
+    renderPreviewList();
   }
 
   function removeImage(i) {
@@ -800,15 +808,17 @@
 
   async function extractFromImage() {
     if (!uploadedImages.length) { alert('사진을 먼저 업로드해주세요'); return; }
+    const targets = uploadedImages.filter(img => img.selected !== false);
+    if (!targets.length) { alert('추출에 사용할 사진을 1장 이상 체크해주세요 (사진 위 "추출" 체크박스).'); return; }
     const isManuscript = document.getElementById('isManuscript').checked;
-    setLoading(true, `사진 ${uploadedImages.length}장에서 글을 추출하고 있습니다...`);
+    setLoading(true, `사진 ${targets.length}장에서 글을 추출하고 있습니다...`);
     try {
       const texts = [];
-      for (let i = 0; i < uploadedImages.length; i++) {
-        setLoading(true, `사진 ${i+1}/${uploadedImages.length}에서 글을 추출하고 있습니다...`);
+      for (let i = 0; i < targets.length; i++) {
+        setLoading(true, `사진 ${i+1}/${targets.length}에서 글을 추출하고 있습니다...`);
         const text = isManuscript
-          ? await extractWithClaudeVision(uploadedImages[i], i)
-          : await extractWithGoogleVision(uploadedImages[i], i);
+          ? await extractWithClaudeVision(targets[i], i)
+          : await extractWithGoogleVision(targets[i], i);
         if (text) texts.push(text);
       }
       if (!texts.length) { alert('글자를 인식하지 못했습니다. 사진이 선명한지 확인해주세요.'); setLoading(false); return; }
@@ -966,11 +976,20 @@
     const photoUrls = source.photoUrls || [];
     if (photoUrls.length) {
       photoSection.style.display = 'block';
-      document.getElementById('parentReportPhotosList').innerHTML = photoUrls.map(url => `
-        <a href="${url}" target="_blank" rel="noopener">
-          <img src="${url}" style="width:100px; height:100px; object-fit:cover; border-radius:8px; border:1px solid #ddd;">
-        </a>
-      `).join('');
+      const photoSelected = source.photoSelected || photoUrls.map(()=>true);
+      document.getElementById('parentReportPhotosList').innerHTML = photoUrls.map((url,i) => {
+        const isSel = photoSelected[i] !== false;
+        return `
+        <div style="position:relative;">
+          <a href="${url}" target="_blank" rel="noopener">
+            <img src="${url}" style="width:100px; height:100px; object-fit:cover; border-radius:8px; border:2px solid ${isSel?'#4a7c59':'#ddd'}; ${isSel?'':'opacity:0.4;'}">
+          </a>
+          <label style="position:absolute; top:2px; left:2px; background:rgba(255,255,255,0.9); border-radius:4px; padding:1px 4px; font-size:11px; display:flex; align-items:center; gap:2px; cursor:pointer;">
+            <input type="checkbox" style="margin:0;" ${isSel?'checked':''} onchange="toggleReportPhotoSelected(${i}, this.checked)"> 보내기
+          </label>
+        </div>
+      `;
+      }).join('');
     } else {
       photoSection.style.display = 'none';
     }
@@ -1008,10 +1027,20 @@
   function openParentReport(source) {
     if (!source) { alert('보고서를 만들 평가 데이터를 찾을 수 없어요.'); return; }
     parentReportSource = source;
+    // 사진 선택 상태: 열 때마다 저장된 사진 전체를 기본 선택(보낼 사진)으로 초기화
+    const photoCount = (source.photoUrls || []).length;
+    parentReportSource.photoSelected = new Array(photoCount).fill(true);
     document.getElementById('parentReportHeader').innerHTML = `<div style="font-weight:700; font-size:16px;">${source.studentName} 학생 · ${source.grade}</div><div style="color:#888; font-size:13px;">${source.date} · ${source.type}${source.topic?(' · '+source.topic):''}</div>`;
     document.getElementById('parentReportModal').classList.add('open');
     renderParentReportControls(source);
     document.getElementById('parentReportEditor').value = source.parentReportText || buildParentReportText(source);
+  }
+
+  function toggleReportPhotoSelected(i, checked) {
+    if (!parentReportSource) return;
+    if (!parentReportSource.photoSelected) parentReportSource.photoSelected = [];
+    parentReportSource.photoSelected[i] = checked;
+    renderParentReportControls(parentReportSource);
   }
 
   // AI 호출 없이, 현재 인사말/체크 상태를 기준으로 다시 조립한다(수정 중이던 내용은 사라짐에 유의).
