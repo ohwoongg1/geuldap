@@ -332,6 +332,12 @@
     <div style="font-size:13px; font-weight:600; margin-bottom:6px;">포함할 코멘트 선택</div>
     <div id="parentReportCommentsList" style="margin-bottom:16px;"></div>
 
+    <div id="parentReportPhotosSection" style="margin-bottom:16px; display:none;">
+      <div style="font-size:13px; font-weight:600; margin-bottom:6px;">원본 사진</div>
+      <div style="font-size:12px; color:#888; margin-bottom:8px;">사진에 마우스 우클릭 → "이미지 복사"를 누르면 카카오톡이나 문자에 바로 붙여넣을 수 있어요.</div>
+      <div id="parentReportPhotosList" style="display:flex; flex-wrap:wrap; gap:10px;"></div>
+    </div>
+
     <div style="font-size:12px; color:#888; margin-bottom:6px;">아래 내용을 자유롭게 수정한 뒤 저장하거나 복사해서 보내세요.</div>
     <textarea id="parentReportEditor" rows="14" style="width:100%; font-size:14px; line-height:1.7; padding:12px; border:1px solid #ddd; border-radius:8px; font-family:inherit; resize:vertical;"></textarea>
     <div class="modal-actions">
@@ -379,6 +385,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
   const app = initializeApp({
     apiKey: "AIzaSyC5nf84GbQQ_5vIDwhIvTZ5zPqf7nrnSxU",
     authDomain: "starspoon-120d7.firebaseapp.com",
@@ -388,6 +395,7 @@
     appId: "1:672370227821:web:aea1d9c6ca8587842a5d64"
   });
   const db = getFirestore(app);
+  const storage = getStorage(app);
   window._db = db;
   window._col = collection;
   window._add = addDoc;
@@ -397,6 +405,19 @@
   window._del = deleteDoc;
   window._doc = doc;
   window._update = updateDoc;
+
+  // 학생 글 원본 사진을 Storage에 올리고 다운로드 URL들을 반환한다.
+  // (Firestore 문서엔 용량 제한이 있어 사진 원본은 여기 따로 저장하고, 기록엔 URL만 남긴다.)
+  window._uploadPhotos = async function(studentId, recordId, images) {
+    const urls = [];
+    for (let i = 0; i < images.length; i++) {
+      const path = `writings/${studentId}/${recordId}/photo_${i}.jpg`;
+      const r = ref(storage, path);
+      await uploadString(r, images[i].dataUrl, 'data_url');
+      urls.push(await getDownloadURL(r));
+    }
+    return urls;
+  };
 
   // Firestore 문서의 자동 ID와 우리가 쓰는 데이터의 id가 달라서,
   // 'id' 필드로 찾아서 지우거나 수정하는 헬퍼.
@@ -918,6 +939,19 @@
         </label>
       `).join('');
     }
+
+    const photoSection = document.getElementById('parentReportPhotosSection');
+    const photoUrls = source.photoUrls || [];
+    if (photoUrls.length) {
+      photoSection.style.display = 'block';
+      document.getElementById('parentReportPhotosList').innerHTML = photoUrls.map(url => `
+        <a href="${url}" target="_blank" rel="noopener">
+          <img src="${url}" style="width:100px; height:100px; object-fit:cover; border-radius:8px; border:1px solid #ddd;">
+        </a>
+      `).join('');
+    } else {
+      photoSection.style.display = 'none';
+    }
   }
 
   function selectParentGreeting(i) {
@@ -1054,7 +1088,13 @@
     if (editingRecordId) {
       const idx = _records.findIndex(r=>r.id===editingRecordId);
       if (idx > -1) {
-        const updated = {...currentEval, id: editingRecordId};
+        const oldPhotoUrls = _records[idx].photoUrls || [];
+        let photoUrls = oldPhotoUrls;
+        if (uploadedImages.length && window._fbReady) {
+          try { photoUrls = await window._uploadPhotos(currentEval.studentId, editingRecordId, uploadedImages); }
+          catch(e) { console.error('사진 업로드 오류:', e); }
+        }
+        const updated = {...currentEval, id: editingRecordId, photoUrls};
         _records[idx] = updated;
         localStorage.setItem('gr', JSON.stringify(_records));
         if (window._fbReady) window._updateByFieldId('geuldap_records', editingRecordId, updated).catch(console.error);
@@ -1062,7 +1102,13 @@
       editingRecordId = null;
       alert('수정한 평가로 갱신되었습니다!');
     } else {
-      const r = {...currentEval, id: Date.now().toString()};
+      const id = Date.now().toString();
+      let photoUrls = [];
+      if (uploadedImages.length && window._fbReady) {
+        try { photoUrls = await window._uploadPhotos(currentEval.studentId, id, uploadedImages); }
+        catch(e) { console.error('사진 업로드 오류:', e); }
+      }
+      const r = {...currentEval, id, photoUrls};
       _records.push(r);
       localStorage.setItem('gr', JSON.stringify(_records));
       if (window._fbReady) await window._add(window._col(window._db,'geuldap_records'), r).catch(console.error);
