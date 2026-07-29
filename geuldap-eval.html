@@ -389,7 +389,7 @@
   <div class="page" id="page-timetable">
     <div class="card">
       <div class="card-title">전체 시간표</div>
-      <div style="font-size:12px; color:#888; margin-bottom:12px;">학생 등록/수정에서 입력한 수업 요일·시각을 기준으로 자동 정리됩니다. 시각을 입력하지 않은 학생은 표 아래에 따로 모아 보여드려요.</div>
+      <div style="font-size:12px; color:#888; margin-bottom:12px;">학생 등록/수정에서 입력한 수업 요일·시각을 기준으로 자동 정리됩니다. 시각을 입력하지 않은 학생은 표 아래에 따로 모아 보여드려요. 각 시각 칸 위에 그 순간 실제로 겹치는 인원수(정원 6명 기준)가 함께 표시돼요 — 시작 시각이 달라도 시간이 겹치면 포함됩니다.</div>
       <div style="overflow-x:auto;">
         <table id="timetableGrid" style="border-collapse:collapse; width:100%; font-size:13px;"></table>
       </div>
@@ -1191,6 +1191,7 @@
 
   // ===== 전체 시간표 =====
   const TIMETABLE_DAYS = ['월','화','수','목','금','토','일'];
+  const TIMETABLE_CAPACITY = 6; // 겹치는 시간대 최대 정원
 
   function addMinutesToTime(timeStr, minutes) {
     const [h, m] = timeStr.split(':').map(Number);
@@ -1198,6 +1199,20 @@
     const nh = Math.floor((total % (24*60)) / 60);
     const nm = total % 60;
     return String(nh).padStart(2,'0') + ':' + String(nm).padStart(2,'0');
+  }
+
+  function timeToMinutes(t) {
+    const [h, m] = t.split(':').map(Number);
+    return h*60 + m;
+  }
+
+  // 특정 요일 D의 시각 T(분 단위)에 실제로 몇 명이 수업 중인지 계산 (시작 시각이 달라도 겹치면 포함)
+  function concurrentCountAt(allEntries, day, minutes) {
+    return allEntries.filter(e => {
+      if (e.day !== day) return false;
+      const start = timeToMinutes(e.time);
+      return start <= minutes && minutes < start + e.duration;
+    }).length;
   }
 
   function renderTimetable() {
@@ -1222,9 +1237,19 @@
       let thead = '<tr><th style="border:1px solid #eee; padding:8px; background:#faf8f3;">시각</th>' + TIMETABLE_DAYS.map(d=>`<th style="border:1px solid #eee; padding:8px; background:#faf8f3;">${d}</th>`).join('') + '</tr>';
       let tbody = times.map(t => {
         let row = `<tr><td style="border:1px solid #eee; padding:8px; font-weight:600; white-space:nowrap;">${t}</td>`;
+        const tMin = timeToMinutes(t);
         TIMETABLE_DAYS.forEach(d => {
           const matched = withTimeEntries.filter(e => e.time===t && e.day===d);
-          row += `<td style="border:1px solid #eee; padding:6px; vertical-align:top;">${matched.map(e=>{
+          const count = concurrentCountAt(withTimeEntries, d, tMin);
+          let capacityBadge = '';
+          if (count > 0) {
+            const over = count > TIMETABLE_CAPACITY;
+            const full = count === TIMETABLE_CAPACITY;
+            const color = over ? '#c0392b' : (full ? '#a66' : '#888');
+            const label = over ? `초과 ${count}/${TIMETABLE_CAPACITY}` : (full ? `정원 마감 ${count}/${TIMETABLE_CAPACITY}` : `${count}/${TIMETABLE_CAPACITY} · ${TIMETABLE_CAPACITY-count}자리 여유`);
+            capacityBadge = `<div style="font-size:11px; color:${color}; font-weight:600; margin-bottom:4px;">${label}</div>`;
+          }
+          row += `<td style="border:1px solid #eee; padding:6px; vertical-align:top;">${capacityBadge}${matched.map(e=>{
             const endTime = addMinutesToTime(e.time, e.duration);
             return `<div style="background:#eaf3ec; color:#3a5f45; border-radius:6px; padding:2px 6px; margin-bottom:3px;">${e.name} <span style="font-size:11px; opacity:0.75;">(${e.time}~${endTime})</span></div>`;
           }).join('')}</td>`;
