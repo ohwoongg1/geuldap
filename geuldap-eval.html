@@ -2000,25 +2000,43 @@
 
   function selectParentGreeting(i) {
     if (!parentReportSource) return;
+    const editor = document.getElementById('parentReportEditor');
+    const currentBuilt = buildParentReportText(parentReportSource);
+    if (editor.value !== currentBuilt) {
+      if (!confirm('아래 글 상자에 직접 수정하신 내용이 있어요. 인사말을 바꾸면 그 수정 내용이 사라지는데, 계속할까요?')) return;
+    }
     parentReportSource.greetingIndex = i;
-    document.getElementById('parentReportEditor').value = buildParentReportText(parentReportSource);
+    editor.value = buildParentReportText(parentReportSource);
   }
 
   function toggleParentReportComment(i, checked) {
     if (!parentReportSource || !parentReportSource.parentComments || !parentReportSource.parentComments[i]) return;
+    const editor = document.getElementById('parentReportEditor');
+    const currentBuilt = buildParentReportText(parentReportSource);
+    if (editor.value !== currentBuilt) {
+      if (!confirm('아래 글 상자에 직접 수정하신 내용이 있어요. 코멘트 선택을 바꾸면 그 수정 내용이 사라지는데, 계속할까요?')) return;
+    }
     parentReportSource.parentComments[i].checked = checked;
-    document.getElementById('parentReportEditor').value = buildParentReportText(parentReportSource);
+    editor.value = buildParentReportText(parentReportSource);
   }
 
   // 수정한 내용을 해당 기록에 저장. 이미 저장된 기록이면 로컬/클라우드에도 즉시 반영,
   // 아직 저장 전(방금 채점만 한 상태)이면 "기록 저장" 누를 때 함께 저장되도록 currentEval에 반영.
-  function persistParentReportText(source, text, { silent } = {}) {
+  async function persistParentReportText(source, text, { silent } = {}) {
     source.parentReportText = text;
     const idx = _records.findIndex(r => r === source);
     if (idx > -1) {
       localStorage.setItem('gr', JSON.stringify(_records));
       if (window._fbReady && source.id) {
-        window._updateByFieldId('geuldap_records', source.id, source).catch(console.error);
+        // photoSelected는 화면에서만 쓰는 임시 선택 상태라 저장 데이터에서 제외한다.
+        const { photoSelected, ...toSave } = source;
+        try {
+          await window._updateByFieldId('geuldap_records', source.id, toSave);
+        } catch(e) {
+          console.error('학부모 보고서 저장 실패:', e);
+          alert('⚠️ 서버 저장에 실패했습니다 (이 컴퓨터에는 저장됨). 다른 컴퓨터에서 열면 이 수정 내용이 안 보일 수 있어요. 인터넷 연결을 확인하고 다시 눌러주세요.\n\n오류: ' + e.message);
+          return;
+        }
       }
       if (!silent) alert('학부모 보고서 내용이 저장되었습니다.');
     } else if (!silent) {
