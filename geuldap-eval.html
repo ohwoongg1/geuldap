@@ -1355,12 +1355,17 @@
   }
 
   // ===== 렌더링 =====
+  // 이름 가나다순 정렬된 학생 목록
+  function sortedStudents() {
+    return _students.slice().sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+  }
+
   function renderStudents() {
     const g = document.getElementById('studentGrid');
     if (!g) return;
     if (_students.length===0) { g.innerHTML='<div class="empty"><div class="empty-icon">👦</div><div>등록된 학생이 없습니다<br>+ 학생 등록 버튼을 눌러주세요</div></div>'; return; }
-    const activeStudents = _students.filter(s => s.active !== false);
-    const pausedStudents = _students.filter(s => s.active === false);
+    const activeStudents = _students.filter(s => s.active !== false).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+    const pausedStudents = _students.filter(s => s.active === false).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
 
     function studentCardHTML(s, paused) {
       const cnt = _records.filter(r=>r.studentId===s.id).length;
@@ -1402,7 +1407,7 @@
   function renderUploadStudents() {
     const g = document.getElementById('uploadStudentGrid');
     if (_students.length===0) { g.innerHTML='<div class="empty"><div class="empty-icon">👦</div><div>먼저 학생을 등록해주세요</div></div>'; return; }
-    g.innerHTML = _students.map(s=>`<div class="student-card ${selectedStudent?.id===s.id?'selected':''}" onclick="selectStudent('${s.id}')">
+    g.innerHTML = sortedStudents().map(s=>`<div class="student-card ${selectedStudent?.id===s.id?'selected':''}" onclick="selectStudent('${s.id}')">
       <div class="student-avatar">${s.name[0]}</div>
       <div class="student-name">${s.name}</div>
       <div class="student-info">${s.grade}</div>
@@ -1428,7 +1433,7 @@
   function renderRecordStudents() {
     const g = document.getElementById('recordStudentGrid');
     if (_students.length===0) { g.innerHTML='<div class="empty"><div class="empty-icon">👦</div><div>등록된 학생이 없습니다</div></div>'; return; }
-    g.innerHTML = _students.map(s=>{
+    g.innerHTML = sortedStudents().map(s=>{
       const recs = _records.filter(r=>r.studentId===s.id);
       const cnt = recs.length;
       let warn = '';
@@ -2293,7 +2298,7 @@
   function renderQuizStudents() {
     const g = document.getElementById('quizStudentGrid');
     if (_students.length===0) { g.innerHTML='<div class="empty"><div class="empty-icon">👦</div><div>먼저 학생을 등록해주세요</div></div>'; return; }
-    g.innerHTML = _students.map(s=>`<div class="student-card ${selectedQuizStudent?.id===s.id?'selected':''}" onclick="selectQuizStudent('${s.id}')">
+    g.innerHTML = sortedStudents().map(s=>`<div class="student-card ${selectedQuizStudent?.id===s.id?'selected':''}" onclick="selectQuizStudent('${s.id}')">
       <div class="student-avatar">${s.name[0]}</div>
       <div class="student-name">${s.name}</div>
       <div class="student-info">${s.grade}</div>
