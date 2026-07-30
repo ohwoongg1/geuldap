@@ -724,17 +724,24 @@
   };
 
   // Firebase에서 데이터 로드
+  // 주의: 여러 컴퓨터(집/학원)에서 쓰기 때문에, 이미 로컬(localStorage)에 캐시된 항목이라도
+  // 서버(Firebase)의 최신 내용으로 항상 덮어써야 한다. (예전엔 "이미 있으면 무시"라서 다른 기기에서
+  // 저장한 최신 내용이 반영 안 되는 문제가 있었음)
+  function mergeFromServer(localArr, doc) {
+    const idx = localArr.findIndex(x=>x.id===doc.id);
+    if (idx > -1) localArr[idx] = doc; else localArr.push(doc);
+  }
   try {
     const ss = await getDocs(collection(db, 'geuldap_students'));
-    ss.forEach(d => { const s = d.data(); if (!window._students.find(x=>x.id===s.id)) window._students.push(s); });
+    ss.forEach(d => mergeFromServer(window._students, d.data()));
     const rs = await getDocs(collection(db, 'geuldap_records'));
-    rs.forEach(d => { const r = d.data(); if (!window._records.find(x=>x.id===r.id)) window._records.push(r); });
+    rs.forEach(d => mergeFromServer(window._records, d.data()));
     const qs = await getDocs(collection(db, 'geuldap_quizzes'));
-    qs.forEach(d => { const q2 = d.data(); if (!window._quizzes.find(x=>x.id===q2.id)) window._quizzes.push(q2); });
+    qs.forEach(d => mergeFromServer(window._quizzes, d.data()));
     const as_ = await getDocs(collection(db, 'geuldap_attendance'));
-    as_.forEach(d => { const a = d.data(); if (!window._attendance.find(x=>x.id===a.id)) window._attendance.push(a); });
+    as_.forEach(d => mergeFromServer(window._attendance, d.data()));
     const ls_ = await getDocs(collection(db, 'geuldap_leads'));
-    ls_.forEach(d => { const l = d.data(); if (!window._leads.find(x=>x.id===l.id)) window._leads.push(l); });
+    ls_.forEach(d => mergeFromServer(window._leads, d.data()));
     localStorage.setItem('gs', JSON.stringify(window._students));
     localStorage.setItem('gr', JSON.stringify(window._records));
     localStorage.setItem('gq', JSON.stringify(window._quizzes));
