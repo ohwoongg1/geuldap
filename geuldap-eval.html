@@ -22,6 +22,27 @@
     .pw-error { color: #e53e3e; font-size: 13px; margin-top: 10px; display: none; }
     .pw-error.show { display: block; }
 
+    /* 학습기 탭 전용 스타일 */
+    .lr-sub { display: none; }
+    .lr-sub.active { display: block; }
+    .lr-stage { width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; text-align:center; line-height:1.2; flex-shrink:0; }
+    .lr-stage span { font-size:9px; font-weight:400; display:block; margin-top:1px; }
+    .lr-stage-done { background:linear-gradient(135deg,#2f855a,#68d391); color:#fff; }
+    .lr-stage-current { background:#fff; border:3px solid #c5a149; color:#c5a149; animation:lr-pulse 1.5s ease-in-out infinite; }
+    .lr-stage-locked { background:#e0e0e0; color:#aaa; }
+    .lr-stage-line { flex:1; height:3px; background:#68d391; margin:0 4px; }
+    .lr-stage-line-locked { flex:1; height:3px; background:#e0e0e0; margin:0 4px; }
+    @keyframes lr-pulse { 0%,100%{box-shadow:0 0 0 0 rgba(197,161,73,0.4)} 50%{box-shadow:0 0 0 8px rgba(197,161,73,0)} }
+    .lr-material-item { display:flex; align-items:center; gap:12px; padding:12px; border-radius:8px; background:#f8f9fc; margin-bottom:8px; }
+    .lr-material-badge { padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600; }
+    .lr-badge-textbook { background:#e6f1fb; color:#185fa5; }
+    .lr-badge-worksheet { background:#eaf3de; color:#3b6d11; }
+    .lr-badge-workbook { background:#faeeda; color:#854f0b; }
+    .lr-badge-notes { background:#eeedfe; color:#534ab7; }
+    .lr-exam-item { display:flex; align-items:center; justify-content:space-between; padding:14px; border-radius:10px; background:#f8f9fc; margin-bottom:8px; border-left:4px solid #2f855a; }
+    .lr-dashboard-row { display:grid; grid-template-columns:120px 80px 1fr 80px 80px; align-items:center; gap:10px; padding:12px; border-radius:8px; background:#f8f9fc; margin-bottom:6px; font-size:13px; }
+    @media(max-width:600px) { .lr-dashboard-row { grid-template-columns:1fr; gap:4px; } }
+
     .header { background: linear-gradient(135deg, #0d1b4b, #1a2f6b); padding: 18px 32px; display: flex; align-items: center; justify-content: space-between; }
     .header-title { font-family: 'Noto Serif KR', serif; font-size: 20px; font-weight: 700; color: #fff; }
     .header-title span { color: #e8c96a; }
@@ -145,6 +166,7 @@
   <div class="tab" onclick="switchTab('leads')">상담일지</div>
   <div class="tab" onclick="switchTab('timetable')">시간표</div>
   <div class="tab" onclick="switchTab('payments')">수납 관리</div>
+  <div class="tab" onclick="switchTab('learner')" style="color:#2f855a;">📚 학습기</div>
 </div>
 
 <div class="main">
@@ -499,6 +521,204 @@
         <button class="btn btn-primary btn-sm" onclick="generateCertificate()">발급</button>
       </div>
       <div id="certResult" style="margin-top:14px;"></div>
+    </div>
+  </div>
+
+  <!-- ========== 학습기 탭 ========== -->
+  <div class="page" id="page-learner">
+    <div class="card" style="background: linear-gradient(135deg, #0d4b2e, #1a6b3f); color: #fff; border-radius: 14px; padding: 24px; margin-bottom: 20px;">
+      <div style="font-family:'Noto Serif KR',serif; font-size: 22px; font-weight: 700; color: #8de8a0;">📚 7회 반복학습기</div>
+      <div style="font-size: 13px; color: rgba(255,255,255,0.7); margin-top: 6px;">이해 → 암기 → 응용 | 시험 범위를 올리면 AI가 7회 반복 학습 스케줄을 자동 생성합니다</div>
+    </div>
+
+    <!-- 학습기 하위 탭 -->
+    <div style="display:flex; gap:4px; margin-bottom:20px; flex-wrap:wrap;" id="learnerSubTabs">
+      <button class="btn btn-primary btn-sm" onclick="switchLearnerSub('lr-materials')" id="lrTab-lr-materials">📄 자료 업로드</button>
+      <button class="btn btn-secondary btn-sm" onclick="switchLearnerSub('lr-exams')" id="lrTab-lr-exams">🎯 시험 설정</button>
+      <button class="btn btn-secondary btn-sm" onclick="switchLearnerSub('lr-dashboard')" id="lrTab-lr-dashboard">📊 학생 현황</button>
+      <button class="btn btn-secondary btn-sm" onclick="switchLearnerSub('lr-preview')" id="lrTab-lr-preview">👁 학습 미리보기</button>
+    </div>
+
+    <!-- 하위1: 자료 업로드 -->
+    <div class="lr-sub active" id="lr-materials">
+      <div class="card">
+        <div class="card-title">학생 선택</div>
+        <div class="student-grid" id="lrStudentGrid"></div>
+      </div>
+      <div class="card" id="lrUploadSection" style="display:none;">
+        <div class="card-title">📄 학습 자료 업로드</div>
+        <div style="font-size:13px; color:#888; margin-bottom:14px;">교과서 페이지, 학습활동지, 문제집을 사진으로 찍어 올리세요. AI가 내용을 분석합니다.</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>과목</label>
+            <select id="lrSubject">
+              <option value="국어">국어</option>
+              <option value="영어">영어</option>
+              <option value="수학">수학</option>
+              <option value="사회">사회</option>
+              <option value="과학">과학</option>
+              <option value="역사">역사</option>
+              <option value="도덕">도덕</option>
+              <option value="기타">기타</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>자료 종류</label>
+            <select id="lrMaterialType">
+              <option value="textbook">교과서</option>
+              <option value="worksheet">학습활동지</option>
+              <option value="workbook">문제집</option>
+              <option value="notes">필기/정리</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>단원/범위 (예: 3단원 52~78쪽)</label>
+            <input type="text" id="lrScope" placeholder="단원명이나 페이지 범위를 입력하세요">
+          </div>
+          <div class="form-group full">
+            <label>자료 사진</label>
+            <div class="upload-area" onclick="document.getElementById('lrFileInput').click()">
+              📷 클릭하여 사진 업로드<br><span style="font-size:12px;color:#999;">여러 장 한번에 선택 가능</span>
+              <input type="file" id="lrFileInput" accept="image/*" multiple style="display:none;" onchange="previewLrImages(this)">
+            </div>
+            <div id="lrImagePreview" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;"></div>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:16px;">
+          <button class="btn btn-primary" onclick="saveLrMaterial()">💾 자료 저장</button>
+        </div>
+      </div>
+      <div class="card" id="lrMaterialList" style="display:none;">
+        <div class="card-title">📋 등록된 자료 목록</div>
+        <div id="lrMaterialListBody"></div>
+      </div>
+    </div>
+
+    <!-- 하위2: 시험 설정 -->
+    <div class="lr-sub" id="lr-exams">
+      <div class="card">
+        <div class="card-title">학생 선택</div>
+        <div class="student-grid" id="lrExamStudentGrid"></div>
+      </div>
+      <div class="card" id="lrExamSection" style="display:none;">
+        <div class="card-title">🎯 시험 설정</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>시험 이름</label>
+            <input type="text" id="lrExamName" placeholder="예: 1학기 중간고사">
+          </div>
+          <div class="form-group">
+            <label>과목</label>
+            <select id="lrExamSubject">
+              <option value="국어">국어</option>
+              <option value="영어">영어</option>
+              <option value="수학">수학</option>
+              <option value="사회">사회</option>
+              <option value="과학">과학</option>
+              <option value="역사">역사</option>
+              <option value="도덕">도덕</option>
+              <option value="기타">기타</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>시험 일자</label>
+            <input type="date" id="lrExamDate">
+          </div>
+          <div class="form-group">
+            <label>목표 점수</label>
+            <input type="number" id="lrTargetScore" placeholder="예: 90" min="0" max="100">
+          </div>
+          <div class="form-group full">
+            <label>시험 범위 (등록된 자료에서 선택)</label>
+            <div id="lrExamMaterials" style="font-size:13px; color:#888;">학생을 선택하면 등록된 자료가 표시됩니다</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; margin-top:16px;">
+          <button class="btn btn-primary" onclick="saveLrExam()">🚀 7회 반복 스케줄 생성</button>
+        </div>
+      </div>
+      <div class="card" id="lrExamList" style="display:none;">
+        <div class="card-title">📋 설정된 시험 목록</div>
+        <div id="lrExamListBody"></div>
+      </div>
+    </div>
+
+    <!-- 하위3: 학생 현황 대시보드 -->
+    <div class="lr-sub" id="lr-dashboard">
+      <div class="card">
+        <div class="card-title">📊 전체 학생 학습 현황</div>
+        <div style="font-size:13px; color:#888; margin-bottom:14px;">각 학생의 7회 반복 진행률과 예상 점수를 한눈에 확인하세요.</div>
+        <div id="lrDashboardBody">
+          <div class="empty"><div class="empty-icon">📊</div><div>시험 설정 후 학습이 시작되면<br>여기에 현황이 표시됩니다</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 하위4: 학습 미리보기 (학생 화면 시뮬레이션) -->
+    <div class="lr-sub" id="lr-preview">
+      <div class="card">
+        <div class="card-title">👁 학생용 화면 미리보기</div>
+        <div style="font-size:13px; color:#888; margin-bottom:14px;">학생이 보게 될 학습 화면을 미리 확인해보세요.</div>
+        <div class="student-grid" id="lrPreviewStudentGrid"></div>
+      </div>
+      <div class="card" id="lrPreviewArea" style="display:none;">
+        <div style="background:#f0f8f0; border-radius:12px; padding:20px; text-align:center; margin-bottom:16px;">
+          <div style="font-size:18px; font-weight:700; color:#2f855a;" id="lrPreviewStudentName">학생 이름</div>
+          <div style="font-size:13px; color:#888; margin-top:4px;" id="lrPreviewExamInfo">시험 정보</div>
+        </div>
+
+        <!-- 스테이지 맵 -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin:20px 0; padding:0 10px;" id="lrStageMap">
+          <div class="lr-stage lr-stage-done">1<br><span>훑어읽기</span></div>
+          <div class="lr-stage-line"></div>
+          <div class="lr-stage lr-stage-done">2<br><span>구조파악</span></div>
+          <div class="lr-stage-line"></div>
+          <div class="lr-stage lr-stage-current">3<br><span>핵심정리</span></div>
+          <div class="lr-stage-line lr-stage-line-locked"></div>
+          <div class="lr-stage lr-stage-locked">4<br><span>핵심암기</span></div>
+          <div class="lr-stage-line lr-stage-line-locked"></div>
+          <div class="lr-stage lr-stage-locked">5<br><span>테스트</span></div>
+          <div class="lr-stage-line lr-stage-line-locked"></div>
+          <div class="lr-stage lr-stage-locked">6<br><span>실전문제</span></div>
+          <div class="lr-stage-line lr-stage-line-locked"></div>
+          <div class="lr-stage lr-stage-locked">7<br><span>모의시험</span></div>
+        </div>
+
+        <!-- 달성률 바 -->
+        <div style="margin:20px 0;">
+          <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;">
+            <span style="font-weight:600; color:#2f855a;">달성률</span>
+            <span style="color:#888;" id="lrProgressPercent">29%</span>
+          </div>
+          <div style="height:12px; background:#e0e0e0; border-radius:6px; overflow:hidden;">
+            <div style="height:100%; width:29%; background:linear-gradient(90deg,#2f855a,#68d391); border-radius:6px; transition:width 0.5s;" id="lrProgressBar"></div>
+          </div>
+        </div>
+
+        <!-- AI 코치 메시지 -->
+        <div style="background:#f0f8f0; border-left:4px solid #2f855a; border-radius:0 8px 8px 0; padding:14px; margin:16px 0;">
+          <div style="font-size:13px; font-weight:600; color:#2f855a; margin-bottom:4px;">🤖 AI 코치</div>
+          <div style="font-size:14px; color:#444;" id="lrCoachMsg">3단원 문법 파트가 아직 약해요. 핵심 개념 정리를 한 번 더 하면 암기 단계에서 훨씬 수월할 거예요!</div>
+        </div>
+
+        <!-- 예상 점수 -->
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin:16px 0;">
+          <div style="background:#f8f9fc; border-radius:10px; padding:14px; text-align:center;">
+            <div style="font-size:12px; color:#888;">목표 점수</div>
+            <div style="font-size:24px; font-weight:700; color:#c5a149;" id="lrTargetDisplay">90</div>
+          </div>
+          <div style="background:#f8f9fc; border-radius:10px; padding:14px; text-align:center;">
+            <div style="font-size:12px; color:#888;">현재 예상</div>
+            <div style="font-size:24px; font-weight:700; color:#2f855a;" id="lrPredictDisplay">72</div>
+          </div>
+          <div style="background:#f8f9fc; border-radius:10px; padding:14px; text-align:center;">
+            <div style="font-size:12px; color:#888;">D-day</div>
+            <div style="font-size:24px; font-weight:700; color:#e53e3e;" id="lrDdayDisplay">D-14</div>
+          </div>
+        </div>
+
+        <div style="text-align:center; font-size:12px; color:#aaa; margin-top:10px;">※ 이 화면은 학생이 보게 될 화면의 미리보기입니다</div>
+      </div>
     </div>
   </div>
 </div>
@@ -2056,7 +2276,7 @@ ${a.name}`;
 
   // ===== 탭 =====
   function switchTab(tab) {
-    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['students','upload','records','reading','attendance','quiz','leads','timetable','payments'][i]===tab));
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['students','upload','records','reading','attendance','quiz','leads','timetable','payments','learner'][i]===tab));
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById('page-'+tab).classList.add('active');
     if (tab==='upload') renderUploadStudents();
@@ -2067,6 +2287,7 @@ ${a.name}`;
     if (tab==='leads') renderLeads();
     if (tab==='timetable') renderTimetable();
     if (tab==='payments') { const m = document.getElementById('payMonth'); if (!m.value) m.value = todayLocalDateStr().slice(0,7); loadPayments(m.value); }
+    if (tab==='learner') renderLearnerTab();
   }
 
   // ===== 렌더링 =====
@@ -3296,6 +3517,325 @@ ${a.name}`;
         <div class="score-value ${r.rate>=80?'high':r.rate>=60?'mid':'low'}">${r.rate}%</div>
         <div class="score-bar"><div class="score-bar-fill" style="width:${r.rate}%"></div></div>
       </div>`).join('');
+  }
+
+  // ===== 학습기 (Learner) =====
+  let _lrMaterials = [];
+  let _lrExams = [];
+  let selectedLrStudent = null;
+  let selectedLrExamStudent = null;
+  let selectedLrPreviewStudent = null;
+  let _lrImages = [];
+
+  function renderLearnerTab() {
+    renderLrStudents();
+  }
+
+  function switchLearnerSub(subId) {
+    document.querySelectorAll('.lr-sub').forEach(s => s.classList.remove('active'));
+    document.getElementById(subId).classList.add('active');
+    document.querySelectorAll('#learnerSubTabs button').forEach(b => { b.className = 'btn btn-secondary btn-sm'; });
+    document.getElementById('lrTab-'+subId).className = 'btn btn-primary btn-sm';
+    if (subId==='lr-materials') renderLrStudents();
+    if (subId==='lr-exams') renderLrExamStudents();
+    if (subId==='lr-dashboard') renderLrDashboard();
+    if (subId==='lr-preview') renderLrPreviewStudents();
+  }
+
+  function renderLrStudents() {
+    const grid = document.getElementById('lrStudentGrid');
+    const active = _students.filter(s=>s.active!==false).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+    if(!active.length) { grid.innerHTML='<div class="empty"><div class="empty-icon">👦</div><div>등록된 학생이 없습니다</div></div>'; return; }
+    grid.innerHTML = active.map(s => {
+      const cnt = _lrMaterials.filter(m=>m.studentId===s.id).length;
+      return `<div class="student-card ${selectedLrStudent&&selectedLrStudent.id===s.id?'selected':''}" onclick="selectLrStudent('${s.id}')">
+        <div class="student-avatar">${s.name[0]}</div>
+        <div class="student-name">${s.name}</div>
+        <div class="student-info">${s.grade}</div>
+        <div class="student-count">📄 자료 ${cnt}건</div>
+      </div>`;
+    }).join('');
+  }
+
+  function selectLrStudent(id) {
+    selectedLrStudent = _students.find(s=>s.id===id);
+    document.getElementById('lrUploadSection').style.display='block';
+    document.getElementById('lrMaterialList').style.display='block';
+    _lrImages = [];
+    document.getElementById('lrImagePreview').innerHTML = '';
+    renderLrStudents();
+    renderLrMaterialList();
+  }
+
+  function previewLrImages(input) {
+    const files = Array.from(input.files);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        _lrImages.push({ name: file.name, data: e.target.result });
+        renderLrImagePreviews();
+      };
+      reader.readAsDataURL(file);
+    });
+    input.value = '';
+  }
+
+  function renderLrImagePreviews() {
+    document.getElementById('lrImagePreview').innerHTML = _lrImages.map((img,i) => `
+      <div class="thumb-wrap">
+        <img src="${img.data}">
+        <button class="thumb-remove" onclick="_lrImages.splice(${i},1);renderLrImagePreviews();">×</button>
+        <div class="thumb-num">${i+1}</div>
+      </div>
+    `).join('');
+  }
+
+  function saveLrMaterial() {
+    if(!selectedLrStudent) { alert('학생을 먼저 선택하세요.'); return; }
+    const subject = document.getElementById('lrSubject').value;
+    const type = document.getElementById('lrMaterialType').value;
+    const scope = document.getElementById('lrScope').value;
+    if(!scope) { alert('단원/범위를 입력하세요.'); return; }
+    if(!_lrImages.length) { alert('자료 사진을 올려주세요.'); return; }
+    const material = {
+      id: 'lrm_' + Date.now(),
+      studentId: selectedLrStudent.id,
+      subject, type, scope,
+      imageCount: _lrImages.length,
+      createdAt: todayLocalDateStr(),
+      status: 'ready'
+    };
+    _lrMaterials.push(material);
+    _lrImages = [];
+    document.getElementById('lrImagePreview').innerHTML = '';
+    document.getElementById('lrScope').value = '';
+    renderLrStudents();
+    renderLrMaterialList();
+    alert('✅ 자료가 저장되었습니다. (' + material.subject + ' · ' + material.scope + ')');
+  }
+
+  function renderLrMaterialList() {
+    if(!selectedLrStudent) return;
+    const list = _lrMaterials.filter(m=>m.studentId===selectedLrStudent.id);
+    const body = document.getElementById('lrMaterialListBody');
+    if(!list.length) { body.innerHTML='<div style="text-align:center;color:#aaa;padding:20px;">등록된 자료가 없습니다</div>'; return; }
+    const typeLabels = { textbook:'교과서', worksheet:'활동지', workbook:'문제집', notes:'필기' };
+    const typeBadges = { textbook:'lr-badge-textbook', worksheet:'lr-badge-worksheet', workbook:'lr-badge-workbook', notes:'lr-badge-notes' };
+    body.innerHTML = list.map(m => `
+      <div class="lr-material-item">
+        <span class="lr-material-badge ${typeBadges[m.type]}">${typeLabels[m.type]}</span>
+        <div style="flex:1;">
+          <div style="font-weight:600; font-size:14px;">${m.subject} · ${m.scope}</div>
+          <div style="font-size:12px; color:#888;">${m.createdAt} · 사진 ${m.imageCount}장</div>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="deleteLrMaterial('${m.id}')">삭제</button>
+      </div>
+    `).join('');
+  }
+
+  function deleteLrMaterial(id) {
+    if(!confirm('이 자료를 삭제할까요?')) return;
+    _lrMaterials = _lrMaterials.filter(m=>m.id!==id);
+    renderLrStudents();
+    renderLrMaterialList();
+  }
+
+  // 시험 설정
+  function renderLrExamStudents() {
+    const grid = document.getElementById('lrExamStudentGrid');
+    const active = _students.filter(s=>s.active!==false).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+    if(!active.length) { grid.innerHTML='<div class="empty"><div class="empty-icon">👦</div><div>등록된 학생이 없습니다</div></div>'; return; }
+    grid.innerHTML = active.map(s => {
+      const cnt = _lrExams.filter(e=>e.studentId===s.id).length;
+      return `<div class="student-card ${selectedLrExamStudent&&selectedLrExamStudent.id===s.id?'selected':''}" onclick="selectLrExamStudent('${s.id}')">
+        <div class="student-avatar">${s.name[0]}</div>
+        <div class="student-name">${s.name}</div>
+        <div class="student-info">${s.grade}</div>
+        <div class="student-count">🎯 시험 ${cnt}건</div>
+      </div>`;
+    }).join('');
+  }
+
+  function selectLrExamStudent(id) {
+    selectedLrExamStudent = _students.find(s=>s.id===id);
+    document.getElementById('lrExamSection').style.display='block';
+    document.getElementById('lrExamList').style.display='block';
+    renderLrExamStudents();
+    renderLrExamMaterials();
+    renderLrExamList();
+  }
+
+  function renderLrExamMaterials() {
+    if(!selectedLrExamStudent) return;
+    const mats = _lrMaterials.filter(m=>m.studentId===selectedLrExamStudent.id);
+    const div = document.getElementById('lrExamMaterials');
+    if(!mats.length) { div.innerHTML='<div style="color:#e53e3e; font-size:13px;">⚠️ 이 학생에게 등록된 자료가 없습니다. "자료 업로드" 탭에서 먼저 자료를 등록하세요.</div>'; return; }
+    div.innerHTML = mats.map(m => `
+      <label style="display:flex; align-items:center; gap:8px; padding:6px 0; font-size:13px; cursor:pointer;">
+        <input type="checkbox" value="${m.id}" checked>
+        <span style="font-weight:600;">${m.subject}</span> · ${m.scope} (${m.type==='textbook'?'교과서':m.type==='worksheet'?'활동지':m.type==='workbook'?'문제집':'필기'})
+      </label>
+    `).join('');
+  }
+
+  function saveLrExam() {
+    if(!selectedLrExamStudent) { alert('학생을 먼저 선택하세요.'); return; }
+    const name = document.getElementById('lrExamName').value;
+    const subject = document.getElementById('lrExamSubject').value;
+    const date = document.getElementById('lrExamDate').value;
+    const target = parseInt(document.getElementById('lrTargetScore').value);
+    if(!name||!date||!target) { alert('시험 이름, 일자, 목표 점수를 모두 입력하세요.'); return; }
+    const checkedMats = Array.from(document.querySelectorAll('#lrExamMaterials input[type=checkbox]:checked')).map(c=>c.value);
+    if(!checkedMats.length) { alert('시험 범위에 포함할 자료를 선택하세요.'); return; }
+    const today = new Date();
+    const examDate = new Date(date);
+    const daysLeft = Math.ceil((examDate - today)/(1000*60*60*24));
+    if(daysLeft < 1) { alert('시험 일자는 오늘 이후여야 합니다.'); return; }
+    const exam = {
+      id: 'lre_' + Date.now(),
+      studentId: selectedLrExamStudent.id,
+      name, subject, date, targetScore: target,
+      materialIds: checkedMats,
+      daysLeft,
+      schedule: generateRepeatSchedule(daysLeft),
+      progress: { currentRound:1, completed:false },
+      createdAt: todayLocalDateStr()
+    };
+    _lrExams.push(exam);
+    renderLrExamStudents();
+    renderLrExamList();
+    alert('✅ 7회 반복 스케줄이 생성되었습니다!\n' + exam.schedule.map((s,i)=>`${i+1}회차: ${s.label} (${s.date})`).join('\n'));
+  }
+
+  function generateRepeatSchedule(daysLeft) {
+    const schedule = [];
+    const labels = ['훑어읽기(이해1)', '구조파악(이해2)', '핵심정리(이해3)', '핵심암기(암기1)', '빈칸테스트(암기2)', '실전문제(응용1)', '모의시험(응용2)'];
+    const ratios = [0, 0.1, 0.2, 0.35, 0.5, 0.7, 0.9];
+    for(let i=0; i<7; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() + Math.round(ratios[i] * daysLeft));
+      schedule.push({
+        round: i+1,
+        label: labels[i],
+        date: d.toISOString().slice(0,10),
+        phase: i<3 ? 'understand' : i<5 ? 'memorize' : 'apply',
+        done: false
+      });
+    }
+    return schedule;
+  }
+
+  function renderLrExamList() {
+    if(!selectedLrExamStudent) return;
+    const list = _lrExams.filter(e=>e.studentId===selectedLrExamStudent.id);
+    const body = document.getElementById('lrExamListBody');
+    if(!list.length) { body.innerHTML='<div style="text-align:center;color:#aaa;padding:20px;">설정된 시험이 없습니다</div>'; return; }
+    body.innerHTML = list.map(e => {
+      const done = e.schedule.filter(s=>s.done).length;
+      const pct = Math.round(done/7*100);
+      return `<div class="lr-exam-item">
+        <div>
+          <div style="font-weight:700; font-size:14px;">${e.name} · ${e.subject}</div>
+          <div style="font-size:12px; color:#888; margin-top:2px;">시험일: ${e.date} · 목표: ${e.targetScore}점</div>
+          <div style="margin-top:6px; height:6px; background:#e0e0e0; border-radius:3px; width:200px;">
+            <div style="height:100%; width:${pct}%; background:linear-gradient(90deg,#2f855a,#68d391); border-radius:3px;"></div>
+          </div>
+          <div style="font-size:11px; color:#2f855a; margin-top:3px;">${done}/7회 완료 (${pct}%)</div>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="deleteLrExam('${e.id}')">삭제</button>
+      </div>`;
+    }).join('');
+  }
+
+  function deleteLrExam(id) {
+    if(!confirm('이 시험 설정을 삭제할까요?')) return;
+    _lrExams = _lrExams.filter(e=>e.id!==id);
+    renderLrExamStudents();
+    renderLrExamList();
+  }
+
+  // 학생 현황 대시보드
+  function renderLrDashboard() {
+    const body = document.getElementById('lrDashboardBody');
+    if(!_lrExams.length) {
+      body.innerHTML='<div class="empty"><div class="empty-icon">📊</div><div>시험 설정 후 학습이 시작되면<br>여기에 현황이 표시됩니다</div></div>';
+      return;
+    }
+    let html = '<div class="lr-dashboard-row" style="font-weight:700;background:#e8e0cc;"><span>학생</span><span>과목</span><span>진행률</span><span>예상</span><span>D-day</span></div>';
+    _lrExams.forEach(e => {
+      const s = _students.find(st=>st.id===e.studentId);
+      if(!s) return;
+      const done = e.schedule.filter(sc=>sc.done).length;
+      const pct = Math.round(done/7*100);
+      const today = new Date();
+      const examDate = new Date(e.date);
+      const dday = Math.ceil((examDate-today)/(1000*60*60*24));
+      const predict = Math.min(100, Math.round(e.targetScore * pct/100 * 1.1));
+      html += `<div class="lr-dashboard-row">
+        <span style="font-weight:600;">${s.name}</span>
+        <span>${e.subject}</span>
+        <span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="flex:1;height:8px;background:#e0e0e0;border-radius:4px;">
+              <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#2f855a,#68d391);border-radius:4px;"></div>
+            </div>
+            <span style="font-size:12px;font-weight:600;color:#2f855a;">${done}/7</span>
+          </div>
+        </span>
+        <span style="font-weight:700;color:${predict>=e.targetScore?'#2f855a':'#c5a149'};">${predict}점</span>
+        <span style="font-weight:700;color:${dday<=3?'#e53e3e':dday<=7?'#c5a149':'#555'};">D-${dday}</span>
+      </div>`;
+    });
+    body.innerHTML = html;
+  }
+
+  // 학습 미리보기
+  function renderLrPreviewStudents() {
+    const grid = document.getElementById('lrPreviewStudentGrid');
+    const studsWithExams = _students.filter(s=>s.active!==false && _lrExams.some(e=>e.studentId===s.id)).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+    if(!studsWithExams.length) { grid.innerHTML='<div class="empty"><div class="empty-icon">👁</div><div>시험이 설정된 학생이 없습니다<br>"시험 설정" 탭에서 먼저 설정해주세요</div></div>'; return; }
+    grid.innerHTML = studsWithExams.map(s => `
+      <div class="student-card ${selectedLrPreviewStudent&&selectedLrPreviewStudent.id===s.id?'selected':''}" onclick="selectLrPreviewStudent('${s.id}')">
+        <div class="student-avatar">${s.name[0]}</div>
+        <div class="student-name">${s.name}</div>
+        <div class="student-info">${s.grade}</div>
+      </div>
+    `).join('');
+  }
+
+  function selectLrPreviewStudent(id) {
+    selectedLrPreviewStudent = _students.find(s=>s.id===id);
+    const exam = _lrExams.find(e=>e.studentId===id);
+    if(!exam) return;
+    document.getElementById('lrPreviewArea').style.display='block';
+    document.getElementById('lrPreviewStudentName').textContent = selectedLrPreviewStudent.name;
+    document.getElementById('lrPreviewExamInfo').textContent = exam.name + ' · ' + exam.subject + ' · ' + exam.date;
+    document.getElementById('lrTargetDisplay').textContent = exam.targetScore;
+    const done = exam.schedule.filter(s=>s.done).length;
+    const pct = Math.round(done/7*100);
+    document.getElementById('lrProgressPercent').textContent = pct + '%';
+    document.getElementById('lrProgressBar').style.width = pct + '%';
+    const predict = Math.min(100, Math.round(exam.targetScore * pct/100 * 1.1));
+    document.getElementById('lrPredictDisplay').textContent = predict;
+    const today = new Date();
+    const examDate = new Date(exam.date);
+    const dday = Math.ceil((examDate-today)/(1000*60*60*24));
+    document.getElementById('lrDdayDisplay').textContent = dday>0?'D-'+dday:'D-day!';
+    // 스테이지 맵 업데이트
+    const stages = document.querySelectorAll('#lrStageMap .lr-stage');
+    const lines = document.querySelectorAll('#lrStageMap .lr-stage-line, #lrStageMap .lr-stage-line-locked');
+    const currentRound = done + 1;
+    stages.forEach((st,i) => {
+      st.className = 'lr-stage ' + (i<done?'lr-stage-done': i===done?'lr-stage-current':'lr-stage-locked');
+    });
+    let lineIdx = 0;
+    document.querySelectorAll('#lrStageMap > *').forEach(el => {
+      if(el.classList.contains('lr-stage-line') || el.classList.contains('lr-stage-line-locked')) {
+        el.className = lineIdx < done ? 'lr-stage-line' : 'lr-stage-line-locked';
+        lineIdx++;
+      }
+    });
+    renderLrPreviewStudents();
   }
 
   // ===== 틀린 문제 복습 =====
