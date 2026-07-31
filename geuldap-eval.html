@@ -538,6 +538,26 @@
         <input type="text" id="asPhone">
       </div>
     </div>
+
+    <div style="margin-top:24px; border-top:1px solid #e0e0e0; padding-top:18px;">
+      <div class="card-title">과정 관리</div>
+      <div style="font-size:12px; color:#888; margin-bottom:12px;">학생 등록 시 과정을 선택하면 수강료가 자동 입력됩니다. 영수증에도 과정명이 표시돼요.</div>
+      <div id="courseList"></div>
+      <div style="display:flex; gap:8px; margin-top:10px; align-items:center; flex-wrap:wrap;">
+        <input type="text" id="newCourseName" placeholder="과정명 (예: 초등독서논술A)" style="flex:1; min-width:140px;">
+        <input type="number" id="newCourseFee" placeholder="금액" step="10000" style="width:120px;">
+        <button class="btn btn-secondary btn-sm" onclick="addCourseRow()">+ 추가</button>
+      </div>
+    </div>
+
+    <div style="margin-top:18px; border-top:1px solid #e0e0e0; padding-top:14px;">
+      <div style="font-size:13px; font-weight:600; color:#555; margin-bottom:8px;">할인 정책</div>
+      <div style="font-size:12px; color:#888; line-height:1.7;">
+        · <b>형제 할인</b>: 항상 10% 할인<br>
+        · <b>친구 할인</b>: 등록 시 양쪽 모두 20% 할인 (1회)
+      </div>
+    </div>
+
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="closeAcademySettings()">취소</button>
       <button class="btn btn-primary" onclick="saveAcademySettings()">저장</button>
@@ -747,7 +767,21 @@
         <input type="text" id="newPhone" placeholder="010-0000-0000">
       </div>
       <div class="form-group">
-        <label>월 수강료 (원)</label>
+        <label>과정</label>
+        <select id="newCourse" onchange="onCourseOrDiscountChange()">
+          <option value="">직접 입력</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>할인</label>
+        <select id="newDiscount" onchange="onCourseOrDiscountChange()">
+          <option value="">없음</option>
+          <option value="sibling">형제 할인 (10%)</option>
+          <option value="friend">친구 할인 (20%, 1회)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>월 수강료 (원) <span id="tuitionCalcNote" style="font-weight:400; color:#888; font-size:12px;"></span></label>
         <input type="number" id="newTuition" placeholder="220000" step="1000">
       </div>
       <div class="form-group">
@@ -1684,6 +1718,78 @@
   }
 
   // ===== 학원 정보 설정 (납입증명서용) =====
+  // ===== 과정 관리 =====
+  function getCourses() {
+    return (window._academySettings && window._academySettings.courses) || [];
+  }
+  function renderCourseList() {
+    const list = document.getElementById('courseList');
+    const courses = getCourses();
+    if (!courses.length) { list.innerHTML = '<div style="font-size:13px; color:#aaa;">등록된 과정이 없습니다.</div>'; return; }
+    list.innerHTML = courses.map((c, i) => `
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; padding:8px 10px; background:#f8f9fc; border-radius:8px;">
+        <span style="flex:1; font-size:14px; font-weight:600;">${c.name}</span>
+        <span style="font-size:14px; color:#c5a149; font-weight:600;">${c.fee.toLocaleString()}원</span>
+        <button class="btn btn-danger btn-sm" onclick="removeCourseRow(${i})" style="padding:3px 10px;">✕</button>
+      </div>
+    `).join('');
+  }
+  function addCourseRow() {
+    const nameEl = document.getElementById('newCourseName');
+    const feeEl = document.getElementById('newCourseFee');
+    const name = nameEl.value.trim();
+    const fee = Number(feeEl.value) || 0;
+    if (!name) { alert('과정명을 입력해주세요.'); return; }
+    if (!fee) { alert('금액을 입력해주세요.'); return; }
+    if (!window._academySettings) window._academySettings = {};
+    if (!window._academySettings.courses) window._academySettings.courses = [];
+    window._academySettings.courses.push({ name, fee });
+    nameEl.value = ''; feeEl.value = '';
+    renderCourseList();
+  }
+  function removeCourseRow(idx) {
+    if (!window._academySettings || !window._academySettings.courses) return;
+    window._academySettings.courses.splice(idx, 1);
+    renderCourseList();
+  }
+
+  // 과정 선택 드롭다운 채우기
+  function populateCourseSelect() {
+    const sel = document.getElementById('newCourse');
+    if (!sel) return;
+    const courses = getCourses();
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">직접 입력</option>' + courses.map(c => `<option value="${c.name}" data-fee="${c.fee}">${c.name} (${c.fee.toLocaleString()}원)</option>`).join('');
+    if (cur) sel.value = cur;
+  }
+  function onCourseOrDiscountChange() {
+    const sel = document.getElementById('newCourse');
+    const opt = sel.selectedOptions[0];
+    const baseFee = opt && opt.dataset.fee ? Number(opt.dataset.fee) : 0;
+    const discountType = document.getElementById('newDiscount').value;
+    const tuitionField = document.getElementById('newTuition');
+    const noteEl = document.getElementById('tuitionCalcNote');
+
+    if (!baseFee) {
+      noteEl.textContent = '';
+      return; // 직접 입력 모드 — 수동으로 금액 넣도록
+    }
+
+    let rate = 0;
+    if (discountType === 'sibling') rate = 0.1;
+    else if (discountType === 'friend') rate = 0.2;
+
+    const discountAmt = Math.round(baseFee * rate / 1000) * 1000; // 천원 단위 절사
+    const final = baseFee - discountAmt;
+    tuitionField.value = final;
+
+    if (rate > 0) {
+      noteEl.textContent = `← ${baseFee.toLocaleString()} − ${(rate*100)}% = ${final.toLocaleString()}`;
+    } else {
+      noteEl.textContent = '';
+    }
+  }
+
   function openAcademySettings() {
     const a = window._academySettings || {};
     document.getElementById('asName').value = a.name || '';
@@ -1693,6 +1799,7 @@
     document.getElementById('asSubject').value = a.subject || '';
     document.getElementById('asAddress').value = a.address || '';
     document.getElementById('asPhone').value = a.phone || '';
+    renderCourseList();
     document.getElementById('academySettingsModal').classList.add('open');
   }
   function closeAcademySettings() {
@@ -1708,7 +1815,8 @@
       subject: document.getElementById('asSubject').value.trim(),
       address: document.getElementById('asAddress').value.trim(),
       phone: document.getElementById('asPhone').value.trim(),
-      serialCounter: prev.serialCounter || 0
+      serialCounter: prev.serialCounter || 0,
+      courses: (prev.courses || [])
     };
     window._academySettings = data;
     localStorage.setItem('gas', JSON.stringify(data));
@@ -1717,6 +1825,7 @@
       catch(e) { console.error('학원 정보 저장 오류', e); alert('⚠️ 서버 저장 실패: ' + e.message); }
     }
     closeAcademySettings();
+    populateCourseSelect();
     alert('학원 정보가 저장되었습니다.');
   }
 
@@ -1823,6 +1932,7 @@ ${a.name}`;
         <div>성명 : ${s.name}</div>
         <div>생년월일 : ${s.birthdate||'-'}</div>
         <div>교습과목 : ${a.subject||'-'}</div>
+        <div>과정명 : ${s.courseName||'-'}</div>
         <hr style="margin:10px 0;">
         <div>교습비 : ${(p.amount||0).toLocaleString()}원</div>
         <div>기타경비 : 0원</div>
@@ -1885,6 +1995,7 @@ ${a.name}`;
         <td style="border:1px solid #ccc; padding:6px;">${p.studentName}</td>
         <td style="border:1px solid #ccc; padding:6px;">${s&&s.birthdate?s.birthdate:'-'}</td>
         <td style="border:1px solid #ccc; padding:6px;">${a.subject||'-'}</td>
+        <td style="border:1px solid #ccc; padding:6px;">${s&&s.courseName?s.courseName:'-'}</td>
         <td style="border:1px solid #ccc; padding:6px; text-align:right;">${(p.amount||0).toLocaleString()}원</td>
         <td style="border:1px solid #ccc; padding:6px;">${p.paidDate||'-'}</td>
       </tr>`;
@@ -1902,6 +2013,7 @@ ${a.name}`;
             <th style="border:1px solid #ccc; padding:6px;">학생명</th>
             <th style="border:1px solid #ccc; padding:6px;">생년월일</th>
             <th style="border:1px solid #ccc; padding:6px;">교습과목</th>
+            <th style="border:1px solid #ccc; padding:6px;">과정명</th>
             <th style="border:1px solid #ccc; padding:6px;">교습비</th>
             <th style="border:1px solid #ccc; padding:6px;">납부일</th>
           </tr>
@@ -1961,6 +2073,7 @@ ${a.name}`;
         <div class="student-avatar">${s.name[0]}</div>
         <div class="student-name">${s.name}</div>
         <div class="student-info">${s.grade} · ${s.date}</div>
+        ${s.courseName ? `<div style="font-size:12px; color:#c5a149; margin-top:2px;">${s.courseName}${s.discount==='sibling'?' · 형제할인':s.discount==='friend'?' · 친구할인':''}</div>` : ''}
         <div class="student-count">📝 ${cnt}편</div>
         <div style="margin-top:10px; display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
           <button class="btn btn-secondary btn-sm" onclick="editStudent('${s.id}')">수정</button>
@@ -2164,7 +2277,11 @@ ${a.name}`;
     document.getElementById('newGrade').selectedIndex = 0;
     document.getElementById('newDate').value = todayLocalDateStr();
     document.getElementById('newPhone').value = '';
+    populateCourseSelect();
+    document.getElementById('newCourse').value = '';
+    document.getElementById('newDiscount').value = '';
     document.getElementById('newTuition').value = '';
+    document.getElementById('tuitionCalcNote').textContent = '';
     document.getElementById('newBirthdate').value = '';
     document.getElementById('newBillingDay').value = '';
     syncBillingDayFromDate();
@@ -2184,7 +2301,11 @@ ${a.name}`;
     document.getElementById('newGrade').value = s.grade;
     document.getElementById('newDate').value = s.date;
     document.getElementById('newPhone').value = s.phone || '';
+    populateCourseSelect();
+    document.getElementById('newCourse').value = s.courseName || '';
+    document.getElementById('newDiscount').value = s.discount || '';
     document.getElementById('newTuition').value = s.tuition || '';
+    document.getElementById('tuitionCalcNote').textContent = '';
     document.getElementById('newBirthdate').value = s.birthdate || '';
     document.getElementById('newBillingDay').value = s.billingDay || '';
     populateScheduleRows(s);
@@ -2197,23 +2318,27 @@ ${a.name}`;
     const grade = document.getElementById('newGrade').value;
     const date = document.getElementById('newDate').value;
     const phone = document.getElementById('newPhone').value.trim();
+    const courseName = document.getElementById('newCourse').value;
+    const discount = document.getElementById('newDiscount').value;
     const tuition = Number(document.getElementById('newTuition').value) || 0;
     const birthdate = document.getElementById('newBirthdate').value;
     const billingDay = Number(document.getElementById('newBillingDay').value) || (date ? Number(date.split('-')[2]) : 1);
     const schedule = collectScheduleRows();
     if (!name) { alert('이름을 입력해주세요'); return; }
 
+    const fields = { name, grade, date, schedule, phone, courseName, discount, tuition, birthdate, billingDay };
+
     if (editingStudentId) {
       const idx = _students.findIndex(s=>s.id===editingStudentId);
       if (idx > -1) {
-        _students[idx] = { ..._students[idx], name, grade, date, schedule, phone, tuition, birthdate, billingDay };
+        _students[idx] = { ..._students[idx], ...fields };
         localStorage.setItem('gs', JSON.stringify(_students));
         if (window._fbReady) {
-          window._updateByFieldId('geuldap_students', editingStudentId, { name, grade, date, schedule, phone, tuition, birthdate, billingDay }).catch(console.error);
+          window._updateByFieldId('geuldap_students', editingStudentId, fields).catch(console.error);
         }
       }
     } else {
-      const s = { id: Date.now().toString(), name, grade, date, schedule, phone, tuition, birthdate, billingDay };
+      const s = { id: Date.now().toString(), ...fields };
       _students.push(s);
       localStorage.setItem('gs', JSON.stringify(_students));
       if (window._fbReady) window._add(window._col(window._db,'geuldap_students'), s).catch(console.error);
