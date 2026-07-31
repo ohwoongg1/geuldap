@@ -1212,6 +1212,10 @@
     ps_.forEach(d => mergeFromServer(window._payments, d.data()));
     const rd_ = await getDocs(collection(db, 'geuldap_readings'));
     rd_.forEach(d => mergeFromServer(window._readings, d.data()));
+    const lrm_ = await getDocs(collection(db, 'geuldap_lr_materials'));
+    lrm_.forEach(d => mergeFromServer(window._lrMaterials, d.data()));
+    const lre_ = await getDocs(collection(db, 'geuldap_lr_exams'));
+    lre_.forEach(d => mergeFromServer(window._lrExams, d.data()));
     try {
       const asDoc = await getDoc(doc(db, 'geuldap_settings', 'academy'));
       if (asDoc.exists()) window._academySettings = asDoc.data();
@@ -1223,6 +1227,8 @@
     localStorage.setItem('gl', JSON.stringify(window._leads));
     localStorage.setItem('gp', JSON.stringify(window._payments));
     localStorage.setItem('grd', JSON.stringify(window._readings));
+    localStorage.setItem('glrm', JSON.stringify(window._lrMaterials));
+    localStorage.setItem('glre', JSON.stringify(window._lrExams));
     if (window._academySettings) localStorage.setItem('gas', JSON.stringify(window._academySettings));
   } catch(e) { console.log('Firebase 로드:', e); }
   renderStudents();
@@ -1254,6 +1260,8 @@
   window._leads = JSON.parse(localStorage.getItem('gl') || '[]');
   window._payments = JSON.parse(localStorage.getItem('gp') || '[]');
   window._readings = JSON.parse(localStorage.getItem('grd') || '[]');
+  window._lrMaterials = JSON.parse(localStorage.getItem('glrm') || '[]');
+  window._lrExams = JSON.parse(localStorage.getItem('glre') || '[]');
   window._academySettings = JSON.parse(localStorage.getItem('gas') || 'null');
 
   // 기본 과정 목록: 아직 과정이 하나도 없으면 자동으로 채운다
@@ -3592,12 +3600,34 @@ ${a.name}`;
   }
 
   // ===== 학습기 (Learner) =====
-  let _lrMaterials = [];
-  let _lrExams = [];
   let selectedLrStudent = null;
   let selectedLrExamStudent = null;
   let selectedLrPreviewStudent = null;
   let _lrImages = [];
+
+  // window 전역 배열 사용 (Firebase에서 로드됨)
+  function getLrMaterials() { return window._lrMaterials || []; }
+  function getLrExams() { return window._lrExams || []; }
+
+  async function saveLrToFirebase(type, item) {
+    try {
+      await _add(_col(db, type==='material'?'geuldap_lr_materials':'geuldap_lr_exams'), item);
+    } catch(e) { console.log('학습기 Firebase 저장:', e); }
+  }
+  async function deleteLrFromFirebase(type, id) {
+    try {
+      await _deleteByFieldId(type==='material'?'geuldap_lr_materials':'geuldap_lr_exams', id);
+    } catch(e) { console.log('학습기 Firebase 삭제:', e); }
+  }
+  async function updateLrExamInFirebase(exam) {
+    try {
+      await _updateByFieldId('geuldap_lr_exams', exam.id, exam);
+    } catch(e) { console.log('학습기 Firebase 업데이트:', e); }
+  }
+  function saveLrLocal() {
+    localStorage.setItem('glrm', JSON.stringify(window._lrMaterials));
+    localStorage.setItem('glre', JSON.stringify(window._lrExams));
+  }
 
   function renderLearnerTab() {
     renderLrStudents();
@@ -3619,7 +3649,7 @@ ${a.name}`;
     const active = _students.filter(s=>s.active!==false).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
     if(!active.length) { grid.innerHTML='<div class="empty"><div class="empty-icon">👦</div><div>등록된 학생이 없습니다</div></div>'; return; }
     grid.innerHTML = active.map(s => {
-      const cnt = _lrMaterials.filter(m=>m.studentId===s.id).length;
+      const cnt = window._lrMaterials.filter(m=>m.studentId===s.id).length;
       return `<div class="student-card ${selectedLrStudent&&selectedLrStudent.id===s.id?'selected':''}" onclick="selectLrStudent('${s.id}')">
         <div class="student-avatar">${s.name[0]}</div>
         <div class="student-name">${s.name}</div>
@@ -3677,7 +3707,9 @@ ${a.name}`;
       createdAt: todayLocalDateStr(),
       status: 'ready'
     };
-    _lrMaterials.push(material);
+    window._lrMaterials.push(material);
+    saveLrToFirebase('material', material);
+    saveLrLocal();
     _lrImages = [];
     document.getElementById('lrImagePreview').innerHTML = '';
     document.getElementById('lrScope').value = '';
@@ -3688,7 +3720,7 @@ ${a.name}`;
 
   function renderLrMaterialList() {
     if(!selectedLrStudent) return;
-    const list = _lrMaterials.filter(m=>m.studentId===selectedLrStudent.id);
+    const list = window._lrMaterials.filter(m=>m.studentId===selectedLrStudent.id);
     const body = document.getElementById('lrMaterialListBody');
     if(!list.length) { body.innerHTML='<div style="text-align:center;color:#aaa;padding:20px;">등록된 자료가 없습니다</div>'; return; }
     const typeLabels = { textbook:'교과서', worksheet:'활동지', workbook:'문제집', notes:'필기' };
@@ -3707,7 +3739,9 @@ ${a.name}`;
 
   function deleteLrMaterial(id) {
     if(!confirm('이 자료를 삭제할까요?')) return;
-    _lrMaterials = _lrMaterials.filter(m=>m.id!==id);
+    window._lrMaterials = window._lrMaterials.filter(m=>m.id!==id);
+    deleteLrFromFirebase('material', id);
+    saveLrLocal();
     renderLrStudents();
     renderLrMaterialList();
   }
@@ -3718,7 +3752,7 @@ ${a.name}`;
     const active = _students.filter(s=>s.active!==false).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
     if(!active.length) { grid.innerHTML='<div class="empty"><div class="empty-icon">👦</div><div>등록된 학생이 없습니다</div></div>'; return; }
     grid.innerHTML = active.map(s => {
-      const cnt = _lrExams.filter(e=>e.studentId===s.id).length;
+      const cnt = window._lrExams.filter(e=>e.studentId===s.id).length;
       return `<div class="student-card ${selectedLrExamStudent&&selectedLrExamStudent.id===s.id?'selected':''}" onclick="selectLrExamStudent('${s.id}')">
         <div class="student-avatar">${s.name[0]}</div>
         <div class="student-name">${s.name}</div>
@@ -3739,7 +3773,7 @@ ${a.name}`;
 
   function renderLrExamMaterials() {
     if(!selectedLrExamStudent) return;
-    const mats = _lrMaterials.filter(m=>m.studentId===selectedLrExamStudent.id);
+    const mats = window._lrMaterials.filter(m=>m.studentId===selectedLrExamStudent.id);
     const div = document.getElementById('lrExamMaterials');
     if(!mats.length) { div.innerHTML='<div style="color:#e53e3e; font-size:13px;">⚠️ 이 학생에게 등록된 자료가 없습니다. "자료 업로드" 탭에서 먼저 자료를 등록하세요.</div>'; return; }
     div.innerHTML = mats.map(m => `
@@ -3773,7 +3807,9 @@ ${a.name}`;
       progress: { currentRound:1, completed:false },
       createdAt: todayLocalDateStr()
     };
-    _lrExams.push(exam);
+    window._lrExams.push(exam);
+    saveLrToFirebase('exam', exam);
+    saveLrLocal();
     renderLrExamStudents();
     renderLrExamList();
     alert('✅ 7회 반복 스케줄이 생성되었습니다!\n' + exam.schedule.map((s,i)=>`${i+1}회차: ${s.label} (${s.date})`).join('\n'));
@@ -3799,7 +3835,7 @@ ${a.name}`;
 
   function renderLrExamList() {
     if(!selectedLrExamStudent) return;
-    const list = _lrExams.filter(e=>e.studentId===selectedLrExamStudent.id);
+    const list = window._lrExams.filter(e=>e.studentId===selectedLrExamStudent.id);
     const body = document.getElementById('lrExamListBody');
     if(!list.length) { body.innerHTML='<div style="text-align:center;color:#aaa;padding:20px;">설정된 시험이 없습니다</div>'; return; }
     body.innerHTML = list.map(e => {
@@ -3821,7 +3857,9 @@ ${a.name}`;
 
   function deleteLrExam(id) {
     if(!confirm('이 시험 설정을 삭제할까요?')) return;
-    _lrExams = _lrExams.filter(e=>e.id!==id);
+    window._lrExams = window._lrExams.filter(e=>e.id!==id);
+    deleteLrFromFirebase('exam', id);
+    saveLrLocal();
     renderLrExamStudents();
     renderLrExamList();
   }
@@ -3829,12 +3867,12 @@ ${a.name}`;
   // 학생 현황 대시보드
   function renderLrDashboard() {
     const body = document.getElementById('lrDashboardBody');
-    if(!_lrExams.length) {
+    if(!window._lrExams.length) {
       body.innerHTML='<div class="empty"><div class="empty-icon">📊</div><div>시험 설정 후 학습이 시작되면<br>여기에 현황이 표시됩니다</div></div>';
       return;
     }
     let html = '<div class="lr-dashboard-row" style="font-weight:700;background:#e8e0cc;"><span>학생</span><span>과목</span><span>진행률</span><span>예상</span><span>D-day</span></div>';
-    _lrExams.forEach(e => {
+    window._lrExams.forEach(e => {
       const s = _students.find(st=>st.id===e.studentId);
       if(!s) return;
       const done = e.schedule.filter(sc=>sc.done).length;
@@ -3864,7 +3902,7 @@ ${a.name}`;
   // 학습 미리보기
   function renderLrPreviewStudents() {
     const grid = document.getElementById('lrPreviewStudentGrid');
-    const studsWithExams = _students.filter(s=>s.active!==false && _lrExams.some(e=>e.studentId===s.id)).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+    const studsWithExams = _students.filter(s=>s.active!==false && window._lrExams.some(e=>e.studentId===s.id)).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
     if(!studsWithExams.length) { grid.innerHTML='<div class="empty"><div class="empty-icon">👁</div><div>시험이 설정된 학생이 없습니다<br>"시험 설정" 탭에서 먼저 설정해주세요</div></div>'; return; }
     grid.innerHTML = studsWithExams.map(s => `
       <div class="student-card ${selectedLrPreviewStudent&&selectedLrPreviewStudent.id===s.id?'selected':''}" onclick="selectLrPreviewStudent('${s.id}')">
@@ -3877,7 +3915,7 @@ ${a.name}`;
 
   function selectLrPreviewStudent(id) {
     selectedLrPreviewStudent = _students.find(s=>s.id===id);
-    const exam = _lrExams.find(e=>e.studentId===id);
+    const exam = window._lrExams.find(e=>e.studentId===id);
     if(!exam) return;
     document.getElementById('lrPreviewArea').style.display='block';
     document.getElementById('lrPreviewStudentName').textContent = selectedLrPreviewStudent.name;
@@ -3930,7 +3968,7 @@ ${a.name}`;
 
   async function startLrLearning() {
     if(!selectedLrPreviewStudent) return;
-    lrCurrentExam = _lrExams.find(e=>e.studentId===selectedLrPreviewStudent.id);
+    lrCurrentExam = window._lrExams.find(e=>e.studentId===selectedLrPreviewStudent.id);
     if(!lrCurrentExam) { alert('설정된 시험이 없습니다.'); return; }
     const done = lrCurrentExam.schedule.filter(s=>s.done).length;
     lrCurrentRound = Math.min(done + 1, 7);
@@ -3943,7 +3981,7 @@ ${a.name}`;
     document.getElementById('lrAiLoadingText').textContent = `${info.label} 문제를 만들고 있어요...`;
 
     try {
-      const mats = _lrMaterials.filter(m=>lrCurrentExam.materialIds.includes(m.id));
+      const mats = window._lrMaterials.filter(m=>lrCurrentExam.materialIds.includes(m.id));
       const matInfo = mats.map(m=>`[${m.subject}] ${m.scope} (${m.type})`).join(', ');
 
       const prompt = `당신은 ${selectedLrPreviewStudent.grade} 학생을 가르치는 친절한 선생님입니다.
@@ -4129,6 +4167,8 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     if(lrCurrentExam && lrCurrentExam.schedule[lrCurrentRound-1]) {
       lrCurrentExam.schedule[lrCurrentRound-1].done = true;
       lrCurrentExam.schedule[lrCurrentRound-1].score = pct;
+      updateLrExamInFirebase(lrCurrentExam);
+      saveLrLocal();
     }
 
     document.getElementById('lrQuestionArea').style.display='none';
