@@ -29,6 +29,8 @@
     .tab-nav { background: #fff; border-bottom: 1px solid #e0e0e0; display: flex; padding: 0 32px; }
     .tab { padding: 14px 20px; font-size: 14px; font-weight: 600; color: #888; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
     .tab.active { color: #0d1b4b; border-bottom-color: #c5a149; }
+    .tab.tab-frequent { color: #a66; }
+    .tab.tab-frequent.active { color: #0d1b4b; }
     .main { max-width: 1200px; margin: 0 auto; padding: 28px 24px; }
     .card { background: #fff; border-radius: 14px; padding: 24px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
     .card-title { font-size: 16px; font-weight: 700; color: #0d1b4b; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
@@ -135,12 +137,13 @@
 <!-- 탭 -->
 <div class="tab-nav">
   <div class="tab active" onclick="switchTab('students')">학생 관리</div>
-  <div class="tab" onclick="switchTab('upload')">글 업로드 · 평가</div>
+  <div class="tab tab-frequent" onclick="switchTab('upload')">글 업로드 · 평가</div>
+  <div class="tab tab-frequent" onclick="switchTab('records')">평가 기록</div>
+  <div class="tab tab-frequent" onclick="switchTab('attendance')">출석부</div>
   <div class="tab" onclick="switchTab('quiz')">문제 채점</div>
-  <div class="tab" onclick="switchTab('records')">평가 기록</div>
-  <div class="tab" onclick="switchTab('attendance')">출석부</div>
   <div class="tab" onclick="switchTab('leads')">상담일지</div>
   <div class="tab" onclick="switchTab('timetable')">시간표</div>
+  <div class="tab" onclick="switchTab('payments')">수납 관리</div>
 </div>
 
 <div class="main">
@@ -421,6 +424,103 @@
       </div>
     </div>
   </div>
+
+  <!-- 수납 관리 -->
+  <div class="page" id="page-payments">
+    <div class="card">
+      <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <span>수납 관리</span>
+        <div style="display:flex; gap:6px;">
+          <input type="month" id="payMonth" style="width:auto;" onchange="loadPayments(this.value)">
+          <button class="btn btn-secondary btn-sm" onclick="openAcademySettings()">🏫 학원 정보 설정</button>
+        </div>
+      </div>
+      <div id="paySummary" style="font-size:13px; color:#888; margin-bottom:10px;"></div>
+      <div style="display:flex; gap:6px; margin-bottom:10px;">
+        <button class="btn btn-secondary btn-sm" id="payFilterAllBtn" onclick="filterPayments('all')">전체</button>
+        <button class="btn btn-secondary btn-sm" id="payFilterUnpaidBtn" onclick="filterPayments('unpaid')">미납만</button>
+      </div>
+      <div id="payList"></div>
+      <div style="display:flex; justify-content:flex-end; margin-top:14px;">
+        <button class="btn btn-primary" onclick="savePayments()">💾 수납 현황 저장</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">교습비등 영수증 (법정 별지 제24호서식)</div>
+      <div style="font-size:12px; color:#888; margin-bottom:10px;">완납 처리된 건에 대해, 법이 정한 양식에 맞춘 영수증을 발급해요. 카드영수증과 별개로 이 문서 하나만으로도 법적 요건을 충족합니다.</div>
+      <div style="margin-bottom:16px;">
+        <div style="font-size:13px; font-weight:600; margin-bottom:6px;">개별 발급</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <select id="receiptStudentSelect" style="width:auto; min-width:160px;"></select>
+          <input type="month" id="receiptMonth" style="width:auto;">
+          <button class="btn btn-primary btn-sm" onclick="generateReceipt()">영수증 발급</button>
+        </div>
+      </div>
+      <div style="padding-top:14px; border-top:1px solid #eee;">
+        <div style="font-size:13px; font-weight:600; margin-bottom:6px;">기간별 전체 학생 일괄 출력 (교육청 점검용 영수증원부)</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <input type="month" id="ledgerFrom" style="width:auto;"> ~
+          <input type="month" id="ledgerTo" style="width:auto;">
+          <button class="btn btn-secondary btn-sm" onclick="generateLedger()">전체 출력</button>
+        </div>
+      </div>
+      <div id="receiptResult" style="margin-top:14px;"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">납입증명서 발급 (연말정산용)</div>
+      <div style="font-size:12px; color:#888; margin-bottom:10px;">학생을 선택하고 연도를 고르면, 그 해에 완납 처리된 금액을 합산해서 증명서 문구를 만들어드려요.</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <select id="certStudentSelect" style="width:auto; min-width:160px;"></select>
+        <input type="number" id="certYear" style="width:auto;" min="2020" max="2100">
+        <button class="btn btn-primary btn-sm" onclick="generateCertificate()">발급</button>
+      </div>
+      <div id="certResult" style="margin-top:14px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 학원 정보 설정 모달 (납입증명서에 사용) -->
+<div class="modal-bg" id="academySettingsModal">
+  <div class="modal">
+    <div class="modal-title">학원 정보 설정</div>
+    <div style="font-size:12px; color:#888; margin-bottom:10px;">납입증명서에 들어갈 정보예요. 한 번만 입력해두면 계속 재사용됩니다.</div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>학원명</label>
+        <input type="text" id="asName" placeholder="글답국어독서논술학원">
+      </div>
+      <div class="form-group full">
+        <label>대표자명</label>
+        <input type="text" id="asOwner">
+      </div>
+      <div class="form-group full">
+        <label>사업자등록번호</label>
+        <input type="text" id="asBizNo" placeholder="000-00-00000">
+      </div>
+      <div class="form-group full">
+        <label>학원 등록(신고)번호 <span style="font-weight:400; color:#888;">— 영수증에 표시됨</span></label>
+        <input type="text" id="asRegNo" placeholder="교육지원청에서 받은 등록번호">
+      </div>
+      <div class="form-group full">
+        <label>교습과목 <span style="font-weight:400; color:#888;">— 영수증에 표시됨</span></label>
+        <input type="text" id="asSubject" placeholder="국어(독서논술)">
+      </div>
+      <div class="form-group full">
+        <label>주소</label>
+        <input type="text" id="asAddress">
+      </div>
+      <div class="form-group full">
+        <label>전화번호</label>
+        <input type="text" id="asPhone">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeAcademySettings()">취소</button>
+      <button class="btn btn-primary" onclick="saveAcademySettings()">저장</button>
+    </div>
+  </div>
 </div>
 
 <!-- 상담 등록 모달 -->
@@ -618,7 +718,23 @@
       </div>
       <div class="form-group full">
         <label>입학일</label>
-        <input type="date" id="newDate">
+        <input type="date" id="newDate" onchange="syncBillingDayFromDate()">
+      </div>
+      <div class="form-group">
+        <label>학부모 연락처</label>
+        <input type="text" id="newPhone" placeholder="010-0000-0000">
+      </div>
+      <div class="form-group">
+        <label>월 수강료 (원)</label>
+        <input type="number" id="newTuition" placeholder="220000" step="1000">
+      </div>
+      <div class="form-group">
+        <label>생년월일 (선택) <span style="font-weight:400; color:#888; font-size:12px;">— 영수증 발급 시 사용</span></label>
+        <input type="date" id="newBirthdate">
+      </div>
+      <div class="form-group full">
+        <label>결제일 (매월 며칠) — 입학일의 '일'로 자동 채워지며, 필요하면 따로 바꿀 수 있어요</label>
+        <input type="number" id="newBillingDay" min="1" max="31" placeholder="15">
       </div>
       <div class="form-group full">
         <label>수업 요일 · 시각 · 시간 (요일마다 다르게 설정 가능)</label>
@@ -671,7 +787,7 @@
 <!-- Firebase -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, getDocs, getDoc, setDoc, query, where, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
   const app = initializeApp({
     apiKey: "AIzaSyC5nf84GbQQ_5vIDwhIvTZ5zPqf7nrnSxU",
@@ -692,6 +808,8 @@
   window._del = deleteDoc;
   window._doc = doc;
   window._update = updateDoc;
+  window._getDoc = getDoc;
+  window._setDoc = setDoc;
 
   // 학생 글 원본 사진을 Storage에 올리고 다운로드 URL들을 반환한다.
   // (Firestore 문서엔 용량 제한이 있어 사진 원본은 여기 따로 저장하고, 기록엔 URL만 남긴다.)
@@ -742,11 +860,19 @@
     as_.forEach(d => mergeFromServer(window._attendance, d.data()));
     const ls_ = await getDocs(collection(db, 'geuldap_leads'));
     ls_.forEach(d => mergeFromServer(window._leads, d.data()));
+    const ps_ = await getDocs(collection(db, 'geuldap_payments'));
+    ps_.forEach(d => mergeFromServer(window._payments, d.data()));
+    try {
+      const asDoc = await getDoc(doc(db, 'geuldap_settings', 'academy'));
+      if (asDoc.exists()) window._academySettings = asDoc.data();
+    } catch(e2) { console.log('학원 정보 로드:', e2); }
     localStorage.setItem('gs', JSON.stringify(window._students));
     localStorage.setItem('gr', JSON.stringify(window._records));
     localStorage.setItem('gq', JSON.stringify(window._quizzes));
     localStorage.setItem('ga', JSON.stringify(window._attendance));
     localStorage.setItem('gl', JSON.stringify(window._leads));
+    localStorage.setItem('gp', JSON.stringify(window._payments));
+    if (window._academySettings) localStorage.setItem('gas', JSON.stringify(window._academySettings));
   } catch(e) { console.log('Firebase 로드:', e); }
   renderStudents();
   window._fbReady = true;
@@ -775,6 +901,8 @@
   window._quizzes = JSON.parse(localStorage.getItem('gq') || '[]');
   window._attendance = JSON.parse(localStorage.getItem('ga') || '[]');
   window._leads = JSON.parse(localStorage.getItem('gl') || '[]');
+  window._payments = JSON.parse(localStorage.getItem('gp') || '[]');
+  window._academySettings = JSON.parse(localStorage.getItem('gas') || 'null');
   let selectedStudent = null;
   let currentEval = null;
   let convertingLeadId = null;
@@ -1391,18 +1519,375 @@
     }
   }
 
+  // ===== 수납 관리 =====
+  let payRows = [];
+  let payCurrentMonth = '';
+  let payFilter = 'all';
+
+  function monthLabel(monthStr) {
+    const [y,m] = monthStr.split('-');
+    return `${y}년 ${Number(m)}월`;
+  }
+
+  function loadPayments(monthStr) {
+    payCurrentMonth = monthStr;
+    document.getElementById('payMonth').value = monthStr;
+    const active = _students.filter(s => s.active !== false);
+    const existing = window._payments.filter(p => p.month === monthStr);
+    const existingMap = {};
+    existing.forEach(p => { existingMap[p.studentId] = p; });
+
+    payRows = active.map(s => {
+      const ex = existingMap[s.id];
+      return {
+        studentId: s.id,
+        studentName: s.name,
+        phone: s.phone || '',
+        billingDay: s.billingDay || (s.date ? Number(s.date.split('-')[2]) : 1),
+        amount: ex ? ex.amount : (s.tuition || 0),
+        paid: ex ? ex.paid : false,
+        paidDate: ex ? (ex.paidDate || null) : null
+      };
+    });
+    renderPayments();
+    populateCertStudentSelect();
+    populateReceiptStudentSelect();
+    if (!document.getElementById('receiptMonth').value) document.getElementById('receiptMonth').value = monthStr;
+  }
+
+  function filterPayments(f) {
+    payFilter = f;
+    renderPayments();
+  }
+
+  function renderPayments() {
+    document.getElementById('payFilterAllBtn').classList.toggle('btn-primary', payFilter==='all');
+    document.getElementById('payFilterAllBtn').classList.toggle('btn-secondary', payFilter!=='all');
+    document.getElementById('payFilterUnpaidBtn').classList.toggle('btn-primary', payFilter==='unpaid');
+    document.getElementById('payFilterUnpaidBtn').classList.toggle('btn-secondary', payFilter!=='unpaid');
+
+    const totalBilled = payRows.reduce((a,r)=>a+(r.amount||0),0);
+    const totalPaid = payRows.filter(r=>r.paid).reduce((a,r)=>a+(r.amount||0),0);
+    const unpaidCount = payRows.filter(r=>!r.paid && r.amount>0).length;
+    document.getElementById('paySummary').textContent = `${monthLabel(payCurrentMonth)} · 청구 총액 ${totalBilled.toLocaleString()}원 · 수납 ${totalPaid.toLocaleString()}원 · 미납 ${unpaidCount}명`;
+
+    const list = document.getElementById('payList');
+    const rows = payFilter==='unpaid' ? payRows.filter(r=>!r.paid) : payRows;
+    if (!rows.length) {
+      list.innerHTML = '<div class="empty" style="padding:20px 0;">' + (payFilter==='unpaid' ? '미납자가 없습니다 🎉' : '재원 중인 학생이 없습니다.') + '</div>';
+      return;
+    }
+    list.innerHTML = rows.map((r) => {
+      const i = payRows.indexOf(r);
+      return `
+        <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f0f0f0; flex-wrap:wrap;">
+          <label style="display:flex; align-items:center; gap:6px; font-weight:400; min-width:120px;">
+            <input type="checkbox" ${r.paid?'checked':''} onchange="togglePaymentPaid(${i}, this.checked)">
+            <span style="font-weight:600;">${r.studentName}</span>
+          </label>
+          <span style="font-size:12px; color:#888;">매월 ${r.billingDay}일</span>
+          <input type="number" value="${r.amount}" style="width:110px;" onchange="updatePaymentAmount(${i}, this.value)"> 원
+          ${r.paid ? `<span style="font-size:11px; color:#fff; background:#4a7c59; padding:2px 8px; border-radius:10px;">완납${r.paidDate?(' '+r.paidDate):''}</span>` : `<span style="font-size:11px; color:#fff; background:#c0392b; padding:2px 8px; border-radius:10px;">미납</span>`}
+          <button class="btn btn-secondary btn-sm" onclick="openPaymentSms(${i})">📱 청구 문자</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function togglePaymentPaid(i, checked) {
+    payRows[i].paid = checked;
+    payRows[i].paidDate = checked ? todayLocalDateStr() : null;
+    renderPayments();
+  }
+
+  function updatePaymentAmount(i, value) {
+    payRows[i].amount = Number(value) || 0;
+  }
+
+  function openPaymentSms(i) {
+    const r = payRows[i];
+    if (!r.phone) { alert('저장된 연락처가 없습니다. 학생 정보에 학부모 연락처를 먼저 입력해주세요.'); return; }
+    const message = `안녕하세요, ${r.studentName} 학생 ${monthLabel(payCurrentMonth)} 수강료 ${(r.amount||0).toLocaleString()}원 안내드립니다. 결제일은 매월 ${r.billingDay}일입니다. 확인 부탁드립니다.`;
+    const phone = r.phone.replace(/[^0-9]/g,'');
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const sep = isIOS ? '&' : '?';
+    window.location.href = `sms:${phone}${sep}body=${encodeURIComponent(message)}`;
+  }
+
+  async function savePayments() {
+    const monthStr = payCurrentMonth;
+    window._payments = window._payments.filter(p => p.month !== monthStr);
+    const newRecords = payRows.map(r => ({
+      id: monthStr + '_' + r.studentId,
+      month: monthStr,
+      studentId: r.studentId,
+      studentName: r.studentName,
+      amount: r.amount,
+      paid: r.paid,
+      paidDate: r.paidDate
+    }));
+    window._payments.push(...newRecords);
+    localStorage.setItem('gp', JSON.stringify(window._payments));
+
+    if (window._fbReady) {
+      try {
+        const q = window._q(window._col(window._db,'geuldap_payments'), window._where('month','==', monthStr));
+        const snap = await window._get(q);
+        const jobs = [];
+        snap.forEach(d => jobs.push(window._del(d.ref)));
+        await Promise.all(jobs);
+        await Promise.all(newRecords.map(r => window._add(window._col(window._db,'geuldap_payments'), r)));
+      } catch(e) { console.error('수납 저장 오류', e); alert('⚠️ 서버 저장에 실패했습니다: ' + e.message); return; }
+    }
+    alert('수납 현황이 저장되었습니다.');
+  }
+
+  // ===== 학원 정보 설정 (납입증명서용) =====
+  function openAcademySettings() {
+    const a = window._academySettings || {};
+    document.getElementById('asName').value = a.name || '';
+    document.getElementById('asOwner').value = a.owner || '';
+    document.getElementById('asBizNo').value = a.bizNo || '';
+    document.getElementById('asRegNo').value = a.regNo || '';
+    document.getElementById('asSubject').value = a.subject || '';
+    document.getElementById('asAddress').value = a.address || '';
+    document.getElementById('asPhone').value = a.phone || '';
+    document.getElementById('academySettingsModal').classList.add('open');
+  }
+  function closeAcademySettings() {
+    document.getElementById('academySettingsModal').classList.remove('open');
+  }
+  async function saveAcademySettings() {
+    const prev = window._academySettings || {};
+    const data = {
+      name: document.getElementById('asName').value.trim(),
+      owner: document.getElementById('asOwner').value.trim(),
+      bizNo: document.getElementById('asBizNo').value.trim(),
+      regNo: document.getElementById('asRegNo').value.trim(),
+      subject: document.getElementById('asSubject').value.trim(),
+      address: document.getElementById('asAddress').value.trim(),
+      phone: document.getElementById('asPhone').value.trim(),
+      serialCounter: prev.serialCounter || 0
+    };
+    window._academySettings = data;
+    localStorage.setItem('gas', JSON.stringify(data));
+    if (window._fbReady) {
+      try { await window._setDoc(window._doc(window._db, 'geuldap_settings', 'academy'), data); }
+      catch(e) { console.error('학원 정보 저장 오류', e); alert('⚠️ 서버 저장 실패: ' + e.message); }
+    }
+    closeAcademySettings();
+    alert('학원 정보가 저장되었습니다.');
+  }
+
+  // ===== 납입증명서 발급 =====
+  function populateCertStudentSelect() {
+    const sel = document.getElementById('certStudentSelect');
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = sortedStudents().map(s=>`<option value="${s.id}">${s.name} · ${s.grade}</option>`).join('');
+    if (cur) sel.value = cur;
+    const yearField = document.getElementById('certYear');
+    if (!yearField.value) yearField.value = new Date().getFullYear();
+  }
+
+  function generateCertificate() {
+    const studentId = document.getElementById('certStudentSelect').value;
+    const year = document.getElementById('certYear').value;
+    if (!studentId || !year) { alert('학생과 연도를 선택해주세요.'); return; }
+    const s = _students.find(x=>x.id===studentId);
+    if (!s) return;
+    const a = window._academySettings;
+    if (!a || !a.name) { alert('먼저 "🏫 학원 정보 설정"에서 학원 정보를 입력해주세요.'); return; }
+
+    const recs = window._payments.filter(p => p.studentId===studentId && p.paid && p.month.startsWith(String(year)));
+    const total = recs.reduce((sum,r)=>sum+(r.amount||0),0);
+    const todayStr = new Date().toLocaleDateString('ko-KR');
+
+    const text = `교육비 납입 증명서
+
+학원명 : ${a.name}
+사업자등록번호 : ${a.bizNo||'-'}
+대표자 : ${a.owner||'-'}
+주소 : ${a.address||'-'}
+전화번호 : ${a.phone||'-'}
+
+학생명 : ${s.name}
+학년 : ${s.grade}
+
+납입 기간 : ${year}년 1월 ~ 12월
+총 납입 금액 : ${total.toLocaleString()}원 (${recs.length}건)
+
+위와 같이 교육비를 납입하였음을 증명합니다.
+
+발급일 : ${todayStr}
+${a.name}`;
+
+    document.getElementById('certResult').innerHTML = `
+      <textarea id="certText" rows="16" style="width:100%; font-family:inherit;">${text}</textarea>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button class="btn btn-secondary btn-sm" onclick="copyCertText()">📋 복사</button>
+        <button class="btn btn-secondary btn-sm" onclick="printCertText()">🖨️ 인쇄</button>
+      </div>
+    `;
+  }
+
+  function copyCertText() {
+    const text = document.getElementById('certText').value;
+    navigator.clipboard.writeText(text)
+      .then(()=> alert('복사되었습니다.'))
+      .catch(()=> alert('복사에 실패했어요. 직접 선택해서 복사해주세요.'));
+  }
+
+  function printCertText() {
+    const text = document.getElementById('certText').value;
+    const w = window.open('', '_blank');
+    w.document.write(`<pre style="font-family:sans-serif; font-size:15px; white-space:pre-wrap; padding:30px;">${text.replace(/</g,'&lt;')}</pre>`);
+    w.document.close();
+    w.print();
+  }
+
+  // ===== 교습비등 영수증 (법정 별지 제24호서식) =====
+  function populateReceiptStudentSelect() {
+    const sel = document.getElementById('receiptStudentSelect');
+    if (!sel) return;
+    const cur = sel.value;
+    sel.innerHTML = sortedStudents().map(s=>`<option value="${s.id}">${s.name} · ${s.grade}</option>`).join('');
+    if (cur) sel.value = cur;
+  }
+
+  // 다음 영수증 일련번호를 발급하고, 그 번호를 학원 정보에 계속 이어서 저장한다.
+  async function nextReceiptSerial() {
+    if (!window._academySettings) window._academySettings = {};
+    const n = (window._academySettings.serialCounter || 0) + 1;
+    window._academySettings.serialCounter = n;
+    localStorage.setItem('gas', JSON.stringify(window._academySettings));
+    if (window._fbReady) {
+      try { await window._setDoc(window._doc(window._db, 'geuldap_settings', 'academy'), window._academySettings); }
+      catch(e) { console.error('일련번호 저장 오류', e); }
+    }
+    return n;
+  }
+
+  function buildReceiptHTML(a, s, p, serial) {
+    const [y,m] = p.month.split('-');
+    const issueDate = new Date().toLocaleDateString('ko-KR');
+    return `
+      <div style="border:1px solid #333; padding:20px; max-width:480px; font-size:14px; line-height:1.8;">
+        <div style="text-align:center; font-weight:700; font-size:17px; margin-bottom:14px;">교습비등영수증</div>
+        <div>일련번호 : ${serial}</div>
+        <div>연월(분기) : ${y}년 ${Number(m)}월</div>
+        <hr style="margin:10px 0;">
+        <div>납부자(학원) 등록(신고)번호 : ${a.regNo||'-'}</div>
+        <div>성명 : ${s.name}</div>
+        <div>생년월일 : ${s.birthdate||'-'}</div>
+        <div>교습과목 : ${a.subject||'-'}</div>
+        <hr style="margin:10px 0;">
+        <div>교습비 : ${(p.amount||0).toLocaleString()}원</div>
+        <div>기타경비 : 0원</div>
+        <div style="font-weight:700; margin-top:4px;">합계 : ${(p.amount||0).toLocaleString()}원</div>
+        <hr style="margin:10px 0;">
+        <div style="margin-top:14px;">위와 같이 영수하였음을 증명합니다.</div>
+        <div style="text-align:right; margin-top:20px;">${issueDate}</div>
+        <div style="text-align:right;">${a.name||''} (대표자: ${a.owner||''}) (서명 또는 인)</div>
+      </div>
+    `;
+  }
+
+  async function generateReceipt() {
+    const studentId = document.getElementById('receiptStudentSelect').value;
+    const monthStr = document.getElementById('receiptMonth').value;
+    if (!studentId || !monthStr) { alert('학생과 연월을 선택해주세요.'); return; }
+    const a = window._academySettings;
+    if (!a || !a.name) { alert('먼저 "🏫 학원 정보 설정"에서 학원 정보를 입력해주세요.'); return; }
+    const s = _students.find(x=>x.id===studentId);
+    if (!s) return;
+    const p = window._payments.find(x=>x.studentId===studentId && x.month===monthStr);
+    if (!p || !p.paid) { alert('해당 월에 완납 처리된 수납 기록이 없습니다. "수납 관리"에서 먼저 완납 체크 후 저장해주세요.'); return; }
+
+    const serial = await nextReceiptSerial();
+    const html = buildReceiptHTML(a, s, p, serial);
+    document.getElementById('receiptResult').innerHTML = html + `
+      <div style="margin-top:10px;">
+        <button class="btn btn-secondary btn-sm" onclick="printReceiptHTML(this)">🖨️ 인쇄</button>
+      </div>
+    `;
+  }
+
+  function printReceiptHTML(btn) {
+    const container = btn.parentElement.previousElementSibling;
+    const w = window.open('', '_blank');
+    w.document.write(`<html><body>${container.outerHTML}</body></html>`);
+    w.document.close();
+    w.print();
+  }
+
+  // 기간 내 완납된 전체 학생의 기록을 한 번에 원부(표) 형태로 출력 (교육청 점검 대비)
+  function generateLedger() {
+    const from = document.getElementById('ledgerFrom').value;
+    const to = document.getElementById('ledgerTo').value;
+    if (!from || !to) { alert('시작월과 종료월을 선택해주세요.'); return; }
+    const a = window._academySettings;
+    if (!a || !a.name) { alert('먼저 "🏫 학원 정보 설정"에서 학원 정보를 입력해주세요.'); return; }
+
+    const recs = window._payments
+      .filter(p => p.paid && p.month >= from && p.month <= to)
+      .sort((x,y) => x.month===y.month ? x.studentName.localeCompare(y.studentName,'ko') : x.month.localeCompare(y.month));
+
+    if (!recs.length) { alert('해당 기간에 완납 기록이 없습니다.'); return; }
+
+    let rows = recs.map(p => {
+      const s = _students.find(x=>x.id===p.studentId);
+      const [y,m] = p.month.split('-');
+      return `<tr>
+        <td style="border:1px solid #ccc; padding:6px;">${y}년 ${Number(m)}월</td>
+        <td style="border:1px solid #ccc; padding:6px;">${p.studentName}</td>
+        <td style="border:1px solid #ccc; padding:6px;">${s&&s.birthdate?s.birthdate:'-'}</td>
+        <td style="border:1px solid #ccc; padding:6px;">${a.subject||'-'}</td>
+        <td style="border:1px solid #ccc; padding:6px; text-align:right;">${(p.amount||0).toLocaleString()}원</td>
+        <td style="border:1px solid #ccc; padding:6px;">${p.paidDate||'-'}</td>
+      </tr>`;
+    }).join('');
+
+    const total = recs.reduce((sum,p)=>sum+(p.amount||0),0);
+
+    const html = `
+      <div style="max-width:800px;">
+        <div style="text-align:center; font-weight:700; font-size:17px; margin-bottom:6px;">교습비등영수증원부</div>
+        <div style="text-align:center; font-size:13px; color:#555; margin-bottom:14px;">${a.name} (등록번호: ${a.regNo||'-'}) · ${from} ~ ${to}</div>
+        <table style="border-collapse:collapse; width:100%; font-size:13px;">
+          <tr style="background:#faf8f3;">
+            <th style="border:1px solid #ccc; padding:6px;">연월</th>
+            <th style="border:1px solid #ccc; padding:6px;">학생명</th>
+            <th style="border:1px solid #ccc; padding:6px;">생년월일</th>
+            <th style="border:1px solid #ccc; padding:6px;">교습과목</th>
+            <th style="border:1px solid #ccc; padding:6px;">교습비</th>
+            <th style="border:1px solid #ccc; padding:6px;">납부일</th>
+          </tr>
+          ${rows}
+        </table>
+        <div style="text-align:right; margin-top:10px; font-weight:600;">합계: ${total.toLocaleString()}원 (${recs.length}건)</div>
+      </div>
+    `;
+    document.getElementById('receiptResult').innerHTML = html + `
+      <div style="margin-top:10px;">
+        <button class="btn btn-secondary btn-sm" onclick="printReceiptHTML(this)">🖨️ 인쇄</button>
+      </div>
+    `;
+  }
+
   // ===== 초기화 =====
   document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('newDate').value = todayLocalDateStr();
     document.getElementById('writingDate').value = todayLocalDateStr();
     document.getElementById('attDate').value = todayLocalDateStr();
     document.getElementById('leadDate').value = todayLocalDateStr();
+    document.getElementById('payMonth').value = todayLocalDateStr().slice(0,7);
     renderStudents();
   });
 
   // ===== 탭 =====
   function switchTab(tab) {
-    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['students','upload','quiz','records','attendance','leads','timetable'][i]===tab));
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['students','upload','records','attendance','quiz','leads','timetable','payments'][i]===tab));
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById('page-'+tab).classList.add('active');
     if (tab==='upload') renderUploadStudents();
@@ -1411,6 +1896,7 @@
     if (tab==='attendance') loadAttendanceForDate(document.getElementById('attDate').value || todayLocalDateStr());
     if (tab==='leads') renderLeads();
     if (tab==='timetable') renderTimetable();
+    if (tab==='payments') { const m = document.getElementById('payMonth'); if (!m.value) m.value = todayLocalDateStr().slice(0,7); loadPayments(m.value); }
   }
 
   // ===== 렌더링 =====
@@ -1562,6 +2048,15 @@
     return result;
   }
 
+  function syncBillingDayFromDate() {
+    // 결제일을 아직 직접 안 건드렸을 때만(비어있을 때만) 입학일의 '일'로 자동 채운다
+    const billingField = document.getElementById('newBillingDay');
+    if (billingField.value) return;
+    const dateVal = document.getElementById('newDate').value;
+    if (!dateVal) return;
+    billingField.value = Number(dateVal.split('-')[2]);
+  }
+
   function openModal() {
     editingStudentId = null;
     document.getElementById('studentModalTitle').textContent = '학생 등록';
@@ -1569,6 +2064,11 @@
     document.getElementById('newName').value = '';
     document.getElementById('newGrade').selectedIndex = 0;
     document.getElementById('newDate').value = todayLocalDateStr();
+    document.getElementById('newPhone').value = '';
+    document.getElementById('newTuition').value = '';
+    document.getElementById('newBirthdate').value = '';
+    document.getElementById('newBillingDay').value = '';
+    syncBillingDayFromDate();
     resetScheduleRows();
     document.getElementById('studentModal').classList.add('open');
   }
@@ -1584,6 +2084,10 @@
     document.getElementById('newName').value = s.name;
     document.getElementById('newGrade').value = s.grade;
     document.getElementById('newDate').value = s.date;
+    document.getElementById('newPhone').value = s.phone || '';
+    document.getElementById('newTuition').value = s.tuition || '';
+    document.getElementById('newBirthdate').value = s.birthdate || '';
+    document.getElementById('newBillingDay').value = s.billingDay || '';
     populateScheduleRows(s);
     document.getElementById('studentModal').classList.add('open');
   }
@@ -1593,20 +2097,24 @@
     const name = document.getElementById('newName').value.trim();
     const grade = document.getElementById('newGrade').value;
     const date = document.getElementById('newDate').value;
+    const phone = document.getElementById('newPhone').value.trim();
+    const tuition = Number(document.getElementById('newTuition').value) || 0;
+    const birthdate = document.getElementById('newBirthdate').value;
+    const billingDay = Number(document.getElementById('newBillingDay').value) || (date ? Number(date.split('-')[2]) : 1);
     const schedule = collectScheduleRows();
     if (!name) { alert('이름을 입력해주세요'); return; }
 
     if (editingStudentId) {
       const idx = _students.findIndex(s=>s.id===editingStudentId);
       if (idx > -1) {
-        _students[idx] = { ..._students[idx], name, grade, date, schedule };
+        _students[idx] = { ..._students[idx], name, grade, date, schedule, phone, tuition, birthdate, billingDay };
         localStorage.setItem('gs', JSON.stringify(_students));
         if (window._fbReady) {
-          window._updateByFieldId('geuldap_students', editingStudentId, { name, grade, date, schedule }).catch(console.error);
+          window._updateByFieldId('geuldap_students', editingStudentId, { name, grade, date, schedule, phone, tuition, birthdate, billingDay }).catch(console.error);
         }
       }
     } else {
-      const s = { id: Date.now().toString(), name, grade, date, schedule };
+      const s = { id: Date.now().toString(), name, grade, date, schedule, phone, tuition, birthdate, billingDay };
       _students.push(s);
       localStorage.setItem('gs', JSON.stringify(_students));
       if (window._fbReady) window._add(window._col(window._db,'geuldap_students'), s).catch(console.error);
