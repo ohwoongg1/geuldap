@@ -139,6 +139,7 @@
   <div class="tab active" onclick="switchTab('students')">학생 관리</div>
   <div class="tab tab-frequent" onclick="switchTab('upload')">글 업로드 · 평가</div>
   <div class="tab tab-frequent" onclick="switchTab('records')">평가 기록</div>
+  <div class="tab" onclick="switchTab('reading')">독서 기록</div>
   <div class="tab tab-frequent" onclick="switchTab('attendance')">출석부</div>
   <div class="tab" onclick="switchTab('quiz')">문제 채점</div>
   <div class="tab" onclick="switchTab('leads')">상담일지</div>
@@ -179,8 +180,15 @@
           </select>
         </div>
         <div class="form-group full">
-          <label>참고 도서/주제 (선택)</label>
-          <input type="text" id="writingTopic" placeholder="예) 잘못 뽑은 반장, 새벽">
+          <label>참고 도서/주제 (선택) <span style="font-weight:400; color:#888; font-size:12px;">— 책 제목을 적으면 독서 기록에 자동으로 쌓여요</span></label>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <input type="text" id="writingTopic" placeholder="예) 잘못 뽑은 반장, 새벽" style="flex:1; min-width:160px;">
+            <select id="writingGenre" style="width:auto;">
+              <option value="">장르 (선택)</option>
+              <option>동화·소설</option><option>과학</option><option>역사</option><option>사회</option>
+              <option>인문·철학</option><option>예술</option><option>전기·위인전</option><option>시·에세이</option><option>기타</option>
+            </select>
+          </div>
         </div>
         <div class="form-group full">
           <label>사진 업로드 (여러 장 가능)</label>
@@ -316,6 +324,20 @@
         <button class="btn btn-secondary btn-sm" id="recordFilterUndoneBtn" onclick="filterRecordList('미완성')">미완성</button>
       </div>
       <div id="recordList"></div>
+    </div>
+  </div>
+
+  <!-- 독서 기록 -->
+  <div class="page" id="page-reading">
+    <div class="card">
+      <div class="card-title">학생 선택</div>
+      <div class="student-grid" id="readingStudentGrid"></div>
+    </div>
+    <div class="card" id="readingDetailSection" style="display:none;">
+      <div class="card-title" id="readingDetailTitle">독서 기록</div>
+      <div style="font-size:12px; color:#888; margin-bottom:14px;">"글 업로드 · 평가"에서 참고 도서/주제와 장르를 적고 저장하면 여기 자동으로 쌓여요. 따로 입력할 필요 없어요.</div>
+      <div id="readingGenreStats" style="margin-bottom:14px;"></div>
+      <div id="readingList"></div>
     </div>
   </div>
 
@@ -862,6 +884,8 @@
     ls_.forEach(d => mergeFromServer(window._leads, d.data()));
     const ps_ = await getDocs(collection(db, 'geuldap_payments'));
     ps_.forEach(d => mergeFromServer(window._payments, d.data()));
+    const rd_ = await getDocs(collection(db, 'geuldap_readings'));
+    rd_.forEach(d => mergeFromServer(window._readings, d.data()));
     try {
       const asDoc = await getDoc(doc(db, 'geuldap_settings', 'academy'));
       if (asDoc.exists()) window._academySettings = asDoc.data();
@@ -872,6 +896,7 @@
     localStorage.setItem('ga', JSON.stringify(window._attendance));
     localStorage.setItem('gl', JSON.stringify(window._leads));
     localStorage.setItem('gp', JSON.stringify(window._payments));
+    localStorage.setItem('grd', JSON.stringify(window._readings));
     if (window._academySettings) localStorage.setItem('gas', JSON.stringify(window._academySettings));
   } catch(e) { console.log('Firebase 로드:', e); }
   renderStudents();
@@ -902,6 +927,7 @@
   window._attendance = JSON.parse(localStorage.getItem('ga') || '[]');
   window._leads = JSON.parse(localStorage.getItem('gl') || '[]');
   window._payments = JSON.parse(localStorage.getItem('gp') || '[]');
+  window._readings = JSON.parse(localStorage.getItem('grd') || '[]');
   window._academySettings = JSON.parse(localStorage.getItem('gas') || 'null');
   let selectedStudent = null;
   let currentEval = null;
@@ -1887,12 +1913,13 @@ ${a.name}`;
 
   // ===== 탭 =====
   function switchTab(tab) {
-    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['students','upload','records','attendance','quiz','leads','timetable','payments'][i]===tab));
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['students','upload','records','reading','attendance','quiz','leads','timetable','payments'][i]===tab));
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.getElementById('page-'+tab).classList.add('active');
     if (tab==='upload') renderUploadStudents();
     if (tab==='quiz') renderQuizStudents();
     if (tab==='records') renderRecordStudents();
+    if (tab==='reading') renderReadingStudents();
     if (tab==='attendance') loadAttendanceForDate(document.getElementById('attDate').value || todayLocalDateStr());
     if (tab==='leads') renderLeads();
     if (tab==='timetable') renderTimetable();
@@ -1998,6 +2025,62 @@ ${a.name}`;
         <div class="student-count">📝 ${cnt}편</div>
       </div>`;
     }).join('');
+  }
+
+  // ===== 독서 기록 (글쓰기 평가의 참고 도서/장르에서 자동 수집) =====
+  function renderReadingStudents() {
+    const g = document.getElementById('readingStudentGrid');
+    if (!g) return;
+    if (_students.length===0) { g.innerHTML='<div class="empty"><div class="empty-icon">👦</div><div>등록된 학생이 없습니다</div></div>'; return; }
+    g.innerHTML = sortedStudents().map(s=>{
+      const cnt = window._readings.filter(r=>r.studentId===s.id).length;
+      return `<div class="student-card" onclick="showReadings('${s.id}')">
+        <div class="student-avatar">${s.name[0]}</div>
+        <div class="student-name">${s.name}</div>
+        <div class="student-info">${s.grade}</div>
+        <div class="student-count">📚 ${cnt}권</div>
+      </div>`;
+    }).join('');
+  }
+
+  function showReadings(id) {
+    const s = _students.find(x=>x.id===id);
+    if (!s) return;
+    const recs = window._readings.filter(r=>r.studentId===id).sort((a,b)=> a.date>b.date ? -1 : 1);
+    document.getElementById('readingDetailSection').style.display = 'block';
+    document.getElementById('readingDetailTitle').textContent = `${s.name} 독서 기록 (${recs.length}권)`;
+
+    if (!recs.length) {
+      document.getElementById('readingGenreStats').innerHTML = '';
+      document.getElementById('readingList').innerHTML = '<div class="empty"><div class="empty-icon">📚</div><div>아직 기록된 책이 없습니다<br>글쓰기 평가할 때 참고 도서를 적어주시면 자동으로 쌓여요</div></div>';
+      return;
+    }
+
+    // 장르별 통계
+    const genreCounts = {};
+    recs.forEach(r => { const g = r.genre || '기타'; genreCounts[g] = (genreCounts[g]||0)+1; });
+    const maxCount = Math.max(...Object.values(genreCounts));
+    const genreOrder = Object.entries(genreCounts).sort((a,b)=>b[1]-a[1]);
+    document.getElementById('readingGenreStats').innerHTML = `
+      <div style="font-size:13px; font-weight:600; margin-bottom:8px;">장르별 통계</div>
+      ${genreOrder.map(([g,c]) => `
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+          <span style="width:70px; font-size:13px; color:#555;">${g}</span>
+          <div style="flex:1; background:#f0f0f0; border-radius:6px; height:14px; overflow:hidden;">
+            <div style="width:${(c/maxCount*100)}%; background:#c5a149; height:100%;"></div>
+          </div>
+          <span style="font-size:12px; color:#888; width:36px; text-align:right;">${c}권</span>
+        </div>
+      `).join('')}
+    `;
+
+    document.getElementById('readingList').innerHTML = recs.map(r => `
+      <div style="display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #f0f0f0;">
+        <span style="font-size:12px; color:#888; width:90px;">${r.date}</span>
+        <span style="font-weight:600; flex:1;">${r.title}</span>
+        <span style="font-size:11px; color:#a66; background:#fbeaea; padding:2px 8px; border-radius:10px;">${r.genre||'기타'}</span>
+      </div>
+    `).join('');
   }
 
   // ===== 모달 =====
@@ -2391,6 +2474,7 @@ ${a.name}`;
       currentEval.grade = selectedStudent.grade;
       currentEval.type = type;
       currentEval.topic = topic;
+      currentEval.genre = document.getElementById('writingGenre').value;
       currentEval.content = content;
       currentEval.date = dateVal ? new Date(dateVal).toLocaleDateString('ko-KR') : new Date().toLocaleDateString('ko-KR');
       currentEval.totalScore = Math.round(Object.values(currentEval.scores).reduce((a,b)=>a+b,0)/8*10)/10;
@@ -2682,6 +2766,7 @@ ${a.name}`;
         _records[idx] = updated;
         localStorage.setItem('gr', JSON.stringify(_records));
         if (window._fbReady) window._updateByFieldId('geuldap_records', editingRecordId, updated).catch(console.error);
+        await syncReadingFromRecord(updated);
       }
       editingRecordId = null;
       alert('수정한 평가로 갱신되었습니다!');
@@ -2696,9 +2781,42 @@ ${a.name}`;
       _records.push(r);
       localStorage.setItem('gr', JSON.stringify(_records));
       if (window._fbReady) await window._add(window._col(window._db,'geuldap_records'), r).catch(console.error);
+      await syncReadingFromRecord(r);
       alert('저장되었습니다!');
     }
     renderStudents();
+  }
+
+  // 글쓰기 평가 저장 시, "참고 도서/주제"에 책 제목이 적혀 있으면 독서 기록에도 자동으로 반영한다.
+  // 같은 평가 기록을 수정하면 연결된 독서 기록도 함께 갱신되고, 책 제목을 지우면 연결된 기록도 함께 삭제된다.
+  async function syncReadingFromRecord(record) {
+    const existingIdx = window._readings.findIndex(rd => rd.recordId === record.id);
+    if (!record.topic || !record.topic.trim()) {
+      if (existingIdx > -1) {
+        const removed = window._readings[existingIdx];
+        window._readings.splice(existingIdx, 1);
+        localStorage.setItem('grd', JSON.stringify(window._readings));
+        if (window._fbReady) window._deleteByFieldId('geuldap_readings', removed.id).catch(console.error);
+      }
+      return;
+    }
+    const entry = {
+      id: existingIdx > -1 ? window._readings[existingIdx].id : (record.id + '_read'),
+      recordId: record.id,
+      studentId: record.studentId,
+      studentName: record.studentName,
+      title: record.topic.trim(),
+      genre: record.genre || '기타',
+      date: record.date
+    };
+    if (existingIdx > -1) window._readings[existingIdx] = entry; else window._readings.push(entry);
+    localStorage.setItem('grd', JSON.stringify(window._readings));
+    if (window._fbReady) {
+      try {
+        if (existingIdx > -1) await window._updateByFieldId('geuldap_readings', entry.id, entry);
+        else await window._add(window._col(window._db,'geuldap_readings'), entry);
+      } catch(e) { console.error('독서 기록 동기화 오류:', e); }
+    }
   }
 
   // ===== 기록 보기 =====
@@ -2849,6 +2967,7 @@ ${a.name}`;
     selectStudent(r.studentId);
     document.getElementById('writingType').value = r.type;
     document.getElementById('writingTopic').value = r.topic || '';
+    document.getElementById('writingGenre').value = r.genre || '';
     document.getElementById('writingContent').value = r.content || '';
     // writingDate는 YYYY-MM-DD 형식이 필요한데 저장된 date는 한국어 표기라 원본 날짜를 알 수 없으면 오늘 날짜 유지
     document.getElementById('evalResult').style.display = 'none';
@@ -2860,6 +2979,7 @@ ${a.name}`;
   function resetUpload() {
     document.getElementById('writingContent').value='';
     document.getElementById('writingTopic').value='';
+    document.getElementById('writingGenre').value='';
     document.getElementById('fileInput').value='';
     document.getElementById('previewList').innerHTML='';
     document.getElementById('evalResult').style.display='none';
