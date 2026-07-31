@@ -1621,7 +1621,9 @@
           </label>
           <span style="font-size:12px; color:#888;">매월 ${r.billingDay}일</span>
           <input type="number" value="${r.amount}" style="width:110px;" onchange="updatePaymentAmount(${i}, this.value)"> 원
-          ${r.paid ? `<span style="font-size:11px; color:#fff; background:#4a7c59; padding:2px 8px; border-radius:10px;">완납${r.paidDate?(' '+r.paidDate):''}</span>` : `<span style="font-size:11px; color:#fff; background:#c0392b; padding:2px 8px; border-radius:10px;">미납</span>`}
+          ${r.paid
+            ? `<span style="font-size:11px; color:#fff; background:#4a7c59; padding:2px 8px; border-radius:10px;">완납</span><input type="date" value="${r.paidDate||''}" style="width:auto;" onchange="updatePaymentDate(${i}, this.value)">`
+            : `<span style="font-size:11px; color:#fff; background:#c0392b; padding:2px 8px; border-radius:10px;">미납</span>`}
           <button class="btn btn-secondary btn-sm" onclick="openPaymentSms(${i})">📱 청구 문자</button>
         </div>
       `;
@@ -1632,6 +1634,11 @@
     payRows[i].paid = checked;
     payRows[i].paidDate = checked ? todayLocalDateStr() : null;
     renderPayments();
+  }
+
+  // 과거 결제를 나중에 입력할 때, 완납 체크 시 자동으로 찍히는 "오늘 날짜" 대신 실제 결제일로 직접 고칠 수 있게 한다.
+  function updatePaymentDate(i, value) {
+    payRows[i].paidDate = value;
   }
 
   function updatePaymentAmount(i, value) {
@@ -1804,7 +1811,8 @@ ${a.name}`;
 
   function buildReceiptHTML(a, s, p, serial) {
     const [y,m] = p.month.split('-');
-    const issueDate = new Date().toLocaleDateString('ko-KR');
+    // 발급일은 오늘 날짜가 아니라, 실제 결제(수납)된 날짜를 써야 정확하다.
+    const issueDate = p.paidDate ? p.paidDate : new Date().toLocaleDateString('ko-KR');
     return `
       <div style="border:1px solid #333; padding:20px; max-width:480px; font-size:14px; line-height:1.8;">
         <div style="text-align:center; font-weight:700; font-size:17px; margin-bottom:14px;">교습비등영수증</div>
@@ -1821,7 +1829,7 @@ ${a.name}`;
         <div style="font-weight:700; margin-top:4px;">합계 : ${(p.amount||0).toLocaleString()}원</div>
         <hr style="margin:10px 0;">
         <div style="margin-top:14px;">위와 같이 영수하였음을 증명합니다.</div>
-        <div style="text-align:right; margin-top:20px;">${issueDate}</div>
+        <div style="text-align:right; margin-top:20px;">${issueDate} (수납일)</div>
         <div style="text-align:right;">${a.name||''} (대표자: ${a.owner||''}) (서명 또는 인)</div>
       </div>
     `;
