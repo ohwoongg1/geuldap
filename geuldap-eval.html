@@ -505,7 +505,7 @@
 
 <!-- 학원 정보 설정 모달 (납입증명서에 사용) -->
 <div class="modal-bg" id="academySettingsModal">
-  <div class="modal">
+  <div class="modal" style="max-width:520px; max-height:85vh; overflow-y:auto;">
     <div class="modal-title">학원 정보 설정</div>
     <div style="font-size:12px; color:#888; margin-bottom:10px;">납입증명서에 들어갈 정보예요. 한 번만 입력해두면 계속 재사용됩니다.</div>
     <div class="form-grid">
@@ -963,6 +963,21 @@
   window._payments = JSON.parse(localStorage.getItem('gp') || '[]');
   window._readings = JSON.parse(localStorage.getItem('grd') || '[]');
   window._academySettings = JSON.parse(localStorage.getItem('gas') || 'null');
+
+  // 기본 과정 목록: 아직 과정이 하나도 없으면 자동으로 채운다
+  const _defaultCourses = [
+    { name: '초등독서논술A', fee: 100000 },
+    { name: '초등독서논술B', fee: 120000 },
+    { name: '초등독서논술C', fee: 130000 },
+    { name: '초등독서논술D', fee: 150000 },
+    { name: '초등독서논술E', fee: 160000 },
+    { name: '초등독서논술F', fee: 180000 },
+    { name: '중등국어주1회', fee: 130000 }
+  ];
+  if (!window._academySettings) window._academySettings = {};
+  if (!window._academySettings.courses || window._academySettings.courses.length === 0) {
+    window._academySettings.courses = _defaultCourses;
+  }
   let selectedStudent = null;
   let currentEval = null;
   let convertingLeadId = null;
