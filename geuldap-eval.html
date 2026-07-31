@@ -3671,14 +3671,15 @@ ${a.name}`;
 
   function previewLrImages(input) {
     const files = Array.from(input.files);
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = e => {
-        _lrImages.push({ name: file.name, data: e.target.result });
-        renderLrImagePreviews();
-      };
-      reader.readAsDataURL(file);
-    });
+    (async () => {
+      for (const file of files) {
+        try {
+          const dataUrl = await loadOrientedImage(file);
+          _lrImages.push({ name: file.name, data: dataUrl, base64: dataUrl.split(',')[1] });
+          renderLrImagePreviews();
+        } catch(e) { alert('사진 처리 중 오류: ' + e.message); }
+      }
+    })();
     input.value = '';
   }
 
@@ -3692,30 +3693,91 @@ ${a.name}`;
     `).join('');
   }
 
-  function saveLrMaterial() {
+  async function saveLrMaterial() {
     if(!selectedLrStudent) { alert('학생을 먼저 선택하세요.'); return; }
     const subject = document.getElementById('lrSubject').value;
     const type = document.getElementById('lrMaterialType').value;
     const scope = document.getElementById('lrScope').value;
     if(!scope) { alert('단원/범위를 입력하세요.'); return; }
     if(!_lrImages.length) { alert('자료 사진을 올려주세요.'); return; }
-    const material = {
-      id: 'lrm_' + Date.now(),
-      studentId: selectedLrStudent.id,
-      subject, type, scope,
-      imageCount: _lrImages.length,
-      createdAt: todayLocalDateStr(),
-      status: 'ready'
-    };
-    window._lrMaterials.push(material);
-    saveLrToFirebase('material', material);
-    saveLrLocal();
-    _lrImages = [];
-    document.getElementById('lrImagePreview').innerHTML = '';
-    document.getElementById('lrScope').value = '';
-    renderLrStudents();
-    renderLrMaterialList();
-    alert('✅ 자료가 저장되었습니다. (' + material.subject + ' · ' + material.scope + ')');
+
+    const typeLabels = { textbook:'교과서', worksheet:'학습활동지', workbook:'문제집', notes:'필기/정리' };
+    const materialId = 'lrm_' + Date.now();
+    const savedImages = _lrImages.map(img => ({ base64: img.base64 }));
+
+    const extractBtn = document.querySelector('#lrUploadSection .btn-primary');
+    const origBtnText = extractBtn.textContent;
+    extractBtn.disabled = true;
+    extractBtn.textContent = '🔄 AI가 자료를 읽는 중...';
+
+    try {
+      const extractPrompt = `당신은 ${selectedLrStudent.grade} 학생의 학습 자료를 분석하는 교사입니다.
+
+첨부된 사진은 ${subject} 과목의 ${typeLabels[type]}입니다. (범위: ${scope})
+
+사진에서 다음을 추출해주세요:
+
+1. 본문 내용 전체를 가능한 정확하게 텍스트로 옮겨주세요.
+2. 핵심 개념/용어를 목록으로 정리해주세요.
+3. 문제가 있다면 문제와 보기도 옮겨주세요.
+
+아래 JSON 형식으로만 응답하세요:
+{
+  "fullText": "사진에서 추출한 전체 텍스트 (본문, 설명, 예시 등 모두 포함)",
+  "concepts": ["핵심 개념1", "핵심 개념2", "핵심 개념3"],
+  "questions": ["문제가 있으면 여기에 (없으면 빈 배열)"],
+  "summary": "이 자료의 내용을 3줄로 요약"
+}`;
+
+      const rawText = await callGeminiWithImages(extractPrompt,
+        savedImages.map(img => ({ data: img.base64, mediaType: 'image/jpeg' }))
+      );
+      const parsed = JSON.parse(rawText.replace(/```json|```/g,'').trim());
+
+      const material = {
+        id: materialId,
+        studentId: selectedLrStudent.id,
+        subject, type, scope,
+        imageCount: savedImages.length,
+        extractedContent: (parsed.fullText || '').slice(0, 8000),
+        concepts: (parsed.concepts || []).slice(0, 20),
+        summary: parsed.summary || '',
+        questions: (parsed.questions || []).slice(0, 10),
+        createdAt: todayLocalDateStr(),
+        status: 'extracted'
+      };
+      window._lrMaterials.push(material);
+      saveLrToFirebase('material', material);
+      saveLrLocal();
+      _lrImages = [];
+      document.getElementById('lrImagePreview').innerHTML = '';
+      document.getElementById('lrScope').value = '';
+      renderLrStudents();
+      renderLrMaterialList();
+      alert('✅ 자료 저장 완료! (' + subject + ' · ' + scope + ')\n\nAI가 추출한 핵심 개념: ' + (parsed.concepts||[]).join(', '));
+    } catch(e) {
+      const material = {
+        id: materialId,
+        studentId: selectedLrStudent.id,
+        subject, type, scope,
+        imageCount: savedImages.length,
+        extractedContent: '', concepts: [], summary: '', questions: [],
+        createdAt: todayLocalDateStr(),
+        status: 'upload_only'
+      };
+      window._lrMaterials.push(material);
+      saveLrToFirebase('material', material);
+      saveLrLocal();
+      _lrImages = [];
+      document.getElementById('lrImagePreview').innerHTML = '';
+      document.getElementById('lrScope').value = '';
+      renderLrStudents();
+      renderLrMaterialList();
+      alert('⚠️ 자료는 저장했지만 AI 분석에 실패했어요.\n(' + e.message + ')\n범위 정보만으로도 문제 생성은 가능합니다.');
+    } finally {
+      extractBtn.disabled = false;
+      extractBtn.textContent = origBtnText;
+    }
   }
 
   function renderLrMaterialList() {
@@ -3730,7 +3792,9 @@ ${a.name}`;
         <span class="lr-material-badge ${typeBadges[m.type]}">${typeLabels[m.type]}</span>
         <div style="flex:1;">
           <div style="font-weight:600; font-size:14px;">${m.subject} · ${m.scope}</div>
-          <div style="font-size:12px; color:#888;">${m.createdAt} · 사진 ${m.imageCount}장</div>
+          <div style="font-size:12px; color:#888;">${m.createdAt} · 사진 ${m.imageCount}장 · ${m.status==='extracted'?'<span style="color:#2f855a;">✅ AI 분석 완료</span>':'<span style="color:#c5a149;">📎 업로드만</span>'}</div>
+          ${m.concepts && m.concepts.length ? '<div style="font-size:11px; color:#555; margin-top:3px;">핵심 개념: '+m.concepts.slice(0,5).join(', ')+(m.concepts.length>5?' 외 '+(m.concepts.length-5)+'개':'')+'</div>' : ''}
+          ${m.summary ? '<div style="font-size:11px; color:#888; margin-top:2px;">'+m.summary.slice(0,80)+(m.summary.length>80?'...':'')+'</div>' : ''}
         </div>
         <button class="btn btn-danger btn-sm" onclick="deleteLrMaterial('${m.id}')">삭제</button>
       </div>
@@ -3984,12 +4048,22 @@ ${a.name}`;
       const mats = window._lrMaterials.filter(m=>lrCurrentExam.materialIds.includes(m.id));
       const matInfo = mats.map(m=>`[${m.subject}] ${m.scope} (${m.type})`).join(', ');
 
+      // 추출된 교재 내용 조합
+      const extractedTexts = mats.filter(m=>m.extractedContent).map(m=>
+        `--- ${m.subject} ${m.scope} (${m.type}) ---\n${m.extractedContent.slice(0,3000)}`
+      ).join('\n\n');
+      const allConcepts = [...new Set(mats.flatMap(m=>m.concepts||[]))];
+      const allQuestions = mats.flatMap(m=>m.questions||[]);
+
       const prompt = `당신은 ${selectedLrPreviewStudent.grade} 학생을 가르치는 친절한 선생님입니다.
 
 이 학생은 "${lrCurrentExam.name}" 시험을 준비 중이며, 7회 반복학습의 ${lrCurrentRound}회차(${info.label})를 하고 있습니다.
 
 [학습 자료 범위]
 ${matInfo}
+${allConcepts.length ? '\n[핵심 개념 목록]\n' + allConcepts.join(', ') : ''}
+${extractedTexts ? '\n[교재에서 추출한 실제 내용 — 이 내용을 바탕으로 문제를 만드세요]\n' + extractedTexts : ''}
+${allQuestions.length ? '\n[교재/문제집에 있는 문제들 — 유사한 유형으로 변형하세요]\n' + allQuestions.slice(0,5).join('\n') : ''}
 
 [이번 회차 특징]
 - 단계: ${info.phase} (${info.desc})
