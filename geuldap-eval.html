@@ -718,6 +718,78 @@
         </div>
 
         <div style="text-align:center; font-size:12px; color:#aaa; margin-top:10px;">※ 이 화면은 학생이 보게 될 화면의 미리보기입니다</div>
+
+        <!-- AI 학습 인터랙션 영역 -->
+        <div style="margin-top:20px; border-top:2px solid #e0e0e0; padding-top:20px;">
+          <button class="btn btn-primary" onclick="startLrLearning()" id="lrStartBtn" style="width:100%; padding:16px; font-size:16px;">🚀 학습 시작 (현재 회차)</button>
+        </div>
+
+        <!-- 로딩 -->
+        <div id="lrAiLoading" style="display:none; text-align:center; padding:30px;">
+          <div class="spinner"></div>
+          <div style="font-size:14px; color:#888; margin-top:10px;" id="lrAiLoadingText">AI가 문제를 만들고 있어요...</div>
+        </div>
+
+        <!-- 문제 영역 -->
+        <div id="lrQuestionArea" style="display:none; margin-top:20px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <span style="font-size:14px; font-weight:700; color:#0d1b4b;" id="lrQProgress">문제 1/5</span>
+            <span style="font-size:12px; color:#888;" id="lrQPhase">이해 단계</span>
+          </div>
+          <div class="card" style="border-left:4px solid #c5a149;">
+            <div style="font-size:15px; font-weight:600; color:#0d1b4b; margin-bottom:12px;" id="lrQText"></div>
+            <div id="lrQChoices"></div>
+            <div class="form-group" id="lrQTextInputWrap" style="display:none; margin-top:10px;">
+              <textarea id="lrQTextInput" placeholder="답을 입력하세요" style="min-height:60px;"></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="submitLrAnswer()" style="margin-top:12px;" id="lrSubmitBtn">제출</button>
+          </div>
+
+          <!-- 피드백 영역 -->
+          <div id="lrFeedback" style="display:none; margin-top:16px;">
+            <!-- 정답일 때 -->
+            <div id="lrFeedbackCorrect" style="display:none; background:#f0fff4; border-left:4px solid #2f855a; border-radius:0 8px 8px 0; padding:14px;">
+              <div style="font-size:15px; font-weight:700; color:#2f855a;">✅ 정답!</div>
+              <div style="font-size:14px; color:#444; margin-top:6px;" id="lrFeedbackCorrectMsg"></div>
+              <button class="btn btn-primary btn-sm" onclick="nextLrQuestion()" style="margin-top:10px;">다음 문제 →</button>
+            </div>
+            <!-- 오답일 때 — 개념 사다리 -->
+            <div id="lrFeedbackWrong" style="display:none;">
+              <div style="background:#fff5f5; border-left:4px solid #e53e3e; border-radius:0 8px 8px 0; padding:14px; margin-bottom:12px;">
+                <div style="font-size:15px; font-weight:700; color:#e53e3e;">❌ 아쉬워요!</div>
+                <div style="font-size:14px; color:#444; margin-top:6px;" id="lrWrongAnswer"></div>
+              </div>
+              <!-- 1단계: 하위 개념 설명 -->
+              <div style="background:#f0f8ff; border-left:4px solid #3182ce; border-radius:0 8px 8px 0; padding:14px; margin-bottom:12px;">
+                <div style="font-size:13px; font-weight:700; color:#3182ce; margin-bottom:6px;">📖 개념 다시 알려줄게!</div>
+                <div style="font-size:14px; color:#444; line-height:1.8;" id="lrConceptExplain"></div>
+              </div>
+              <!-- 2단계: 이해 확인 질문 -->
+              <div style="background:#fffff0; border-left:4px solid #d69e2e; border-radius:0 8px 8px 0; padding:14px; margin-bottom:12px;" id="lrCheckWrap">
+                <div style="font-size:13px; font-weight:700; color:#d69e2e; margin-bottom:6px;">🤔 확인해볼까?</div>
+                <div style="font-size:14px; color:#444; margin-bottom:10px;" id="lrCheckQuestion"></div>
+                <div id="lrCheckChoices"></div>
+                <button class="btn btn-secondary btn-sm" onclick="submitLrCheck()" style="margin-top:8px;" id="lrCheckSubmitBtn">확인</button>
+              </div>
+              <!-- 3단계: 확인 결과 -->
+              <div id="lrCheckResult" style="display:none; background:#f0fff4; border-left:4px solid #2f855a; border-radius:0 8px 8px 0; padding:14px;">
+                <div style="font-size:14px; color:#444;" id="lrCheckResultMsg"></div>
+                <button class="btn btn-primary btn-sm" onclick="nextLrQuestion()" style="margin-top:10px;">다음 문제 →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 회차 완료 -->
+        <div id="lrRoundComplete" style="display:none; text-align:center; padding:30px;">
+          <div style="font-size:48px; margin-bottom:10px;">🎉</div>
+          <div style="font-size:20px; font-weight:700; color:#2f855a;" id="lrRoundCompleteTitle">3회차 완료!</div>
+          <div style="font-size:14px; color:#888; margin:10px 0;" id="lrRoundCompleteMsg"></div>
+          <div style="display:flex; gap:10px; justify-content:center; margin-top:16px;">
+            <button class="btn btn-secondary" onclick="closeLrRound()">돌아가기</button>
+            <button class="btn btn-primary" onclick="startLrLearning()" id="lrNextRoundBtn" style="display:none;">다음 회차 시작 →</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -3836,6 +3908,250 @@ ${a.name}`;
       }
     });
     renderLrPreviewStudents();
+  }
+
+  // ===== 학습기 AI 엔진 (7회 반복 + 개념 사다리) =====
+  let lrCurrentQuestions = [];
+  let lrCurrentQIndex = 0;
+  let lrCurrentRound = 1;
+  let lrCurrentExam = null;
+  let lrRoundScore = { correct:0, total:0 };
+  let lrCheckAnswer = '';
+
+  const LR_PHASE_INFO = {
+    1: { phase:'이해', label:'1회차: 훑어읽기', desc:'전체 내용을 가볍게 파악하는 단계', qType:'핵심 내용 파악, OX 판단, 주제 찾기' },
+    2: { phase:'이해', label:'2회차: 구조 파악', desc:'글의 구조와 흐름을 이해하는 단계', qType:'문단 순서, 원인-결과, 중심 문장 찾기' },
+    3: { phase:'이해', label:'3회차: 핵심 정리', desc:'핵심 개념을 정리하는 단계', qType:'개념 설명, 용어 정의, 요약' },
+    4: { phase:'암기', label:'4회차: 핵심 암기', desc:'핵심 내용을 기억하는 단계', qType:'빈칸 채우기, 핵심어 매칭, 정의 쓰기' },
+    5: { phase:'암기', label:'5회차: 빈칸 테스트', desc:'정확히 기억하는지 확인하는 단계', qType:'빈칸 완성, 단답형, OX 퀴즈' },
+    6: { phase:'응용', label:'6회차: 실전 문제', desc:'배운 것을 적용하는 단계', qType:'실전 유형 문제, 보기 분석, 적용' },
+    7: { phase:'응용', label:'7회차: 모의시험', desc:'실전처럼 풀어보는 단계', qType:'실전 난이도 종합 문제, 서술형' }
+  };
+
+  async function startLrLearning() {
+    if(!selectedLrPreviewStudent) return;
+    lrCurrentExam = _lrExams.find(e=>e.studentId===selectedLrPreviewStudent.id);
+    if(!lrCurrentExam) { alert('설정된 시험이 없습니다.'); return; }
+    const done = lrCurrentExam.schedule.filter(s=>s.done).length;
+    lrCurrentRound = Math.min(done + 1, 7);
+    const info = LR_PHASE_INFO[lrCurrentRound];
+
+    document.getElementById('lrStartBtn').style.display='none';
+    document.getElementById('lrRoundComplete').style.display='none';
+    document.getElementById('lrQuestionArea').style.display='none';
+    document.getElementById('lrAiLoading').style.display='block';
+    document.getElementById('lrAiLoadingText').textContent = `${info.label} 문제를 만들고 있어요...`;
+
+    try {
+      const mats = _lrMaterials.filter(m=>lrCurrentExam.materialIds.includes(m.id));
+      const matInfo = mats.map(m=>`[${m.subject}] ${m.scope} (${m.type})`).join(', ');
+
+      const prompt = `당신은 ${selectedLrPreviewStudent.grade} 학생을 가르치는 친절한 선생님입니다.
+
+이 학생은 "${lrCurrentExam.name}" 시험을 준비 중이며, 7회 반복학습의 ${lrCurrentRound}회차(${info.label})를 하고 있습니다.
+
+[학습 자료 범위]
+${matInfo}
+
+[이번 회차 특징]
+- 단계: ${info.phase} (${info.desc})
+- 문제 유형: ${info.qType}
+${lrCurrentRound <= 3 ? '- 이해 단계이므로 쉽고 기본적인 문제를 내세요. 학생이 내용을 "아, 이런 내용이구나" 하고 파악할 수 있는 수준.' : ''}
+${lrCurrentRound >= 4 && lrCurrentRound <= 5 ? '- 암기 단계이므로 핵심 용어, 개념, 정의를 정확히 기억하는지 확인하는 문제를 내세요.' : ''}
+${lrCurrentRound >= 6 ? '- 응용 단계이므로 실전과 비슷한 난이도로, 배운 개념을 새로운 상황에 적용하는 문제를 내세요.' : ''}
+
+문제를 5개 만들어주세요. 아래 JSON 배열로만 응답하세요:
+[
+  {
+    "question": "문제 내용",
+    "type": "choice",
+    "choices": ["보기1","보기2","보기3","보기4"],
+    "answer": "정답 보기 텍스트",
+    "concept": "이 문제가 다루는 핵심 개념 이름",
+    "explanation": "정답 해설 1-2문장"
+  }
+]
+
+type은 "choice"(4지선다) 또는 "short"(단답형)으로 섞어주세요.
+${lrCurrentRound <= 3 ? 'choice 위주로 내세요.' : ''}
+${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
+단답형(short)일 때는 choices를 빈 배열 []로 두세요.`;
+
+      const rawText = await callGemini(prompt);
+      const text = rawText.replace(/```json|```/g,'').trim();
+      lrCurrentQuestions = JSON.parse(text);
+      lrCurrentQIndex = 0;
+      lrRoundScore = { correct:0, total:lrCurrentQuestions.length };
+
+      document.getElementById('lrAiLoading').style.display='none';
+      document.getElementById('lrQuestionArea').style.display='block';
+      showLrQuestion();
+    } catch(e) {
+      document.getElementById('lrAiLoading').style.display='none';
+      document.getElementById('lrStartBtn').style.display='block';
+      alert('문제 생성 중 오류: ' + e.message);
+    }
+  }
+
+  function showLrQuestion() {
+    const q = lrCurrentQuestions[lrCurrentQIndex];
+    const info = LR_PHASE_INFO[lrCurrentRound];
+    document.getElementById('lrQProgress').textContent = `문제 ${lrCurrentQIndex+1}/${lrCurrentQuestions.length}`;
+    document.getElementById('lrQPhase').textContent = `${info.label} · ${info.phase} 단계`;
+    document.getElementById('lrQText').textContent = q.question;
+    document.getElementById('lrFeedback').style.display='none';
+    document.getElementById('lrSubmitBtn').style.display='inline-block';
+
+    if(q.type==='choice' && q.choices && q.choices.length) {
+      document.getElementById('lrQTextInputWrap').style.display='none';
+      document.getElementById('lrQChoices').innerHTML = q.choices.map((c,i) => `
+        <label style="display:flex; align-items:center; gap:10px; padding:10px 14px; background:#f8f9fc; border-radius:8px; margin-bottom:6px; cursor:pointer; border:1.5px solid #e0e0e0; transition:all 0.2s;" 
+               onmouseover="this.style.borderColor='#c5a149'" onmouseout="if(!this.querySelector('input').checked)this.style.borderColor='#e0e0e0'"
+               onclick="this.parentElement.querySelectorAll('label').forEach(l=>l.style.borderColor='#e0e0e0');this.style.borderColor='#c5a149';">
+          <input type="radio" name="lrChoice" value="${c}" style="accent-color:#c5a149;">
+          <span style="font-size:14px;">${c}</span>
+        </label>
+      `).join('');
+    } else {
+      document.getElementById('lrQChoices').innerHTML = '';
+      document.getElementById('lrQTextInputWrap').style.display='block';
+      document.getElementById('lrQTextInput').value = '';
+    }
+  }
+
+  async function submitLrAnswer() {
+    const q = lrCurrentQuestions[lrCurrentQIndex];
+    let userAnswer = '';
+    if(q.type==='choice') {
+      const checked = document.querySelector('input[name="lrChoice"]:checked');
+      if(!checked) { alert('답을 선택하세요.'); return; }
+      userAnswer = checked.value;
+    } else {
+      userAnswer = document.getElementById('lrQTextInput').value.trim();
+      if(!userAnswer) { alert('답을 입력하세요.'); return; }
+    }
+
+    document.getElementById('lrSubmitBtn').style.display='none';
+    const isCorrect = q.type==='choice'
+      ? userAnswer === q.answer
+      : userAnswer.replace(/\s/g,'').includes(q.answer.replace(/\s/g,'')) || q.answer.replace(/\s/g,'').includes(userAnswer.replace(/\s/g,''));
+
+    document.getElementById('lrFeedback').style.display='block';
+
+    if(isCorrect) {
+      lrRoundScore.correct++;
+      document.getElementById('lrFeedbackCorrect').style.display='block';
+      document.getElementById('lrFeedbackWrong').style.display='none';
+      document.getElementById('lrFeedbackCorrectMsg').textContent = q.explanation || '잘했어요!';
+    } else {
+      document.getElementById('lrFeedbackCorrect').style.display='none';
+      document.getElementById('lrFeedbackWrong').style.display='block';
+      document.getElementById('lrWrongAnswer').innerHTML = `네 답: <strong>${userAnswer}</strong><br>정답: <strong style="color:#2f855a;">${q.answer}</strong>`;
+
+      document.getElementById('lrConceptExplain').textContent = '개념을 불러오는 중...';
+      document.getElementById('lrCheckWrap').style.display='none';
+      document.getElementById('lrCheckResult').style.display='none';
+
+      try {
+        const explainPrompt = `당신은 ${selectedLrPreviewStudent.grade} 학생에게 쉽게 설명해주는 선생님입니다.
+
+학생이 "${q.concept}" 개념이 포함된 문제를 틀렸습니다.
+틀린 문제: ${q.question}
+학생 답: ${userAnswer}
+정답: ${q.answer}
+
+두 가지를 해주세요:
+
+1. "${q.concept}" 개념을 이 학년 수준에서 가장 쉽게 설명해주세요. 
+   - 일상생활 예시를 들어 설명
+   - 핵심을 3줄 이내로 정리
+   - 왜 학생의 답이 틀렸는지 부드럽게 설명
+
+2. 이해했는지 확인하는 아주 쉬운 문제 1개를 만들어주세요.
+
+아래 JSON으로만 응답하세요:
+{
+  "explanation": "쉬운 개념 설명 (3줄 이내)",
+  "checkQuestion": "확인 질문",
+  "checkChoices": ["보기1","보기2","보기3"],
+  "checkAnswer": "정답 보기 텍스트"
+}`;
+
+        const rawText = await callGemini(explainPrompt);
+        const text = rawText.replace(/```json|```/g,'').trim();
+        const result = JSON.parse(text);
+
+        document.getElementById('lrConceptExplain').textContent = result.explanation;
+        document.getElementById('lrCheckQuestion').textContent = result.checkQuestion;
+        lrCheckAnswer = result.checkAnswer;
+
+        document.getElementById('lrCheckChoices').innerHTML = result.checkChoices.map((c,i) => `
+          <label style="display:flex; align-items:center; gap:8px; padding:8px 12px; background:#fffef0; border-radius:6px; margin-bottom:4px; cursor:pointer; border:1px solid #eee;">
+            <input type="radio" name="lrCheck" value="${c}" style="accent-color:#d69e2e;">
+            <span style="font-size:13px;">${c}</span>
+          </label>
+        `).join('');
+        document.getElementById('lrCheckWrap').style.display='block';
+      } catch(e) {
+        document.getElementById('lrConceptExplain').textContent = q.explanation || '이 개념을 다시 한번 교재에서 확인해보세요.';
+        document.getElementById('lrCheckWrap').style.display='none';
+        document.getElementById('lrCheckResult').style.display='block';
+        document.getElementById('lrCheckResultMsg').innerHTML = '개념 설명을 불러오지 못했어요. 다음 문제로 넘어가세요.';
+      }
+    }
+  }
+
+  function submitLrCheck() {
+    const checked = document.querySelector('input[name="lrCheck"]:checked');
+    if(!checked) { alert('답을 선택하세요.'); return; }
+    document.getElementById('lrCheckSubmitBtn').style.display='none';
+    document.getElementById('lrCheckResult').style.display='block';
+    if(checked.value === lrCheckAnswer) {
+      document.getElementById('lrCheckResultMsg').innerHTML = '✅ <strong>맞아요!</strong> 이제 개념이 잡혔네요. 다음 문제에서 비슷한 유형이 나오면 잘 할 수 있을 거예요!';
+    } else {
+      document.getElementById('lrCheckResultMsg').innerHTML = `정답은 <strong style="color:#2f855a;">${lrCheckAnswer}</strong>예요. 괜찮아요, 이 부분은 교재에서 한 번 더 읽어보면 금방 이해될 거예요!`;
+    }
+  }
+
+  function nextLrQuestion() {
+    lrCurrentQIndex++;
+    if(lrCurrentQIndex >= lrCurrentQuestions.length) {
+      finishLrRound();
+      return;
+    }
+    showLrQuestion();
+  }
+
+  function finishLrRound() {
+    const info = LR_PHASE_INFO[lrCurrentRound];
+    const pct = Math.round(lrRoundScore.correct / lrRoundScore.total * 100);
+
+    if(lrCurrentExam && lrCurrentExam.schedule[lrCurrentRound-1]) {
+      lrCurrentExam.schedule[lrCurrentRound-1].done = true;
+      lrCurrentExam.schedule[lrCurrentRound-1].score = pct;
+    }
+
+    document.getElementById('lrQuestionArea').style.display='none';
+    document.getElementById('lrRoundComplete').style.display='block';
+    document.getElementById('lrRoundCompleteTitle').textContent = `${lrCurrentRound}회차 완료! ${info.phase} 단계`;
+
+    let msg = `${lrRoundScore.correct}/${lrRoundScore.total} 정답 (${pct}%)`;
+    if(pct >= 80) msg += '\n🌟 훌륭해요! 다음 단계로 넘어갈 준비가 됐어요.';
+    else if(pct >= 60) msg += '\n👍 잘하고 있어요. 틀린 부분만 한 번 더 보면 완벽해질 거예요.';
+    else msg += '\n💪 이 부분을 조금 더 복습하고 넘어가면 좋겠어요.';
+    document.getElementById('lrRoundCompleteMsg').textContent = msg;
+
+    document.getElementById('lrNextRoundBtn').style.display = lrCurrentRound < 7 ? 'inline-block' : 'none';
+
+    selectLrPreviewStudent(selectedLrPreviewStudent.id);
+  }
+
+  function closeLrRound() {
+    document.getElementById('lrRoundComplete').style.display='none';
+    document.getElementById('lrStartBtn').style.display='block';
+    document.getElementById('lrStartBtn').textContent = lrCurrentRound < 7
+      ? `🚀 ${lrCurrentRound+1}회차 학습 시작`
+      : '🏆 모든 회차 완료!';
   }
 
   // ===== 틀린 문제 복습 =====
