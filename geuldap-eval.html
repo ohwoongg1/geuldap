@@ -1631,7 +1631,7 @@
         paid: ex ? ex.paid : false,
         paidDate: ex ? (ex.paidDate || null) : null
       };
-    });
+    }).sort((a, b) => a.billingDay - b.billingDay);
     renderPayments();
     populateCertStudentSelect();
     populateReceiptStudentSelect();
