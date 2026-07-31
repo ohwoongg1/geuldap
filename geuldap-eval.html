@@ -2695,7 +2695,7 @@ ${a.name}`;
     const greeting = options[gIdx] || options[0];
     const title = source.title || '';
     const studentName = source.studentName || '';
-    const titleBlock = title ? `\n\n제목: ${title}\n${studentName}` : '';
+    const titleBlock = title ? `\n\n제목: ${title}\n${'                              '}${studentName}` : '';
     const body = source.correctedContent || source.content || '(저장된 원문이 없습니다)';
     const checked = (source.parentComments || []).filter(c => c.checked).map(c => c.text);
     const commentsBlock = checked.length ? `\n\n[선생님이 전하는 말씀]\n${checked.map(t=>'- '+t).join('\n')}` : '';
