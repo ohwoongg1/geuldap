@@ -2693,10 +2693,13 @@ ${a.name}`;
     const options = greetingOptions(source);
     const gIdx = source.greetingIndex ?? 0;
     const greeting = options[gIdx] || options[0];
+    const title = source.title || '';
+    const studentName = source.studentName || '';
+    const titleBlock = title ? `\n\n제목: ${title}\n${studentName}` : '';
     const body = source.correctedContent || source.content || '(저장된 원문이 없습니다)';
     const checked = (source.parentComments || []).filter(c => c.checked).map(c => c.text);
     const commentsBlock = checked.length ? `\n\n[선생님이 전하는 말씀]\n${checked.map(t=>'- '+t).join('\n')}` : '';
-    return `${greeting}\n\n${body}${commentsBlock}`;
+    return `${greeting}${titleBlock}\n\n${body}${commentsBlock}`;
   }
 
   // 모달 안의 인사말 라디오 / 코멘트 체크박스를 그린다. 고를 때마다 즉시 다시 조립된다.
