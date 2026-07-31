@@ -1558,10 +1558,18 @@
   function loadPayments(monthStr) {
     payCurrentMonth = monthStr;
     document.getElementById('payMonth').value = monthStr;
-    const active = _students.filter(s => s.active !== false);
+    // 등록일(입학일)이 선택한 달보다 나중인 학생은 그 달에 아직 다니지 않았으므로 목록에서 제외한다.
+    // 이미 그 달에 수납 기록이 저장돼 있으면(과거에 실제로 냈던 경우) 예외로 계속 보여준다.
     const existing = window._payments.filter(p => p.month === monthStr);
     const existingMap = {};
     existing.forEach(p => { existingMap[p.studentId] = p; });
+
+    const active = _students.filter(s => {
+      if (s.active === false) return false;
+      const enrollMonth = s.date ? s.date.slice(0,7) : null;
+      if (enrollMonth && enrollMonth > monthStr && !existingMap[s.id]) return false;
+      return true;
+    });
 
     payRows = active.map(s => {
       const ex = existingMap[s.id];
