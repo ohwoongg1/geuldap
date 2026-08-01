@@ -1238,7 +1238,7 @@
 
 <script>
   // ===== 버전 정보 (콘솔에서 확인: APP_VERSION 또는 페이지 로드시 자동 출력) =====
-  const APP_VERSION = 'v1.6';
+  const APP_VERSION = 'v1.7';
   const APP_VERSION_LOG = [
     'v1.0 — 탭 구조 + UI 껍데기',
     'v1.1 — AI 문제 생성 + 개념 사다리',
@@ -1246,7 +1246,8 @@
     'v1.3 — AI 자료 분석 + 교재 기반 문제 생성',
     'v1.4 — 학생 이름 오류 수정, 확인 단계 멈춤 버그 수정, 지문 기반 문제 생성 추가',
     'v1.5 — 회차 진행 난이도 자동 조정 (60점 미만 재도전, 90점 이상 스킵)',
-    'v1.6 — AI 코치 코멘트를 실제 회차별 점수 기반으로 동적 생성 (기존엔 고정 문구였음)'
+    'v1.6 — AI 코치 코멘트를 실제 회차별 점수 기반으로 동적 생성 (기존엔 고정 문구였음)',
+    'v1.7 — [중요] 학습기 자료/시험 Firebase 저장 코드가 잘못된 변수 참조로 항상 실패하던 버그 수정 (그동안 로컬 기기에만 저장되고 클라우드 동기화가 안 되고 있었음)'
   ];
   console.log(`%c글답 학습기 ${APP_VERSION}`, 'font-weight:bold; font-size:14px; color:#0d1b4b;');
   console.log(APP_VERSION_LOG.join('\n'));
@@ -3626,17 +3627,17 @@ ${a.name}`;
 
   async function saveLrToFirebase(type, item) {
     try {
-      await _add(_col(db, type==='material'?'geuldap_lr_materials':'geuldap_lr_exams'), item);
+      await window._add(window._col(window._db, type==='material'?'geuldap_lr_materials':'geuldap_lr_exams'), item);
     } catch(e) { console.log('학습기 Firebase 저장:', e); }
   }
   async function deleteLrFromFirebase(type, id) {
     try {
-      await _deleteByFieldId(type==='material'?'geuldap_lr_materials':'geuldap_lr_exams', id);
+      await window._deleteByFieldId(type==='material'?'geuldap_lr_materials':'geuldap_lr_exams', id);
     } catch(e) { console.log('학습기 Firebase 삭제:', e); }
   }
   async function updateLrExamInFirebase(exam) {
     try {
-      await _updateByFieldId('geuldap_lr_exams', exam.id, exam);
+      await window._updateByFieldId('geuldap_lr_exams', exam.id, exam);
     } catch(e) { console.log('학습기 Firebase 업데이트:', e); }
   }
   function saveLrLocal() {
