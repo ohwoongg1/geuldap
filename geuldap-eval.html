@@ -40,7 +40,7 @@
     .lr-badge-workbook { background:#faeeda; color:#854f0b; }
     .lr-badge-notes { background:#eeedfe; color:#534ab7; }
     .lr-exam-item { display:flex; align-items:center; justify-content:space-between; padding:14px; border-radius:10px; background:#f8f9fc; margin-bottom:8px; border-left:4px solid #2f855a; }
-    .lr-dashboard-row { display:grid; grid-template-columns:120px 80px 1fr 80px 80px; align-items:center; gap:10px; padding:12px; border-radius:8px; background:#f8f9fc; margin-bottom:6px; font-size:13px; }
+    .lr-dashboard-row { display:grid; grid-template-columns:100px 70px 1fr 60px 60px 160px; align-items:center; gap:10px; padding:12px; border-radius:8px; background:#f8f9fc; margin-bottom:6px; font-size:13px; }
     @media(max-width:600px) { .lr-dashboard-row { grid-template-columns:1fr; gap:4px; } }
 
     .header { background: linear-gradient(135deg, #0d1b4b, #1a2f6b); padding: 18px 32px; display: flex; align-items: center; justify-content: space-between; }
@@ -333,6 +333,11 @@
         <button class="btn btn-secondary btn-sm" onclick="spOpenWrongNotebook()">보기</button>
       </div>
       <div style="font-size:13px; color:#888;" id="spWrongSummary">틀린 문제를 모아서 다시 풀 수 있어요</div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;" id="spWeakCard">
+      <div class="card-title">🎯 나의 취약 유형</div>
+      <div id="spWeakBody" style="font-size:13px; color:#888;">아직 분석할 데이터가 부족해요. 문제를 더 풀어보세요!</div>
     </div>
 
     <div class="card-title" style="margin-top:24px;">📚 내 학습 자료</div>
@@ -4136,13 +4141,30 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
   }
 
   // 학생 현황 대시보드
+  // ===== 취약 유형 자동 진단 =====
+  // 오답노트(geuldap_lr_wrong)의 concept 태그를 집계해서, 반복적으로 틀리는 개념을 뽑아낸다.
+  function computeWeakTypes(studentId, minCount) {
+    minCount = minCount || 2;
+    const wrongs = (window._lrWrong || []).filter(w => w.studentId === studentId && w.concept && w.concept.trim());
+    const counts = {};
+    wrongs.forEach(w => {
+      const key = w.concept.trim();
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return Object.entries(counts)
+      .map(([concept, count]) => ({ concept, count }))
+      .filter(x => x.count >= minCount)
+      .sort((a,b) => b.count - a.count)
+      .slice(0, 5);
+  }
+
   function renderLrDashboard() {
     const body = document.getElementById('lrDashboardBody');
     if(!window._lrExams.length) {
       body.innerHTML='<div class="empty"><div class="empty-icon">📊</div><div>시험 설정 후 학습이 시작되면<br>여기에 현황이 표시됩니다</div></div>';
       return;
     }
-    let html = '<div class="lr-dashboard-row" style="font-weight:700;background:#e8e0cc;"><span>학생</span><span>과목</span><span>진행률</span><span>예상</span><span>D-day</span></div>';
+    let html = '<div class="lr-dashboard-row" style="font-weight:700;background:#e8e0cc;"><span>학생</span><span>과목</span><span>진행률</span><span>예상</span><span>D-day</span><span>취약 유형</span></div>';
     window._lrExams.forEach(e => {
       const s = _students.find(st=>st.id===e.studentId);
       if(!s) return;
@@ -4152,6 +4174,7 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
       const examDate = new Date(e.date);
       const dday = Math.ceil((examDate-today)/(1000*60*60*24));
       const predict = Math.min(100, Math.round(e.targetScore * pct/100 * 1.1));
+      const weak = computeWeakTypes(s.id);
       html += `<div class="lr-dashboard-row">
         <span style="font-weight:600;">${s.name}</span>
         <span>${e.subject}</span>
@@ -4165,6 +4188,7 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
         </span>
         <span style="font-weight:700;color:${predict>=e.targetScore?'#2f855a':'#c5a149'};">${predict}점</span>
         <span style="font-weight:700;color:${dday<=3?'#e53e3e':dday<=7?'#c5a149':'#555'};">D-${dday}</span>
+        <span style="font-size:12px;">${weak.length ? weak.map(w=>`<span style="display:inline-block; background:#fff5f5; color:#e53e3e; border-radius:6px; padding:2px 7px; margin:1px; font-weight:600;">${w.concept} ×${w.count}</span>`).join('') : '<span style="color:#bbb;">아직 패턴 없음</span>'}</span>
       </div>`;
     });
     body.innerHTML = html;
@@ -4178,6 +4202,7 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
     if(!exam) {
       document.getElementById('spQuizArea').style.display='none';
       document.getElementById('spNoExamMsg').style.display='block';
+      renderSpWeakTypes(id);
       return;
     }
     document.getElementById('spNoExamMsg').style.display='none';
@@ -4215,6 +4240,7 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
     } else {
       document.getElementById('lrStartBtn').textContent = `🚀 ${done+1}회차 학습 시작`;
     }
+    renderSpWeakTypes(id);
   }
 
   function renderLrCodeList() {
@@ -4323,6 +4349,8 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
   let lrCurrentExam = null;
   let lrRoundScore = { correct:0, total:0 };
   let lrCheckAnswer = '';
+  let lrPracticeMode = false; // true면 오답 재도전/취약유형 집중학습 세션 — 실제 7회차 스케줄을 건드리지 않음
+  let lrPracticeConcepts = []; // 취약유형 집중학습 세션에서 다룬 개념들 (완료 시 오답노트 resolved 처리용)
 
   const LR_PHASE_INFO = {
     1: { phase:'이해', label:'1회차: 훑어읽기', desc:'전체 내용을 가볍게 파악하는 단계', qType:'핵심 내용 파악, OX 판단, 주제 찾기' },
@@ -4341,6 +4369,8 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
 
   async function startLrLearning() {
     if(!selectedLrPreviewStudent) return;
+    lrPracticeMode = false;
+    lrPracticeConcepts = [];
     lrCurrentExam = window._lrExams.find(e=>e.studentId===selectedLrPreviewStudent.id);
     if(!lrCurrentExam) { alert('설정된 시험이 없습니다.'); return; }
     lrCurrentRound = getNextLrRound(lrCurrentExam);
@@ -4582,8 +4612,36 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
   }
 
   function finishLrRound() {
-    const info = LR_PHASE_INFO[lrCurrentRound];
     const pct = Math.round(lrRoundScore.correct / lrRoundScore.total * 100);
+
+    if (lrPracticeMode) {
+      // 오답 재도전 / 취약유형 집중학습 — 실제 7회차 스케줄은 건드리지 않는다
+      document.getElementById('lrQuestionArea').style.display='none';
+      document.getElementById('lrRoundComplete').style.display='block';
+      document.getElementById('lrRoundCompleteTitle').textContent = '연습 완료!';
+      document.getElementById('lrRoundCompleteMsg').textContent =
+        `${lrRoundScore.correct}/${lrRoundScore.total} 정답 (${pct}%)\n` +
+        (pct >= 60 ? '🎉 많이 좋아졌어요! 계속 이 페이스로 가봐요.' : '💪 아직 헷갈리는 부분이 있어요. 개념카드로 한 번 더 확인해볼까요?');
+      document.getElementById('lrNextRoundBtn').style.display = 'none';
+
+      // 60점 이상이면 이번에 다룬 개념들을 오답노트에서 해결됨 처리
+      if (pct >= 60) {
+        const targetConcepts = lrPracticeConcepts.length ? lrPracticeConcepts : (window._spWrongRetryIds ? null : []);
+        if (window._spWrongRetryIds && window._spWrongRetryIds.length) {
+          window._lrWrong.forEach(w => { if (window._spWrongRetryIds.includes(w.id)) w.resolved = true; });
+        } else if (targetConcepts && targetConcepts.length) {
+          const sid = selectedLrPreviewStudent.id;
+          window._lrWrong.forEach(w => { if (w.studentId === sid && targetConcepts.includes(w.concept) && !w.resolved) w.resolved = true; });
+        }
+        saveLrLocal();
+      }
+      window._spWrongRetryIds = [];
+      lrPracticeConcepts = [];
+      if (selectedLrPreviewStudent) renderSpDashboard(selectedLrPreviewStudent.id);
+      return;
+    }
+
+    const info = LR_PHASE_INFO[lrCurrentRound];
     let skippedNext = false;
     let willRetry = false;
 
@@ -4629,6 +4687,8 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
   }
 
   function closeLrRound() {
+    lrPracticeMode = false;
+    lrPracticeConcepts = [];
     document.getElementById('lrFocusOverlay').style.display='none';
     document.getElementById('lrRoundComplete').style.display='none';
     document.getElementById('lrStartBtn').style.display='block';
@@ -4758,6 +4818,8 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     const list = window._lrWrong.filter(w => w.studentId === sid && !w.resolved);
     if (!list.length) return;
     closeSpContentModal();
+    lrPracticeMode = true;
+    lrPracticeConcepts = [];
 
     lrCurrentExam = window._lrExams.find(e=>e.studentId===sid) || null;
     lrCurrentQIndex = 0;
@@ -4779,6 +4841,8 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
   // ===== 학생 자율 학습 포털 =====
   function exitLrFocus() {
     if (!confirm('학습을 중단하고 나가시겠어요? 지금까지 푼 내용은 저장되지 않아요.')) return;
+    lrPracticeMode = false;
+    lrPracticeConcepts = [];
     document.getElementById('lrFocusOverlay').style.display = 'none';
     document.getElementById('lrAiLoading').style.display = 'none';
     document.getElementById('lrQuestionArea').style.display = 'none';
@@ -4823,6 +4887,78 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     document.getElementById('spHomeName').textContent = match.name + '님';
     renderSpMaterialList();
     renderSpDashboard(match.id);
+  }
+  async function startWeakFocusLearning() {
+    if (!selectedLrPreviewStudent) return;
+    const weak = computeWeakTypes(selectedLrPreviewStudent.id);
+    if (!weak.length) { alert('아직 반복되는 취약 유형이 없어요.'); return; }
+
+    lrPracticeMode = true;
+    lrPracticeConcepts = weak.map(w => w.concept);
+    lrCurrentExam = window._lrExams.find(e=>e.studentId===selectedLrPreviewStudent.id) || null;
+
+    document.getElementById('lrFocusOverlay').style.display = 'block';
+    document.getElementById('lrStartBtn').style.display = 'none';
+    document.getElementById('lrRoundComplete').style.display = 'none';
+    document.getElementById('lrQuestionArea').style.display = 'none';
+    document.getElementById('lrAiLoading').style.display = 'block';
+    document.getElementById('lrAiLoadingText').textContent = '취약 유형 집중 문제를 만들고 있어요...';
+
+    try {
+      const prompt = `당신은 ${selectedLrPreviewStudent.grade} 학생을 가르치는 친절한 선생님입니다.
+문제 내용에는 학생의 이름을 언급하거나 지어내지 마세요.
+
+이 학생은 아래 개념들에서 반복적으로 실수를 하고 있습니다. 이 개념들을 확실히 이해할 수 있도록 집중 연습 문제를 만들어주세요.
+
+[반복적으로 틀리는 개념]
+${lrPracticeConcepts.join(', ')}
+
+각 개념마다 최소 1문제씩, 총 ${lrPracticeConcepts.length < 5 ? 5 : lrPracticeConcepts.length}개 문제를 만들어주세요. 쉬운 것부터 시작해서 점점 확실히 이해했는지 확인하는 방식으로 구성하세요.
+
+아래 JSON 배열로만 응답하세요:
+[
+  {
+    "passage": "필요하면 지문, 아니면 빈 문자열",
+    "question": "문제 내용",
+    "type": "choice",
+    "choices": ["보기1","보기2","보기3","보기4"],
+    "answer": "정답 보기 텍스트",
+    "concept": "이 문제가 다루는 개념 (위 목록 중 하나와 동일하게)",
+    "explanation": "정답 해설 1-2문장"
+  }
+]
+type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 choices를 빈 배열 []로 두세요.`;
+
+      const rawText = await callGemini(prompt);
+      const text = rawText.replace(/```json|```/g,'').trim();
+      lrCurrentQuestions = JSON.parse(text);
+      lrCurrentQIndex = 0;
+      lrRoundScore = { correct:0, total: lrCurrentQuestions.length };
+
+      document.getElementById('lrAiLoading').style.display = 'none';
+      document.getElementById('lrQuestionArea').style.display = 'block';
+      showLrQuestion();
+    } catch(e) {
+      document.getElementById('lrAiLoading').style.display = 'none';
+      document.getElementById('lrFocusOverlay').style.display = 'none';
+      document.getElementById('lrStartBtn').style.display = 'block';
+      alert('문제 생성 중 오류: ' + e.message);
+    }
+  }
+
+  function renderSpWeakTypes(studentId) {
+    const weak = computeWeakTypes(studentId);
+    const body = document.getElementById('spWeakBody');
+    if (!weak.length) {
+      body.innerHTML = '아직 분석할 데이터가 부족해요. 문제를 더 풀어보세요!';
+      return;
+    }
+    body.innerHTML = `
+      <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px;">
+        ${weak.map(w => `<span style="background:#fff5f5; color:#e53e3e; border-radius:8px; padding:4px 10px; font-weight:600; font-size:12px;">${w.concept} · ${w.count}회</span>`).join('')}
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="startWeakFocusLearning()" style="width:100%;">🎯 취약 유형 집중 학습 시작</button>
+    `;
   }
   function studentPortalLogout() {
     window._spStudent = null;
