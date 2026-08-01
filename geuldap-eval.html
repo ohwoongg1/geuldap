@@ -1348,6 +1348,13 @@
       document.getElementById('pwScreen').style.display = 'none';
     });
   }
+  // URL에 ?student=1 이 붙어있으면 관리자 화면 대신 학생 로그인 화면을 바로 연다
+  if (new URLSearchParams(location.search).get('student') === '1') {
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('pwScreen').style.display = 'none';
+      openStudentPortal();
+    });
+  }
 
   // ===== 상태 =====
   window._students = JSON.parse(localStorage.getItem('gs') || '[]');
