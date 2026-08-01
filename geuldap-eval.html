@@ -589,7 +589,12 @@
         </div>
       </div>
       <div class="card" id="lrMaterialList" style="display:none;">
-        <div class="card-title">📋 등록된 자료 목록</div>
+        <div class="card-title" style="display:flex; align-items:center; justify-content:space-between;">
+          📋 등록된 자료 목록
+          <label style="font-size:13px; font-weight:400; cursor:pointer; display:flex; align-items:center; gap:4px;">
+            <input type="checkbox" id="lrMatSelectAll" onchange="toggleAllLrMaterials(this.checked)" checked> 전체 선택
+          </label>
+        </div>
         <div id="lrMaterialListBody"></div>
       </div>
     </div>
@@ -3805,6 +3810,7 @@ ${a.name}`;
     const typeBadges = { textbook:'lr-badge-textbook', worksheet:'lr-badge-worksheet', workbook:'lr-badge-workbook', notes:'lr-badge-notes' };
     body.innerHTML = list.map(m => `
       <div class="lr-material-item">
+        <input type="checkbox" class="lr-mat-check" value="${m.id}" checked onchange="updateLrMatSelectAll()" style="margin-right:6px;">
         <span class="lr-material-badge ${typeBadges[m.type]}">${typeLabels[m.type]}</span>
         <div style="flex:1;">
           <div style="font-weight:600; font-size:14px;">${m.subject} · ${m.scope}</div>
@@ -3815,6 +3821,19 @@ ${a.name}`;
         <button class="btn btn-danger btn-sm" onclick="deleteLrMaterial('${m.id}')">삭제</button>
       </div>
     `).join('');
+  }
+
+  function toggleAllLrMaterials(checked) {
+    document.querySelectorAll('.lr-mat-check').forEach(cb => cb.checked = checked);
+  }
+  function updateLrMatSelectAll() {
+    const all = document.querySelectorAll('.lr-mat-check');
+    const checked = document.querySelectorAll('.lr-mat-check:checked');
+    const selectAll = document.getElementById('lrMatSelectAll');
+    if (selectAll) selectAll.checked = all.length === checked.length;
+  }
+  function getCheckedLrMaterialIds() {
+    return Array.from(document.querySelectorAll('.lr-mat-check:checked')).map(c => c.value);
   }
 
   function deleteLrMaterial(id) {
@@ -3856,12 +3875,15 @@ ${a.name}`;
     const mats = window._lrMaterials.filter(m=>m.studentId===selectedLrExamStudent.id);
     const div = document.getElementById('lrExamMaterials');
     if(!mats.length) { div.innerHTML='<div style="color:#e53e3e; font-size:13px;">⚠️ 이 학생에게 등록된 자료가 없습니다. "자료 업로드" 탭에서 먼저 자료를 등록하세요.</div>'; return; }
-    div.innerHTML = mats.map(m => `
+    const checkedIds = getCheckedLrMaterialIds();
+    div.innerHTML = mats.map(m => {
+      const isChecked = checkedIds.length ? checkedIds.includes(m.id) : true;
+      return `
       <label style="display:flex; align-items:center; gap:8px; padding:6px 0; font-size:13px; cursor:pointer;">
-        <input type="checkbox" value="${m.id}" checked>
+        <input type="checkbox" value="${m.id}" ${isChecked?'checked':''}>
         <span style="font-weight:600;">${m.subject}</span> · ${m.scope} (${m.type==='textbook'?'교과서':m.type==='worksheet'?'활동지':m.type==='workbook'?'문제집':'필기'})
-      </label>
-    `).join('');
+      </label>`;
+    }).join('');
   }
 
   function saveLrExam() {
