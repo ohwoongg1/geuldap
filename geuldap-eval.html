@@ -5161,10 +5161,16 @@ type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 c
     mats.forEach(m => { (grouped[m.subject] = grouped[m.subject]||[]).push(m); });
     div.innerHTML = Object.keys(grouped).map(subject => `
       <div class="card" style="margin-bottom:12px;">
-        <div class="card-title">${subject}</div>
+        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+          ${subject}
+          <button class="btn btn-danger btn-sm" onclick="spDeleteSubject('${subject.replace(/'/g,"\\'")}')" style="padding:3px 9px; font-size:11px;">과목 삭제</button>
+        </div>
         ${grouped[subject].map(m => `
           <div style="padding:8px 0; border-top:1px solid #f0f0f0;">
-            <div style="font-weight:600; font-size:14px; margin-bottom:6px;">${m.scope}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <div style="font-weight:600; font-size:14px;">${m.scope}</div>
+              <button class="btn btn-danger btn-sm" onclick="spDeleteMaterial('${m.id}')" style="padding:2px 8px; font-size:11px;">✕</button>
+            </div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
               <button class="btn btn-secondary btn-sm" onclick="openLrContent('${m.id}','concept')">📇 개념카드</button>
               <button class="btn btn-secondary btn-sm" onclick="openLrContent('${m.id}','summary')">📋 요약노트</button>
@@ -5172,6 +5178,25 @@ type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 c
             </div>
           </div>`).join('')}
       </div>`).join('');
+  }
+
+  function spDeleteMaterial(id) {
+    if (!confirm('이 자료를 삭제할까요? 만들어둔 개념카드·요약노트·플래시카드도 함께 사라져요.')) return;
+    window._lrMaterials = window._lrMaterials.filter(m=>m.id!==id);
+    deleteLrFromFirebase('material', id);
+    saveLrLocal();
+    renderSpMaterialList();
+  }
+
+  function spDeleteSubject(subject) {
+    if (!window._spStudent) return;
+    const targets = window._lrMaterials.filter(m=>m.studentId===window._spStudent.id && m.subject===subject);
+    if (!targets.length) return;
+    if (!confirm(`"${subject}" 과목의 자료 ${targets.length}개를 모두 삭제할까요?`)) return;
+    targets.forEach(m => deleteLrFromFirebase('material', m.id));
+    window._lrMaterials = window._lrMaterials.filter(m=>!(m.studentId===window._spStudent.id && m.subject===subject));
+    saveLrLocal();
+    renderSpMaterialList();
   }
 </script>
 </body>
