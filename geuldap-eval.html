@@ -1237,6 +1237,18 @@
 </script>
 
 <script>
+  // ===== 버전 정보 (콘솔에서 확인: APP_VERSION 또는 페이지 로드시 자동 출력) =====
+  const APP_VERSION = 'v1.4';
+  const APP_VERSION_LOG = [
+    'v1.0 — 탭 구조 + UI 껍데기',
+    'v1.1 — AI 문제 생성 + 개념 사다리',
+    'v1.2 — Firebase 저장',
+    'v1.3 — AI 자료 분석 + 교재 기반 문제 생성',
+    'v1.4 — 학생 이름 오류 수정, 확인 단계 멈춤 버그 수정, 지문 기반 문제 생성 추가'
+  ];
+  console.log(`%c글답 학습기 ${APP_VERSION}`, 'font-weight:bold; font-size:14px; color:#0d1b4b;');
+  console.log(APP_VERSION_LOG.join('\n'));
+
   // ===== 비밀번호 =====
   function checkPw() {
     if (document.getElementById('pwInput').value === '0147') {
@@ -4056,8 +4068,8 @@ ${a.name}`;
       const allConcepts = [...new Set(mats.flatMap(m=>m.concepts||[]))];
       const allQuestions = mats.flatMap(m=>m.questions||[]);
 
-      const prompt = `당신은 ${selectedLrPreviewStudent.grade} 학생인 "${selectedLrPreviewStudent.name}"(을)를 가르치는 친절한 선생님입니다.
-학생을 부를 때는 반드시 실제 이름 "${selectedLrPreviewStudent.name}"만 사용하고, 다른 이름을 지어내지 마세요.
+      const prompt = `당신은 ${selectedLrPreviewStudent.grade} 학생을 가르치는 친절한 선생님입니다.
+문제 내용에는 학생의 이름을 언급하거나 지어내지 마세요.
 
 이 학생은 "${lrCurrentExam.name}" 시험을 준비 중이며, 7회 반복학습의 ${lrCurrentRound}회차(${info.label})를 하고 있습니다.
 
