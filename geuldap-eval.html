@@ -143,6 +143,202 @@
     <input class="pw-input" type="password" id="pwInput" placeholder="●●●●" onkeydown="if(event.key==='Enter') checkPw()">
     <button class="pw-btn" onclick="checkPw()">🔐 로그인</button>
     <div class="pw-error" id="pwError">비밀번호가 올바르지 않습니다</div>
+    <div style="margin-top:16px; text-align:center;">
+      <a href="#" onclick="openStudentPortal(); return false;" style="font-size:13px; color:#888; text-decoration:underline;">📚 학생이신가요? 학습기 접속하기</a>
+    </div>
+  </div>
+</div>
+
+<!-- 학생 자율 학습 포털 -->
+<div class="pw-screen" id="studentPortalScreen" style="display:none;">
+  <div class="pw-box" id="spLoginBox">
+    <div class="pw-logo">글답 <span>학습기</span></div>
+    <div class="pw-sub">나만의 7번 반복학습</div>
+    <div class="pw-label">이름</div>
+    <input class="pw-input" type="text" id="spNameInput" placeholder="이름을 입력하세요" style="letter-spacing:normal; font-size:16px;">
+    <div class="pw-label" style="margin-top:10px;">학습 코드 (4자리)</div>
+    <input class="pw-input" type="password" id="spCodeInput" placeholder="●●●●" maxlength="4" onkeydown="if(event.key==='Enter') studentPortalLogin()">
+    <button class="pw-btn" onclick="studentPortalLogin()">입장하기</button>
+    <div class="pw-error" id="spError">이름 또는 코드가 올바르지 않습니다</div>
+    <div style="margin-top:16px; text-align:center;">
+      <a href="#" onclick="closeStudentPortal(); return false;" style="font-size:13px; color:#888; text-decoration:underline;">← 선생님이신가요? 관리자 로그인</a>
+    </div>
+  </div>
+</div>
+
+<!-- 학생 홈 화면 (로그인 후) -->
+<div id="spHomeScreen" style="display:none; min-height:100vh; background:#f5f6fa;">
+  <div style="background:#0d1b4b; color:#fff; padding:18px 20px; display:flex; justify-content:space-between; align-items:center;">
+    <div>
+      <div style="font-size:18px; font-weight:700;" id="spHomeName">학생 이름</div>
+      <div style="font-size:12px; opacity:0.7;">글답 학습기</div>
+    </div>
+    <button onclick="studentPortalLogout()" style="background:rgba(255,255,255,0.15); border:none; color:#fff; padding:8px 14px; border-radius:8px; font-size:13px; cursor:pointer;">로그아웃</button>
+  </div>
+  <div style="max-width:640px; margin:0 auto; padding:20px;">
+
+    <div id="spNoExamMsg" style="display:none; text-align:center; color:#aaa; padding:20px; margin-bottom:16px;">아직 선생님이 시험을 설정하지 않았어요.</div>
+
+    <div class="card" id="spQuizArea" style="display:none; margin-bottom:20px;">
+      <div style="background:#f0f8f0; border-radius:12px; padding:20px; text-align:center; margin-bottom:16px;">
+        <div style="font-size:18px; font-weight:700; color:#2f855a;" id="lrPreviewStudentName">학생 이름</div>
+        <div style="font-size:13px; color:#888; margin-top:4px;" id="lrPreviewExamInfo">시험 정보</div>
+      </div>
+
+      <!-- 스테이지 맵 -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin:20px 0; padding:0 10px;" id="lrStageMap">
+        <div class="lr-stage lr-stage-done">1<br><span>훑어읽기</span></div>
+        <div class="lr-stage-line"></div>
+        <div class="lr-stage lr-stage-done">2<br><span>구조파악</span></div>
+        <div class="lr-stage-line"></div>
+        <div class="lr-stage lr-stage-current">3<br><span>핵심정리</span></div>
+        <div class="lr-stage-line lr-stage-line-locked"></div>
+        <div class="lr-stage lr-stage-locked">4<br><span>핵심암기</span></div>
+        <div class="lr-stage-line lr-stage-line-locked"></div>
+        <div class="lr-stage lr-stage-locked">5<br><span>테스트</span></div>
+        <div class="lr-stage-line lr-stage-line-locked"></div>
+        <div class="lr-stage lr-stage-locked">6<br><span>실전문제</span></div>
+        <div class="lr-stage-line lr-stage-line-locked"></div>
+        <div class="lr-stage lr-stage-locked">7<br><span>모의시험</span></div>
+      </div>
+
+      <!-- 달성률 바 -->
+      <div style="margin:20px 0;">
+        <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;">
+          <span style="font-weight:600; color:#2f855a;">달성률</span>
+          <span style="color:#888;" id="lrProgressPercent">29%</span>
+        </div>
+        <div style="height:12px; background:#e0e0e0; border-radius:6px; overflow:hidden;">
+          <div style="height:100%; width:29%; background:linear-gradient(90deg,#2f855a,#68d391); border-radius:6px; transition:width 0.5s;" id="lrProgressBar"></div>
+        </div>
+      </div>
+
+      <!-- AI 코치 메시지 -->
+      <div style="background:#f0f8f0; border-left:4px solid #2f855a; border-radius:0 8px 8px 0; padding:14px; margin:16px 0;">
+        <div style="font-size:13px; font-weight:600; color:#2f855a; margin-bottom:4px;">🤖 AI 코치</div>
+        <div style="font-size:14px; color:#444;" id="lrCoachMsg">학습을 시작하면 진행 상황에 맞춰 코멘트가 나와요.</div>
+      </div>
+
+      <!-- 예상 점수 -->
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin:16px 0;">
+        <div style="background:#f8f9fc; border-radius:10px; padding:14px; text-align:center;">
+          <div style="font-size:12px; color:#888;">목표 점수</div>
+          <div style="font-size:24px; font-weight:700; color:#c5a149;" id="lrTargetDisplay">90</div>
+        </div>
+        <div style="background:#f8f9fc; border-radius:10px; padding:14px; text-align:center;">
+          <div style="font-size:12px; color:#888;">현재 예상</div>
+          <div style="font-size:24px; font-weight:700; color:#2f855a;" id="lrPredictDisplay">72</div>
+        </div>
+        <div style="background:#f8f9fc; border-radius:10px; padding:14px; text-align:center;">
+          <div style="font-size:12px; color:#888;">D-day</div>
+          <div style="font-size:24px; font-weight:700; color:#e53e3e;" id="lrDdayDisplay">D-14</div>
+        </div>
+      </div>
+
+      <!-- 학습 시작 영역 -->
+      <div style="margin-top:20px; border-top:2px solid #e0e0e0; padding-top:20px;">
+        <div id="lrPreviewMaterials" style="margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div style="font-size:14px; font-weight:600; color:#555;">📚 학습할 자료 선택</div>
+            <label style="font-size:12px; cursor:pointer; display:flex; align-items:center; gap:4px;">
+              <input type="checkbox" id="lrPreviewSelectAll" onchange="toggleAllLrPreviewMats(this.checked)" checked> 전체
+            </label>
+          </div>
+          <div id="lrPreviewMatList" style="font-size:13px;"></div>
+        </div>
+        <button class="btn btn-primary" onclick="startLrLearning()" id="lrStartBtn" style="width:100%; padding:16px; font-size:16px;">🚀 학습 시작 (현재 회차)</button>
+      </div>
+
+      <!-- 로딩 -->
+      <div id="lrAiLoading" style="display:none; text-align:center; padding:30px;">
+        <div class="spinner"></div>
+        <div style="font-size:14px; color:#888; margin-top:10px;" id="lrAiLoadingText">AI가 문제를 만들고 있어요...</div>
+      </div>
+
+      <!-- 문제 영역 -->
+      <div id="lrQuestionArea" style="display:none; margin-top:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <span style="font-size:14px; font-weight:700; color:#0d1b4b;" id="lrQProgress">문제 1/5</span>
+          <span style="font-size:12px; color:#888;" id="lrQPhase">이해 단계</span>
+        </div>
+        <div class="card" style="border-left:4px solid #c5a149;">
+          <div id="lrQPassage" style="display:none; background:#f8f9fc; border-radius:8px; padding:14px 16px; margin-bottom:14px; font-size:14px; line-height:1.9; color:#333; white-space:pre-wrap;"></div>
+          <div style="font-size:15px; font-weight:600; color:#0d1b4b; margin-bottom:12px;" id="lrQText"></div>
+          <div id="lrQChoices"></div>
+          <div class="form-group" id="lrQTextInputWrap" style="display:none; margin-top:10px;">
+            <textarea id="lrQTextInput" placeholder="답을 입력하세요" style="min-height:60px;"></textarea>
+          </div>
+          <button class="btn btn-primary" onclick="submitLrAnswer()" style="margin-top:12px;" id="lrSubmitBtn">제출</button>
+        </div>
+
+        <!-- 피드백 영역 -->
+        <div id="lrFeedback" style="display:none; margin-top:16px;">
+          <!-- 정답일 때 -->
+          <div id="lrFeedbackCorrect" style="display:none; background:#f0fff4; border-left:4px solid #2f855a; border-radius:0 8px 8px 0; padding:14px;">
+            <div style="font-size:15px; font-weight:700; color:#2f855a;">✅ 정답!</div>
+            <div style="font-size:14px; color:#444; margin-top:6px;" id="lrFeedbackCorrectMsg"></div>
+            <button class="btn btn-primary btn-sm" onclick="nextLrQuestion()" style="margin-top:10px;">다음 문제 →</button>
+          </div>
+          <!-- 오답일 때 — 개념 사다리 -->
+          <div id="lrFeedbackWrong" style="display:none;">
+            <div style="background:#fff5f5; border-left:4px solid #e53e3e; border-radius:0 8px 8px 0; padding:14px; margin-bottom:12px;">
+              <div style="font-size:15px; font-weight:700; color:#e53e3e;">❌ 아쉬워요!</div>
+              <div style="font-size:14px; color:#444; margin-top:6px;" id="lrWrongAnswer"></div>
+            </div>
+            <!-- 1단계: 하위 개념 설명 -->
+            <div style="background:#f0f8ff; border-left:4px solid #3182ce; border-radius:0 8px 8px 0; padding:14px; margin-bottom:12px;">
+              <div style="font-size:13px; font-weight:700; color:#3182ce; margin-bottom:6px;">📖 개념 다시 알려줄게!</div>
+              <div style="font-size:14px; color:#444; line-height:1.8;" id="lrConceptExplain"></div>
+            </div>
+            <!-- 2단계: 이해 확인 질문 -->
+            <div style="background:#fffff0; border-left:4px solid #d69e2e; border-radius:0 8px 8px 0; padding:14px; margin-bottom:12px;" id="lrCheckWrap">
+              <div style="font-size:13px; font-weight:700; color:#d69e2e; margin-bottom:6px;">🤔 확인해볼까?</div>
+              <div style="font-size:14px; color:#444; margin-bottom:10px;" id="lrCheckQuestion"></div>
+              <div id="lrCheckChoices"></div>
+              <button class="btn btn-secondary btn-sm" onclick="submitLrCheck()" style="margin-top:8px;" id="lrCheckSubmitBtn">확인</button>
+            </div>
+            <!-- 3단계: 확인 결과 -->
+            <div id="lrCheckResult" style="display:none; background:#f0fff4; border-left:4px solid #2f855a; border-radius:0 8px 8px 0; padding:14px;">
+              <div style="font-size:14px; color:#444;" id="lrCheckResultMsg"></div>
+              <button class="btn btn-primary btn-sm" onclick="nextLrQuestion()" style="margin-top:10px;">다음 문제 →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 회차 완료 -->
+      <div id="lrRoundComplete" style="display:none; text-align:center; padding:30px;">
+        <div style="font-size:48px; margin-bottom:10px;">🎉</div>
+        <div style="font-size:20px; font-weight:700; color:#2f855a;" id="lrRoundCompleteTitle">3회차 완료!</div>
+        <div style="font-size:14px; color:#888; margin:10px 0;" id="lrRoundCompleteMsg"></div>
+        <div style="display:flex; gap:10px; justify-content:center; margin-top:16px;">
+          <button class="btn btn-secondary" onclick="closeLrRound()">돌아가기</button>
+          <button class="btn btn-primary" onclick="startLrLearning()" id="lrNextRoundBtn" style="display:none;">다음 회차 시작 →</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+        📕 오답노트
+        <button class="btn btn-secondary btn-sm" onclick="spOpenWrongNotebook()">보기</button>
+      </div>
+      <div style="font-size:13px; color:#888;" id="spWrongSummary">틀린 문제를 모아서 다시 풀 수 있어요</div>
+    </div>
+
+    <div class="card-title" style="margin-top:24px;">📚 내 학습 자료</div>
+    <div id="spMaterialList"></div>
+  </div>
+</div>
+
+<!-- 학생용 콘텐츠 뷰어 모달 -->
+<div class="modal-bg" id="spContentModal">
+  <div class="modal" style="max-width:560px; max-height:85vh; overflow-y:auto;">
+    <div class="modal-title" id="spContentTitle">콘텐츠</div>
+    <div id="spContentBody" style="font-size:14px; line-height:1.7;"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeSpContentModal()">닫기</button>
+    </div>
   </div>
 </div>
 
@@ -659,152 +855,12 @@
       </div>
     </div>
 
-    <!-- 하위4: 학습 미리보기 (학생 화면 시뮬레이션) -->
+    <!-- 하위4: 학생 학습 코드 안내 (이제 문제풀이는 학생이 직접 진행) -->
     <div class="lr-sub" id="lr-preview">
       <div class="card">
-        <div class="card-title">👁 학생용 화면 미리보기</div>
-        <div style="font-size:13px; color:#888; margin-bottom:14px;">학생이 보게 될 학습 화면을 미리 확인해보세요.</div>
-        <div class="student-grid" id="lrPreviewStudentGrid"></div>
-      </div>
-      <div class="card" id="lrPreviewArea" style="display:none;">
-        <div style="background:#f0f8f0; border-radius:12px; padding:20px; text-align:center; margin-bottom:16px;">
-          <div style="font-size:18px; font-weight:700; color:#2f855a;" id="lrPreviewStudentName">학생 이름</div>
-          <div style="font-size:13px; color:#888; margin-top:4px;" id="lrPreviewExamInfo">시험 정보</div>
-        </div>
-
-        <!-- 스테이지 맵 -->
-        <div style="display:flex; justify-content:space-between; align-items:center; margin:20px 0; padding:0 10px;" id="lrStageMap">
-          <div class="lr-stage lr-stage-done">1<br><span>훑어읽기</span></div>
-          <div class="lr-stage-line"></div>
-          <div class="lr-stage lr-stage-done">2<br><span>구조파악</span></div>
-          <div class="lr-stage-line"></div>
-          <div class="lr-stage lr-stage-current">3<br><span>핵심정리</span></div>
-          <div class="lr-stage-line lr-stage-line-locked"></div>
-          <div class="lr-stage lr-stage-locked">4<br><span>핵심암기</span></div>
-          <div class="lr-stage-line lr-stage-line-locked"></div>
-          <div class="lr-stage lr-stage-locked">5<br><span>테스트</span></div>
-          <div class="lr-stage-line lr-stage-line-locked"></div>
-          <div class="lr-stage lr-stage-locked">6<br><span>실전문제</span></div>
-          <div class="lr-stage-line lr-stage-line-locked"></div>
-          <div class="lr-stage lr-stage-locked">7<br><span>모의시험</span></div>
-        </div>
-
-        <!-- 달성률 바 -->
-        <div style="margin:20px 0;">
-          <div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px;">
-            <span style="font-weight:600; color:#2f855a;">달성률</span>
-            <span style="color:#888;" id="lrProgressPercent">29%</span>
-          </div>
-          <div style="height:12px; background:#e0e0e0; border-radius:6px; overflow:hidden;">
-            <div style="height:100%; width:29%; background:linear-gradient(90deg,#2f855a,#68d391); border-radius:6px; transition:width 0.5s;" id="lrProgressBar"></div>
-          </div>
-        </div>
-
-        <!-- AI 코치 메시지 -->
-        <div style="background:#f0f8f0; border-left:4px solid #2f855a; border-radius:0 8px 8px 0; padding:14px; margin:16px 0;">
-          <div style="font-size:13px; font-weight:600; color:#2f855a; margin-bottom:4px;">🤖 AI 코치</div>
-          <div style="font-size:14px; color:#444;" id="lrCoachMsg">학습을 시작하면 진행 상황에 맞춰 코멘트가 나와요.</div>
-        </div>
-
-        <!-- 예상 점수 -->
-        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin:16px 0;">
-          <div style="background:#f8f9fc; border-radius:10px; padding:14px; text-align:center;">
-            <div style="font-size:12px; color:#888;">목표 점수</div>
-            <div style="font-size:24px; font-weight:700; color:#c5a149;" id="lrTargetDisplay">90</div>
-          </div>
-          <div style="background:#f8f9fc; border-radius:10px; padding:14px; text-align:center;">
-            <div style="font-size:12px; color:#888;">현재 예상</div>
-            <div style="font-size:24px; font-weight:700; color:#2f855a;" id="lrPredictDisplay">72</div>
-          </div>
-          <div style="background:#f8f9fc; border-radius:10px; padding:14px; text-align:center;">
-            <div style="font-size:12px; color:#888;">D-day</div>
-            <div style="font-size:24px; font-weight:700; color:#e53e3e;" id="lrDdayDisplay">D-14</div>
-          </div>
-        </div>
-
-        <div style="text-align:center; font-size:12px; color:#aaa; margin-top:10px;">※ 이 화면은 학생이 보게 될 화면의 미리보기입니다</div>
-
-        <!-- AI 학습 인터랙션 영역 -->
-        <div style="margin-top:20px; border-top:2px solid #e0e0e0; padding-top:20px;">
-          <div id="lrPreviewMaterials" style="margin-bottom:16px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-              <div style="font-size:14px; font-weight:600; color:#555;">📚 학습할 자료 선택</div>
-              <label style="font-size:12px; cursor:pointer; display:flex; align-items:center; gap:4px;">
-                <input type="checkbox" id="lrPreviewSelectAll" onchange="toggleAllLrPreviewMats(this.checked)" checked> 전체
-              </label>
-            </div>
-            <div id="lrPreviewMatList" style="font-size:13px;"></div>
-          </div>
-          <button class="btn btn-primary" onclick="startLrLearning()" id="lrStartBtn" style="width:100%; padding:16px; font-size:16px;">🚀 학습 시작 (현재 회차)</button>
-        </div>
-
-        <!-- 로딩 -->
-        <div id="lrAiLoading" style="display:none; text-align:center; padding:30px;">
-          <div class="spinner"></div>
-          <div style="font-size:14px; color:#888; margin-top:10px;" id="lrAiLoadingText">AI가 문제를 만들고 있어요...</div>
-        </div>
-
-        <!-- 문제 영역 -->
-        <div id="lrQuestionArea" style="display:none; margin-top:20px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <span style="font-size:14px; font-weight:700; color:#0d1b4b;" id="lrQProgress">문제 1/5</span>
-            <span style="font-size:12px; color:#888;" id="lrQPhase">이해 단계</span>
-          </div>
-          <div class="card" style="border-left:4px solid #c5a149;">
-            <div id="lrQPassage" style="display:none; background:#f8f9fc; border-radius:8px; padding:14px 16px; margin-bottom:14px; font-size:14px; line-height:1.9; color:#333; white-space:pre-wrap;"></div>
-            <div style="font-size:15px; font-weight:600; color:#0d1b4b; margin-bottom:12px;" id="lrQText"></div>
-            <div id="lrQChoices"></div>
-            <div class="form-group" id="lrQTextInputWrap" style="display:none; margin-top:10px;">
-              <textarea id="lrQTextInput" placeholder="답을 입력하세요" style="min-height:60px;"></textarea>
-            </div>
-            <button class="btn btn-primary" onclick="submitLrAnswer()" style="margin-top:12px;" id="lrSubmitBtn">제출</button>
-          </div>
-
-          <!-- 피드백 영역 -->
-          <div id="lrFeedback" style="display:none; margin-top:16px;">
-            <!-- 정답일 때 -->
-            <div id="lrFeedbackCorrect" style="display:none; background:#f0fff4; border-left:4px solid #2f855a; border-radius:0 8px 8px 0; padding:14px;">
-              <div style="font-size:15px; font-weight:700; color:#2f855a;">✅ 정답!</div>
-              <div style="font-size:14px; color:#444; margin-top:6px;" id="lrFeedbackCorrectMsg"></div>
-              <button class="btn btn-primary btn-sm" onclick="nextLrQuestion()" style="margin-top:10px;">다음 문제 →</button>
-            </div>
-            <!-- 오답일 때 — 개념 사다리 -->
-            <div id="lrFeedbackWrong" style="display:none;">
-              <div style="background:#fff5f5; border-left:4px solid #e53e3e; border-radius:0 8px 8px 0; padding:14px; margin-bottom:12px;">
-                <div style="font-size:15px; font-weight:700; color:#e53e3e;">❌ 아쉬워요!</div>
-                <div style="font-size:14px; color:#444; margin-top:6px;" id="lrWrongAnswer"></div>
-              </div>
-              <!-- 1단계: 하위 개념 설명 -->
-              <div style="background:#f0f8ff; border-left:4px solid #3182ce; border-radius:0 8px 8px 0; padding:14px; margin-bottom:12px;">
-                <div style="font-size:13px; font-weight:700; color:#3182ce; margin-bottom:6px;">📖 개념 다시 알려줄게!</div>
-                <div style="font-size:14px; color:#444; line-height:1.8;" id="lrConceptExplain"></div>
-              </div>
-              <!-- 2단계: 이해 확인 질문 -->
-              <div style="background:#fffff0; border-left:4px solid #d69e2e; border-radius:0 8px 8px 0; padding:14px; margin-bottom:12px;" id="lrCheckWrap">
-                <div style="font-size:13px; font-weight:700; color:#d69e2e; margin-bottom:6px;">🤔 확인해볼까?</div>
-                <div style="font-size:14px; color:#444; margin-bottom:10px;" id="lrCheckQuestion"></div>
-                <div id="lrCheckChoices"></div>
-                <button class="btn btn-secondary btn-sm" onclick="submitLrCheck()" style="margin-top:8px;" id="lrCheckSubmitBtn">확인</button>
-              </div>
-              <!-- 3단계: 확인 결과 -->
-              <div id="lrCheckResult" style="display:none; background:#f0fff4; border-left:4px solid #2f855a; border-radius:0 8px 8px 0; padding:14px;">
-                <div style="font-size:14px; color:#444;" id="lrCheckResultMsg"></div>
-                <button class="btn btn-primary btn-sm" onclick="nextLrQuestion()" style="margin-top:10px;">다음 문제 →</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 회차 완료 -->
-        <div id="lrRoundComplete" style="display:none; text-align:center; padding:30px;">
-          <div style="font-size:48px; margin-bottom:10px;">🎉</div>
-          <div style="font-size:20px; font-weight:700; color:#2f855a;" id="lrRoundCompleteTitle">3회차 완료!</div>
-          <div style="font-size:14px; color:#888; margin:10px 0;" id="lrRoundCompleteMsg"></div>
-          <div style="display:flex; gap:10px; justify-content:center; margin-top:16px;">
-            <button class="btn btn-secondary" onclick="closeLrRound()">돌아가기</button>
-            <button class="btn btn-primary" onclick="startLrLearning()" id="lrNextRoundBtn" style="display:none;">다음 회차 시작 →</button>
-          </div>
-        </div>
+        <div class="card-title">🔑 학생 학습 코드 안내</div>
+        <div style="font-size:13px; color:#888; margin-bottom:14px;">이제 문제 풀이는 학생이 로그인 화면의 "학생이신가요?" 링크로 직접 들어와 진행합니다. 여기서는 학생별 접속 코드를 확인할 수 있어요. 진행 현황·점수는 "학생 현황" 탭에서 보세요.</div>
+        <div id="lrCodeListBody"></div>
       </div>
     </div>
   </div>
@@ -1101,6 +1157,13 @@
         <input type="number" id="newBillingDay" min="1" max="31" placeholder="15">
       </div>
       <div class="form-group full">
+        <label>🔑 학습기 접속 코드 (4자리) — 학생이 직접 학습기 로그인할 때 사용</label>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="text" id="newAccessCode" readonly style="max-width:120px; font-weight:700; letter-spacing:2px; text-align:center;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="regenerateAccessCode()">재발급</button>
+        </div>
+      </div>
+      <div class="form-group full">
         <label>수업 요일 · 시각 · 시간 (요일마다 다르게 설정 가능)</label>
         <div id="newScheduleRows">
           <div class="sched-row" data-day="월" style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
@@ -1232,6 +1295,8 @@
     lrm_.forEach(d => mergeFromServer(window._lrMaterials, d.data()));
     const lre_ = await getDocs(collection(db, 'geuldap_lr_exams'));
     lre_.forEach(d => mergeFromServer(window._lrExams, d.data()));
+    const lrw_ = await getDocs(collection(db, 'geuldap_lr_wrong'));
+    lrw_.forEach(d => mergeFromServer(window._lrWrong, d.data()));
     try {
       const asDoc = await getDoc(doc(db, 'geuldap_settings', 'academy'));
       if (asDoc.exists()) window._academySettings = asDoc.data();
@@ -1245,6 +1310,7 @@
     localStorage.setItem('grd', JSON.stringify(window._readings));
     localStorage.setItem('glrm', JSON.stringify(window._lrMaterials));
     localStorage.setItem('glre', JSON.stringify(window._lrExams));
+    localStorage.setItem('glrw', JSON.stringify(window._lrWrong));
     if (window._academySettings) localStorage.setItem('gas', JSON.stringify(window._academySettings));
   } catch(e) { console.log('Firebase 로드:', e); }
   renderStudents();
@@ -1293,6 +1359,7 @@
   window._readings = JSON.parse(localStorage.getItem('grd') || '[]');
   window._lrMaterials = JSON.parse(localStorage.getItem('glrm') || '[]');
   window._lrExams = JSON.parse(localStorage.getItem('glre') || '[]');
+  window._lrWrong = JSON.parse(localStorage.getItem('glrw') || '[]');
   window._academySettings = JSON.parse(localStorage.getItem('gas') || 'null');
 
   // 기본 과정 목록: 아직 과정이 하나도 없으면 자동으로 채운다
@@ -2422,6 +2489,7 @@ ${a.name}`;
         <div class="student-name">${s.name}</div>
         <div class="student-info">${s.grade} · ${s.date}</div>
         ${s.courseName ? `<div style="font-size:12px; color:#c5a149; margin-top:2px;">${s.courseName}${s.discount==='sibling'?' · 형제할인':s.discount==='sibling20'?' · 형제할인(20%)':s.discount==='friend'?' · 친구할인':''}</div>` : ''}
+        ${s.accessCode ? `<div style="font-size:11px; color:#aaa; margin-top:2px;">🔑 학습코드 ${s.accessCode}</div>` : ''}
         <div class="student-count">📝 ${cnt}편</div>
         <div style="margin-top:10px; display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
           <button class="btn btn-secondary btn-sm" onclick="editStudent('${s.id}')">수정</button>
@@ -2632,6 +2700,7 @@ ${a.name}`;
     document.getElementById('tuitionCalcNote').textContent = '';
     document.getElementById('newBirthdate').value = '';
     document.getElementById('newBillingDay').value = '';
+    document.getElementById('newAccessCode').value = String(Math.floor(1000 + Math.random()*9000));
     syncBillingDayFromDate();
     resetScheduleRows();
     document.getElementById('studentModal').classList.add('open');
@@ -2656,8 +2725,12 @@ ${a.name}`;
     document.getElementById('tuitionCalcNote').textContent = '';
     document.getElementById('newBirthdate').value = s.birthdate || '';
     document.getElementById('newBillingDay').value = s.billingDay || '';
+    document.getElementById('newAccessCode').value = s.accessCode || String(Math.floor(1000 + Math.random()*9000));
     populateScheduleRows(s);
     document.getElementById('studentModal').classList.add('open');
+  }
+  function regenerateAccessCode() {
+    document.getElementById('newAccessCode').value = String(Math.floor(1000 + Math.random()*9000));
   }
 
   // ===== 학생 추가/수정 저장 =====
@@ -2671,10 +2744,11 @@ ${a.name}`;
     const tuition = Number(document.getElementById('newTuition').value) || 0;
     const birthdate = document.getElementById('newBirthdate').value;
     const billingDay = Number(document.getElementById('newBillingDay').value) || (date ? Number(date.split('-')[2]) : 1);
+    const accessCode = document.getElementById('newAccessCode').value.trim();
     const schedule = collectScheduleRows();
     if (!name) { alert('이름을 입력해주세요'); return; }
 
-    const fields = { name, grade, date, schedule, phone, courseName, discount, tuition, birthdate, billingDay };
+    const fields = { name, grade, date, schedule, phone, courseName, discount, tuition, birthdate, billingDay, accessCode };
 
     if (editingStudentId) {
       const idx = _students.findIndex(s=>s.id===editingStudentId);
@@ -3643,7 +3717,8 @@ ${a.name}`;
 
   async function saveLrToFirebase(type, item) {
     try {
-      await window._add(window._col(window._db, type==='material'?'geuldap_lr_materials':'geuldap_lr_exams'), item);
+      const col = type==='material' ? 'geuldap_lr_materials' : type==='exam' ? 'geuldap_lr_exams' : 'geuldap_lr_wrong';
+      await window._add(window._col(window._db, col), item);
     } catch(e) { console.log('학습기 Firebase 저장:', e); }
   }
   async function deleteLrFromFirebase(type, id) {
@@ -3656,9 +3731,15 @@ ${a.name}`;
       await window._updateByFieldId('geuldap_lr_exams', exam.id, exam);
     } catch(e) { console.log('학습기 Firebase 업데이트:', e); }
   }
+  async function updateLrMaterialInFirebase(material) {
+    try {
+      await window._updateByFieldId('geuldap_lr_materials', material.id, material);
+    } catch(e) { console.log('학습기 자료 업데이트:', e); }
+  }
   function saveLrLocal() {
     localStorage.setItem('glrm', JSON.stringify(window._lrMaterials));
     localStorage.setItem('glre', JSON.stringify(window._lrExams));
+    localStorage.setItem('glrw', JSON.stringify(window._lrWrong));
   }
 
   function renderLearnerTab() {
@@ -3673,7 +3754,7 @@ ${a.name}`;
     if (subId==='lr-materials') renderLrStudents();
     if (subId==='lr-exams') renderLrExamStudents();
     if (subId==='lr-dashboard') renderLrDashboard();
-    if (subId==='lr-preview') renderLrPreviewStudents();
+    if (subId==='lr-preview') renderLrCodeList();
   }
 
   function renderLrStudents() {
@@ -4074,24 +4155,17 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
   }
 
   // 학습 미리보기
-  function renderLrPreviewStudents() {
-    const grid = document.getElementById('lrPreviewStudentGrid');
-    const studsWithExams = _students.filter(s=>s.active!==false && window._lrExams.some(e=>e.studentId===s.id)).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
-    if(!studsWithExams.length) { grid.innerHTML='<div class="empty"><div class="empty-icon">👁</div><div>시험이 설정된 학생이 없습니다<br>"시험 설정" 탭에서 먼저 설정해주세요</div></div>'; return; }
-    grid.innerHTML = studsWithExams.map(s => `
-      <div class="student-card ${selectedLrPreviewStudent&&selectedLrPreviewStudent.id===s.id?'selected':''}" onclick="selectLrPreviewStudent('${s.id}')">
-        <div class="student-avatar">${s.name[0]}</div>
-        <div class="student-name">${s.name}</div>
-        <div class="student-info">${s.grade}</div>
-      </div>
-    `).join('');
-  }
 
-  function selectLrPreviewStudent(id) {
+  function renderSpDashboard(id) {
     selectedLrPreviewStudent = _students.find(s=>s.id===id);
     const exam = window._lrExams.find(e=>e.studentId===id);
-    if(!exam) return;
-    document.getElementById('lrPreviewArea').style.display='block';
+    if(!exam) {
+      document.getElementById('spQuizArea').style.display='none';
+      document.getElementById('spNoExamMsg').style.display='block';
+      return;
+    }
+    document.getElementById('spNoExamMsg').style.display='none';
+    document.getElementById('spQuizArea').style.display='block';
     document.getElementById('lrPreviewStudentName').textContent = selectedLrPreviewStudent.name;
     document.getElementById('lrPreviewExamInfo').textContent = exam.name + ' · ' + exam.subject + ' · ' + exam.date;
     document.getElementById('lrTargetDisplay').textContent = exam.targetScore;
@@ -4107,7 +4181,6 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
     document.getElementById('lrDdayDisplay').textContent = dday>0?'D-'+dday:'D-day!';
     // 스테이지 맵 업데이트
     const stages = document.querySelectorAll('#lrStageMap .lr-stage');
-    const lines = document.querySelectorAll('#lrStageMap .lr-stage-line, #lrStageMap .lr-stage-line-locked');
     const currentRound = done + 1;
     stages.forEach((st,i) => {
       st.className = 'lr-stage ' + (i<done?'lr-stage-done': i===done?'lr-stage-current':'lr-stage-locked');
@@ -4121,7 +4194,18 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
     });
     renderLrCoachMsg(exam);
     renderLrPreviewMaterials(exam);
-    renderLrPreviewStudents();
+  }
+
+  function renderLrCodeList() {
+    const body = document.getElementById('lrCodeListBody');
+    if (!body) return;
+    const studs = _students.filter(s=>s.active!==false).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+    if (!studs.length) { body.innerHTML = '<div style="color:#aaa;">등록된 학생이 없습니다.</div>'; return; }
+    body.innerHTML = studs.map(s => `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid #f0f0f0;">
+        <span style="font-weight:600;">${s.name}</span>
+        <span style="font-family:monospace; font-size:15px; font-weight:700; color:#0d1b4b; letter-spacing:2px;">${s.accessCode || '미발급'}</span>
+      </div>`).join('');
   }
 
   function renderLrPreviewMaterials(exam) {
@@ -4141,11 +4225,17 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
         <div style="font-weight:600; color:#2f855a; font-size:13px; margin-bottom:4px;">${subject}</div>
         ${grouped[subject].map(m => {
           const isInExam = examMatIds.includes(m.id);
-          return `<label style="display:flex; align-items:center; gap:6px; padding:4px 0; padding-left:12px; cursor:pointer;">
-            <input type="checkbox" class="lr-preview-mat" value="${m.id}" ${isInExam?'checked':''} onchange="updateLrPreviewSelectAll()">
-            ${m.scope} <span style="color:#aaa; font-size:11px;">(${typeLabels[m.type]||m.type})</span>
-            ${m.status==='extracted'?'<span style="color:#2f855a; font-size:11px;">✅</span>':''}
-          </label>`;
+          return `<div style="display:flex; align-items:center; gap:6px; padding:4px 0; padding-left:12px; flex-wrap:wrap;">
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; flex:1; min-width:160px;">
+              <input type="checkbox" class="lr-preview-mat" value="${m.id}" ${isInExam?'checked':''} onchange="updateLrPreviewSelectAll()">
+              ${m.scope} <span style="color:#aaa; font-size:11px;">(${typeLabels[m.type]||m.type})</span>
+              ${m.status==='extracted'?'<span style="color:#2f855a; font-size:11px;">✅</span>':''}
+            </label>
+            ${m.status==='extracted' ? `
+            <button class="btn btn-secondary btn-sm" onclick="openLrContent('${m.id}','concept')" style="padding:3px 8px; font-size:11px;">📇개념카드</button>
+            <button class="btn btn-secondary btn-sm" onclick="openLrContent('${m.id}','summary')" style="padding:3px 8px; font-size:11px;">📋요약</button>
+            <button class="btn btn-secondary btn-sm" onclick="openLrContent('${m.id}','flashcard')" style="padding:3px 8px; font-size:11px;">🗂플래시카드</button>` : ''}
+          </div>`;
         }).join('')}
       </div>
     `).join('');
@@ -4375,6 +4465,22 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
       document.getElementById('lrFeedbackWrong').style.display='block';
       document.getElementById('lrWrongAnswer').innerHTML = `네 답: <strong>${userAnswer}</strong><br>정답: <strong style="color:#2f855a;">${q.answer}</strong>`;
 
+      // 오답노트에 기록
+      const wrongEntry = {
+        id: 'lrw_' + Date.now() + '_' + Math.floor(Math.random()*1000),
+        studentId: selectedLrPreviewStudent.id,
+        subject: lrCurrentExam ? lrCurrentExam.subject : '',
+        question: q.question,
+        answer: q.answer,
+        userAnswer,
+        concept: q.concept || '',
+        resolved: false,
+        createdAt: todayLocalDateStr()
+      };
+      window._lrWrong.push(wrongEntry);
+      saveLrLocal();
+      if (window._fbReady) saveLrToFirebase('wrong', wrongEntry);
+
       document.getElementById('lrConceptExplain').textContent = '개념을 불러오는 중...';
       document.getElementById('lrCheckWrap').style.display='none';
       document.getElementById('lrCheckResult').style.display='none';
@@ -4495,7 +4601,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     document.getElementById('lrNextRoundBtn').textContent = willRetry ? '🔁 이 회차 다시 도전' : '다음 회차 시작 →';
     document.getElementById('lrNextRoundBtn').style.display = (lrCurrentRound < 7 || willRetry) ? 'inline-block' : 'none';
 
-    selectLrPreviewStudent(selectedLrPreviewStudent.id);
+    renderSpDashboard(selectedLrPreviewStudent.id);
   }
 
   function closeLrRound() {
@@ -4524,6 +4630,174 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
           <div style="font-size:13px;color:#666;margin-top:4px;">학생 답: ${it.studentAnswer} → 정답: ${it.correctAnswer}</div>
           <div style="font-size:13px;color:#888;margin-top:4px;">${it.explanation||''}</div>
         </div>
+      </div>`).join('');
+  }
+
+  // ===== 학습 콘텐츠 다양화: 개념카드 / 요약노트 / 플래시카드 =====
+  async function openLrContent(materialId, kind) {
+    const m = window._lrMaterials.find(x=>x.id===materialId);
+    if(!m) return;
+    const titles = { concept:'📇 개념 카드', summary:'📋 요약 노트', flashcard:'🗂 플래시카드' };
+    document.getElementById('spContentTitle').textContent = `${titles[kind]} — ${m.subject} · ${m.scope}`;
+    document.getElementById('spContentBody').innerHTML = '<div style="text-align:center; padding:30px; color:#888;">불러오는 중...</div>';
+    document.getElementById('spContentModal').classList.add('open');
+
+    const cacheKey = kind === 'concept' ? 'conceptCards' : kind === 'summary' ? 'summaryNote' : 'flashcards';
+    if (m[cacheKey]) { renderLrContentBody(kind, m[cacheKey]); return; }
+
+    try {
+      const data = await generateLrContent(m, kind);
+      m[cacheKey] = data;
+      if (window._fbReady) updateLrMaterialInFirebase(m);
+      saveLrLocal();
+      renderLrContentBody(kind, data);
+    } catch(e) {
+      document.getElementById('spContentBody').innerHTML = `<div style="color:#e53e3e; text-align:center; padding:20px;">생성 중 오류가 발생했어요: ${e.message}</div>`;
+    }
+  }
+
+  async function generateLrContent(material, kind) {
+    const base = `아래는 학생의 학습 자료(${material.subject} · ${material.scope})에서 추출한 내용입니다.\n\n${(material.extractedContent||'').slice(0,6000)}\n\n핵심 개념: ${(material.concepts||[]).join(', ')}\n`;
+
+    let prompt, parseAs;
+    if (kind === 'concept') {
+      prompt = base + `\n위 내용을 바탕으로 개념 카드를 4~8개 만들어주세요. 각 카드는 하나의 핵심 개념을 다루고, 쉬운 설명 + 짧은 예시를 포함해야 합니다.\n아래 JSON 배열로만 응답하세요:\n[{"title":"개념 이름","explanation":"쉬운 설명 (2~3문장)","example":"짧은 예시"}]`;
+    } else if (kind === 'summary') {
+      prompt = base + `\n위 내용을 학생이 시험 전에 훑어볼 수 있는 요약 노트로 정리해주세요. 단원의 흐름이 보이도록 소제목과 불릿포인트로 구성해주세요.\n아래 JSON으로만 응답하세요:\n{"sections":[{"heading":"소제목","points":["요점1","요점2","요점3"]}]}`;
+    } else {
+      prompt = base + `\n위 내용을 바탕으로 암기용 플래시카드를 8~15개 만들어주세요. 앞면은 질문/용어, 뒷면은 답/설명입니다.\n아래 JSON 배열로만 응답하세요:\n[{"front":"질문 또는 용어","back":"답 또는 설명"}]`;
+    }
+
+    const rawText = await callGemini(prompt);
+    const text = rawText.replace(/```json|```/g,'').trim();
+    return JSON.parse(text);
+  }
+
+  function renderLrContentBody(kind, data) {
+    const body = document.getElementById('spContentBody');
+    if (kind === 'concept') {
+      body.innerHTML = data.map(c => `
+        <div style="background:#f8f9fc; border-radius:10px; padding:14px 16px; margin-bottom:10px;">
+          <div style="font-weight:700; color:#0d1b4b; margin-bottom:6px;">${c.title}</div>
+          <div style="color:#444;">${c.explanation}</div>
+          ${c.example ? `<div style="color:#888; font-size:13px; margin-top:6px;">💡 ${c.example}</div>` : ''}
+        </div>`).join('');
+    } else if (kind === 'summary') {
+      body.innerHTML = data.sections.map(sec => `
+        <div style="margin-bottom:14px;">
+          <div style="font-weight:700; color:#2f855a; margin-bottom:4px;">${sec.heading}</div>
+          <ul style="margin:0; padding-left:18px; color:#444;">
+            ${sec.points.map(p=>`<li style="margin-bottom:3px;">${p}</li>`).join('')}
+          </ul>
+        </div>`).join('');
+    } else {
+      body.innerHTML = `<div style="display:flex; flex-direction:column; gap:10px;">` + data.map((c,i) => `
+        <div class="lr-flashcard" onclick="this.classList.toggle('flipped')" style="background:#fffef0; border:1px solid #eee; border-radius:10px; padding:16px; cursor:pointer; min-height:50px;">
+          <div style="font-size:11px; color:#c5a149; margin-bottom:4px;">카드 ${i+1} · 눌러서 뒤집기</div>
+          <div class="lr-flashcard-front" style="font-weight:600;">${c.front}</div>
+          <div class="lr-flashcard-back" style="display:none; color:#444; margin-top:8px; padding-top:8px; border-top:1px dashed #ddd;">${c.back}</div>
+        </div>`).join('') + `</div>
+        <style>.lr-flashcard.flipped .lr-flashcard-back{display:block !important;}</style>`;
+    }
+  }
+
+  function closeSpContentModal() { document.getElementById('spContentModal').classList.remove('open'); }
+
+  // ===== 오답노트 =====
+  function spOpenWrongNotebook() {
+    const sid = window._spStudent ? window._spStudent.id : (selectedLrPreviewStudent ? selectedLrPreviewStudent.id : null);
+    if (!sid) return;
+    const list = window._lrWrong.filter(w => w.studentId === sid && !w.resolved);
+    document.getElementById('spContentTitle').textContent = '📕 오답노트';
+    if (!list.length) {
+      document.getElementById('spContentBody').innerHTML = '<div style="text-align:center; color:#888; padding:30px;">아직 틀린 문제가 없어요. 훌륭해요! 🎉</div>';
+    } else {
+      document.getElementById('spContentBody').innerHTML = `
+        <button class="btn btn-primary" onclick="spRetryWrongOnly()" style="width:100%; margin-bottom:14px;">🔁 틀린 문제만 다시 풀기 (${list.length}개)</button>
+        ${list.map(w => `
+        <div style="background:#fff5f5; border-left:3px solid #e53e3e; border-radius:6px; padding:10px 14px; margin-bottom:8px;">
+          <div style="font-weight:600; font-size:13px;">${w.question}</div>
+          <div style="font-size:12px; color:#888; margin-top:4px;">내 답: ${w.userAnswer} → 정답: <span style="color:#2f855a;">${w.answer}</span></div>
+          ${w.concept ? `<div style="font-size:11px; color:#aaa; margin-top:2px;">개념: ${w.concept}</div>` : ''}
+        </div>`).join('')}`;
+    }
+    document.getElementById('spContentModal').classList.add('open');
+  }
+
+  async function spRetryWrongOnly() {
+    const sid = selectedLrPreviewStudent ? selectedLrPreviewStudent.id : (window._spStudent ? window._spStudent.id : null);
+    if (!sid) return;
+    const list = window._lrWrong.filter(w => w.studentId === sid && !w.resolved);
+    if (!list.length) return;
+    closeSpContentModal();
+
+    lrCurrentExam = window._lrExams.find(e=>e.studentId===sid) || null;
+    lrCurrentQIndex = 0;
+    lrRoundScore = { correct:0, total: list.length };
+    lrCurrentQuestions = list.map(w => ({
+      type: 'text',
+      question: w.question,
+      answer: w.answer,
+      concept: w.concept,
+      explanation: ''
+    }));
+    window._spWrongRetryIds = list.map(w=>w.id);
+
+    document.getElementById('spQuizArea').style.display = 'block';
+    showLrQuestion();
+  }
+
+  // ===== 학생 자율 학습 포털 =====
+  function openStudentPortal() {
+    document.getElementById('pwScreen').style.display = 'none';
+    document.getElementById('studentPortalScreen').style.display = 'flex';
+    document.getElementById('spNameInput').value = '';
+    document.getElementById('spCodeInput').value = '';
+    document.getElementById('spError').classList.remove('show');
+  }
+  function closeStudentPortal() {
+    document.getElementById('studentPortalScreen').style.display = 'none';
+    document.getElementById('pwScreen').style.display = 'flex';
+  }
+  function studentPortalLogin() {
+    const name = document.getElementById('spNameInput').value.trim();
+    const code = document.getElementById('spCodeInput').value.trim();
+    const match = _students.find(s => s.name === name && s.accessCode === code);
+    if (!match) {
+      document.getElementById('spError').classList.add('show');
+      return;
+    }
+    window._spStudent = match;
+    document.getElementById('studentPortalScreen').style.display = 'none';
+    document.getElementById('spHomeScreen').style.display = 'block';
+    document.getElementById('spHomeName').textContent = match.name + '님';
+    renderSpMaterialList();
+    renderSpDashboard(match.id);
+  }
+  function studentPortalLogout() {
+    window._spStudent = null;
+    selectedLrPreviewStudent = null;
+    document.getElementById('spHomeScreen').style.display = 'none';
+    document.getElementById('pwScreen').style.display = 'flex';
+  }
+  function renderSpMaterialList() {
+    const mats = window._lrMaterials.filter(m=>m.studentId===window._spStudent.id && m.status==='extracted');
+    const div = document.getElementById('spMaterialList');
+    if (!mats.length) { div.innerHTML = '<div style="color:#aaa; font-size:13px;">아직 등록된 자료가 없어요. 선생님께 문의해보세요.</div>'; return; }
+    const grouped = {};
+    mats.forEach(m => { (grouped[m.subject] = grouped[m.subject]||[]).push(m); });
+    div.innerHTML = Object.keys(grouped).map(subject => `
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-title">${subject}</div>
+        ${grouped[subject].map(m => `
+          <div style="padding:8px 0; border-top:1px solid #f0f0f0;">
+            <div style="font-weight:600; font-size:14px; margin-bottom:6px;">${m.scope}</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button class="btn btn-secondary btn-sm" onclick="openLrContent('${m.id}','concept')">📇 개념카드</button>
+              <button class="btn btn-secondary btn-sm" onclick="openLrContent('${m.id}','summary')">📋 요약노트</button>
+              <button class="btn btn-secondary btn-sm" onclick="openLrContent('${m.id}','flashcard')">🗂 플래시카드</button>
+            </div>
+          </div>`).join('')}
       </div>`).join('');
   }
 </script>
