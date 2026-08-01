@@ -4785,8 +4785,19 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     document.getElementById('lrRoundComplete').style.display = 'none';
     document.getElementById('lrStartBtn').style.display = 'block';
   }
+  function hideAdminApp() {
+    const h = document.querySelector('.header'); if(h) h.style.display='none';
+    const t = document.querySelector('.tab-nav'); if(t) t.style.display='none';
+    const m = document.querySelector('.main'); if(m) m.style.display='none';
+  }
+  function showAdminApp() {
+    const h = document.querySelector('.header'); if(h) h.style.display='';
+    const t = document.querySelector('.tab-nav'); if(t) t.style.display='';
+    const m = document.querySelector('.main'); if(m) m.style.display='';
+  }
   function openStudentPortal() {
     document.getElementById('pwScreen').style.display = 'none';
+    hideAdminApp();
     document.getElementById('studentPortalScreen').style.display = 'flex';
     document.getElementById('spNameInput').value = '';
     document.getElementById('spCodeInput').value = '';
@@ -4794,6 +4805,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
   }
   function closeStudentPortal() {
     document.getElementById('studentPortalScreen').style.display = 'none';
+    showAdminApp();
     document.getElementById('pwScreen').style.display = 'flex';
   }
   function studentPortalLogin() {
@@ -4806,6 +4818,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     }
     window._spStudent = match;
     document.getElementById('studentPortalScreen').style.display = 'none';
+    hideAdminApp();
     document.getElementById('spHomeScreen').style.display = 'block';
     document.getElementById('spHomeName').textContent = match.name + '님';
     renderSpMaterialList();
@@ -4815,6 +4828,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     window._spStudent = null;
     selectedLrPreviewStudent = null;
     document.getElementById('spHomeScreen').style.display = 'none';
+    showAdminApp();
     document.getElementById('pwScreen').style.display = 'flex';
   }
   function renderSpMaterialList() {
