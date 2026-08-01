@@ -726,6 +726,15 @@
 
         <!-- AI 학습 인터랙션 영역 -->
         <div style="margin-top:20px; border-top:2px solid #e0e0e0; padding-top:20px;">
+          <div id="lrPreviewMaterials" style="margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <div style="font-size:14px; font-weight:600; color:#555;">📚 학습할 자료 선택</div>
+              <label style="font-size:12px; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                <input type="checkbox" id="lrPreviewSelectAll" onchange="toggleAllLrPreviewMats(this.checked)" checked> 전체
+              </label>
+            </div>
+            <div id="lrPreviewMatList" style="font-size:13px;"></div>
+          </div>
           <button class="btn btn-primary" onclick="startLrLearning()" id="lrStartBtn" style="width:100%; padding:16px; font-size:16px;">🚀 학습 시작 (현재 회차)</button>
         </div>
 
@@ -4048,7 +4057,45 @@ ${a.name}`;
       }
     });
     renderLrCoachMsg(exam);
+    renderLrPreviewMaterials(exam);
     renderLrPreviewStudents();
+  }
+
+  function renderLrPreviewMaterials(exam) {
+    const allMats = window._lrMaterials.filter(m=>m.studentId===selectedLrPreviewStudent.id);
+    const div = document.getElementById('lrPreviewMatList');
+    if(!allMats.length) { div.innerHTML='<div style="color:#aaa;">등록된 자료가 없습니다.</div>'; return; }
+    // 과목별 그룹핑
+    const grouped = {};
+    allMats.forEach(m => {
+      if(!grouped[m.subject]) grouped[m.subject] = [];
+      grouped[m.subject].push(m);
+    });
+    const typeLabels = { textbook:'교과서', worksheet:'활동지', workbook:'문제집', notes:'필기' };
+    const examMatIds = exam.materialIds || [];
+    div.innerHTML = Object.keys(grouped).map(subject => `
+      <div style="margin-bottom:10px;">
+        <div style="font-weight:600; color:#2f855a; font-size:13px; margin-bottom:4px;">${subject}</div>
+        ${grouped[subject].map(m => {
+          const isInExam = examMatIds.includes(m.id);
+          return `<label style="display:flex; align-items:center; gap:6px; padding:4px 0; padding-left:12px; cursor:pointer;">
+            <input type="checkbox" class="lr-preview-mat" value="${m.id}" ${isInExam?'checked':''} onchange="updateLrPreviewSelectAll()">
+            ${m.scope} <span style="color:#aaa; font-size:11px;">(${typeLabels[m.type]||m.type})</span>
+            ${m.status==='extracted'?'<span style="color:#2f855a; font-size:11px;">✅</span>':''}
+          </label>`;
+        }).join('')}
+      </div>
+    `).join('');
+  }
+
+  function toggleAllLrPreviewMats(checked) {
+    document.querySelectorAll('.lr-preview-mat').forEach(cb => cb.checked = checked);
+  }
+  function updateLrPreviewSelectAll() {
+    const all = document.querySelectorAll('.lr-preview-mat');
+    const checked = document.querySelectorAll('.lr-preview-mat:checked');
+    const sa = document.getElementById('lrPreviewSelectAll');
+    if(sa) sa.checked = all.length === checked.length;
   }
 
   function renderLrCoachMsg(exam) {
@@ -4132,7 +4179,13 @@ ${a.name}`;
     document.getElementById('lrAiLoadingText').textContent = `${info.label} 문제를 만들고 있어요...`;
 
     try {
-      const mats = window._lrMaterials.filter(m=>lrCurrentExam.materialIds.includes(m.id));
+      const checkedPreviewMats = Array.from(document.querySelectorAll('.lr-preview-mat:checked')).map(c=>c.value);
+      if(!checkedPreviewMats.length) { 
+        document.getElementById('lrAiLoading').style.display='none';
+        document.getElementById('lrStartBtn').style.display='block';
+        alert('학습할 자료를 1개 이상 선택해주세요.'); return; 
+      }
+      const mats = window._lrMaterials.filter(m=>checkedPreviewMats.includes(m.id));
       const matInfo = mats.map(m=>`[${m.subject}] ${m.scope} (${m.type})`).join(', ');
 
       // 추출된 교재 내용 조합
