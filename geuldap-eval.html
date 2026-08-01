@@ -248,6 +248,14 @@
         </div>
         <button class="btn btn-primary" onclick="startLrLearning()" id="lrStartBtn" style="width:100%; padding:16px; font-size:16px;">🚀 학습 시작 (현재 회차)</button>
       </div>
+    </div>
+
+    <!-- 문제풀이 전용 화면 (집중 모드) -->
+    <div id="lrFocusOverlay" style="display:none; position:fixed; inset:0; background:#fff; z-index:9998; overflow-y:auto;">
+      <div style="max-width:640px; margin:0 auto; padding:20px;">
+        <div style="display:flex; justify-content:flex-end; margin-bottom:6px;">
+          <button onclick="exitLrFocus()" style="background:none; border:none; color:#aaa; font-size:13px; cursor:pointer;">✕ 나가기</button>
+        </div>
 
       <!-- 로딩 -->
       <div id="lrAiLoading" style="display:none; text-align:center; padding:30px;">
@@ -315,6 +323,7 @@
           <button class="btn btn-secondary" onclick="closeLrRound()">돌아가기</button>
           <button class="btn btn-primary" onclick="startLrLearning()" id="lrNextRoundBtn" style="display:none;">다음 회차 시작 →</button>
         </div>
+      </div>
       </div>
     </div>
 
@@ -4201,6 +4210,11 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
     });
     renderLrCoachMsg(exam);
     renderLrPreviewMaterials(exam);
+    if (done >= 7) {
+      document.getElementById('lrStartBtn').textContent = '🎉 모든 회차 완료! (복습하기)';
+    } else {
+      document.getElementById('lrStartBtn').textContent = `🚀 ${done+1}회차 학습 시작`;
+    }
   }
 
   function renderLrCodeList() {
@@ -4332,6 +4346,7 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
     lrCurrentRound = getNextLrRound(lrCurrentExam);
     const info = LR_PHASE_INFO[lrCurrentRound];
 
+    document.getElementById('lrFocusOverlay').style.display='block';
     document.getElementById('lrStartBtn').style.display='none';
     document.getElementById('lrRoundComplete').style.display='none';
     document.getElementById('lrQuestionArea').style.display='none';
@@ -4342,6 +4357,7 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
       const checkedPreviewMats = Array.from(document.querySelectorAll('.lr-preview-mat:checked')).map(c=>c.value);
       if(!checkedPreviewMats.length) { 
         document.getElementById('lrAiLoading').style.display='none';
+        document.getElementById('lrFocusOverlay').style.display='none';
         document.getElementById('lrStartBtn').style.display='block';
         alert('학습할 자료를 1개 이상 선택해주세요.'); return; 
       }
@@ -4405,6 +4421,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
       showLrQuestion();
     } catch(e) {
       document.getElementById('lrAiLoading').style.display='none';
+      document.getElementById('lrFocusOverlay').style.display='none';
       document.getElementById('lrStartBtn').style.display='block';
       alert('문제 생성 중 오류: ' + e.message);
     }
@@ -4612,12 +4629,16 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
   }
 
   function closeLrRound() {
+    document.getElementById('lrFocusOverlay').style.display='none';
     document.getElementById('lrRoundComplete').style.display='none';
     document.getElementById('lrStartBtn').style.display='block';
-    const nextRoundNum = lrCurrentExam ? getNextLrRound(lrCurrentExam) : lrCurrentRound + 1;
-    document.getElementById('lrStartBtn').textContent = nextRoundNum <= 7
-      ? `🚀 ${nextRoundNum}회차 학습 시작`
-      : '🏆 모든 회차 완료!';
+    const doneCount = lrCurrentExam ? lrCurrentExam.schedule.filter(s=>s.done).length : 0;
+    if (doneCount >= 7) {
+      document.getElementById('lrStartBtn').textContent = '🎉 모든 회차 완료! (복습하기)';
+    } else {
+      const nextRoundNum = doneCount + 1;
+      document.getElementById('lrStartBtn').textContent = `🚀 ${nextRoundNum}회차 학습 시작`;
+    }
   }
 
   // ===== 틀린 문제 복습 =====
@@ -4750,11 +4771,20 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     }));
     window._spWrongRetryIds = list.map(w=>w.id);
 
-    document.getElementById('spQuizArea').style.display = 'block';
+    document.getElementById('lrFocusOverlay').style.display = 'block';
+    document.getElementById('lrQuestionArea').style.display = 'block';
     showLrQuestion();
   }
 
   // ===== 학생 자율 학습 포털 =====
+  function exitLrFocus() {
+    if (!confirm('학습을 중단하고 나가시겠어요? 지금까지 푼 내용은 저장되지 않아요.')) return;
+    document.getElementById('lrFocusOverlay').style.display = 'none';
+    document.getElementById('lrAiLoading').style.display = 'none';
+    document.getElementById('lrQuestionArea').style.display = 'none';
+    document.getElementById('lrRoundComplete').style.display = 'none';
+    document.getElementById('lrStartBtn').style.display = 'block';
+  }
   function openStudentPortal() {
     document.getElementById('pwScreen').style.display = 'none';
     document.getElementById('studentPortalScreen').style.display = 'flex';
