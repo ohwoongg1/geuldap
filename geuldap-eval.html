@@ -340,8 +340,49 @@
       <div id="spWeakBody" style="font-size:13px; color:#888;">아직 분석할 데이터가 부족해요. 문제를 더 풀어보세요!</div>
     </div>
 
-    <div class="card-title" style="margin-top:24px;">📚 내 학습 자료</div>
+    <div class="card-title" style="margin-top:24px; display:flex; justify-content:space-between; align-items:center;">
+      📚 내 학습 자료
+      <button class="btn btn-primary btn-sm" onclick="openSpNewTopicForm()">+ 나만의 학습 만들기</button>
+    </div>
     <div id="spMaterialList"></div>
+  </div>
+</div>
+
+<!-- 학생용 - 나만의 학습 만들기 모달 -->
+<div class="modal-bg" id="spNewTopicModal">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-title">✏️ 나만의 학습 만들기</div>
+    <div style="font-size:13px; color:#888; margin-bottom:14px;">사진 없이 과목·단원명만 입력하면 AI가 바로 학습 계획을 만들어줘요.</div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>과목</label>
+        <input type="text" id="spTopicSubject" placeholder="예: 수학">
+      </div>
+      <div class="form-group full">
+        <label>단원명 / 주제</label>
+        <input type="text" id="spTopicScope" placeholder="예: 인수분해">
+      </div>
+      <div class="form-group">
+        <label>난이도</label>
+        <select id="spTopicDifficulty">
+          <option value="쉬움">쉬움</option>
+          <option value="보통" selected>보통</option>
+          <option value="어려움">어려움</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>목표 점수</label>
+        <input type="number" id="spTopicTarget" value="90" min="1" max="100">
+      </div>
+      <div class="form-group full">
+        <label>목표일 (이 날까지 7회 반복학습을 마쳐요)</label>
+        <input type="date" id="spTopicDate">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeSpNewTopicForm()">취소</button>
+      <button class="btn btn-primary" id="spTopicSaveBtn" onclick="createSpTopicLearning()">✨ AI로 만들기</button>
+    </div>
   </div>
 </div>
 
@@ -757,7 +798,13 @@
       </div>
       <div class="card" id="lrUploadSection" style="display:none;">
         <div class="card-title">📄 학습 자료 업로드</div>
-        <div style="font-size:13px; color:#888; margin-bottom:14px;">교과서 페이지, 학습활동지, 문제집을 사진으로 찍어 올리세요. AI가 내용을 분석합니다.</div>
+        <div style="font-size:13px; color:#888; margin-bottom:14px;">교과서 페이지, 학습활동지, 문제집을 사진으로 찍어 올리거나, 저작권 걱정 없이 단원명만 입력해서 만들 수 있어요.</div>
+
+        <div style="display:flex; gap:8px; margin-bottom:16px;">
+          <button type="button" class="btn btn-primary btn-sm" id="lrModePhotoBtn" onclick="switchLrUploadMode('photo')">📷 사진으로 업로드</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="lrModeTopicBtn" onclick="switchLrUploadMode('topic')">✏️ 제목/단원명만 입력</button>
+        </div>
+
         <div class="form-grid">
           <div class="form-group">
             <label>과목</label>
@@ -772,7 +819,7 @@
               <option value="기타">기타</option>
             </select>
           </div>
-          <div class="form-group">
+          <div class="form-group" id="lrMaterialTypeGroup">
             <label>자료 종류</label>
             <select id="lrMaterialType">
               <option value="textbook">교과서</option>
@@ -782,10 +829,10 @@
             </select>
           </div>
           <div class="form-group full">
-            <label>단원/범위 (예: 3단원 52~78쪽)</label>
+            <label>단원/범위 (예: 3단원 52~78쪽, 또는 "인수분해")</label>
             <input type="text" id="lrScope" placeholder="단원명이나 페이지 범위를 입력하세요">
           </div>
-          <div class="form-group full">
+          <div class="form-group full" id="lrPhotoUploadGroup">
             <label>자료 사진 / 파일</label>
             <div class="upload-area" onclick="document.getElementById('lrFileInput').click()">
               📎 클릭하여 업로드<br><span style="font-size:12px;color:#999;">사진(여러 장), PDF, TXT 파일 지원</span>
@@ -795,7 +842,7 @@
           </div>
         </div>
         <div style="display:flex; gap:8px; margin-top:16px;">
-          <button class="btn btn-primary" onclick="saveLrMaterial()">💾 자료 저장</button>
+          <button class="btn btn-primary" id="lrSaveMaterialBtn" onclick="saveLrMaterial()">💾 자료 저장</button>
         </div>
       </div>
       <div class="card" id="lrMaterialList" style="display:none;">
@@ -3736,6 +3783,44 @@ ${a.name}`;
   function getLrMaterials() { return window._lrMaterials || []; }
   function getLrExams() { return window._lrExams || []; }
 
+  // 학생당 시험(학습 세션)이 여러 개일 수 있으므로, 가장 최근에 만든 것을 "현재 활성 시험"으로 사용한다.
+  // (선생님이 시험 설정으로 만든 것, 학생이 스스로 만든 것 모두 포함)
+  function getActiveLrExam(studentId) {
+    const list = window._lrExams.filter(e => e.studentId === studentId);
+    return list.length ? list[list.length - 1] : null;
+  }
+
+  // ===== 제목/단원명만으로 자료 생성 (사진 없이, 일반 교육과정 지식 기반) =====
+  // 원문을 저장하거나 재현하지 않고, AI가 이미 알고 있는 해당 학년·단원의 일반적인 개념 지식만 사용한다.
+  async function createTopicMaterial({ studentId, grade, subject, scope }) {
+    const prompt = `당신은 ${grade} 학생을 가르치는 교사입니다.
+
+과목: ${subject}
+단원/주제: ${scope}
+
+특정 교재의 문장을 그대로 옮기지 말고, 이 학년·과목·단원에서 일반적으로 다루는 교육과정 지식만을 바탕으로 아래를 정리해주세요.
+
+아래 JSON으로만 응답하세요:
+{
+  "concepts": ["핵심 개념1", "핵심 개념2", "핵심 개념3", "핵심 개념4", "핵심 개념5"],
+  "summary": "이 단원에서 배우는 내용을 3줄로 요약"
+}`;
+    const rawText = await callGemini(prompt);
+    const parsed = JSON.parse(rawText.replace(/```json|```/g,'').trim());
+    return {
+      id: 'lrm_' + Date.now(),
+      studentId, subject, scope,
+      type: 'topic',
+      imageCount: 0,
+      extractedContent: '', // 원문 없음 — 제목/단원명 기반이라 저작권 걱정 없음
+      concepts: (parsed.concepts || []).slice(0, 20),
+      summary: parsed.summary || '',
+      questions: [],
+      createdAt: todayLocalDateStr(),
+      status: 'extracted'
+    };
+  }
+
   async function saveLrToFirebase(type, item) {
     try {
       const col = type==='material' ? 'geuldap_lr_materials' : type==='exam' ? 'geuldap_lr_exams' : 'geuldap_lr_wrong';
@@ -3863,15 +3948,50 @@ ${a.name}`;
     }).join('');
   }
 
+  let lrUploadMode = 'photo';
+  function switchLrUploadMode(mode) {
+    lrUploadMode = mode;
+    document.getElementById('lrModePhotoBtn').className = mode==='photo' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+    document.getElementById('lrModeTopicBtn').className = mode==='topic' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+    document.getElementById('lrPhotoUploadGroup').style.display = mode==='photo' ? 'block' : 'none';
+    document.getElementById('lrMaterialTypeGroup').style.display = mode==='photo' ? 'block' : 'none';
+    document.getElementById('lrSaveMaterialBtn').textContent = mode==='photo' ? '💾 자료 저장' : '✨ AI로 만들기';
+  }
+
   async function saveLrMaterial() {
     if(!selectedLrStudent) { alert('학생을 먼저 선택하세요.'); return; }
     const subject = document.getElementById('lrSubject').value;
-    const type = document.getElementById('lrMaterialType').value;
     const scope = document.getElementById('lrScope').value;
     if(!scope) { alert('단원/범위를 입력하세요.'); return; }
+
+    if (lrUploadMode === 'topic') {
+      const btn = document.getElementById('lrSaveMaterialBtn');
+      const orig = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '🔄 AI가 만드는 중...';
+      try {
+        const material = await createTopicMaterial({ studentId: selectedLrStudent.id, grade: selectedLrStudent.grade, subject, scope });
+        window._lrMaterials.push(material);
+        saveLrToFirebase('material', material);
+        saveLrLocal();
+        document.getElementById('lrScope').value = '';
+        renderLrStudents();
+        renderLrMaterialList();
+        alert('✅ 자료 생성 완료! (' + subject + ' · ' + scope + ')\n\nAI가 정리한 핵심 개념: ' + material.concepts.join(', '));
+      } catch(e) {
+        alert('생성 중 오류: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = orig;
+      }
+      return;
+    }
+
+    // ===== 사진/파일 업로드 모드 =====
+    const type = document.getElementById('lrMaterialType').value;
     if(!_lrImages.length) { alert('자료 사진이나 파일을 올려주세요.'); return; }
 
-    const typeLabels = { textbook:'교과서', worksheet:'학습활동지', workbook:'문제집', notes:'필기/정리' };
+    const typeLabels = { textbook:'교과서', worksheet:'학습활동지', workbook:'문제집', notes:'필기/정리', topic:'AI 생성(제목기반)' };
     const materialId = 'lrm_' + Date.now();
 
     // 이미지와 파일 분리
@@ -3880,7 +4000,7 @@ ${a.name}`;
     const txtFiles = _lrImages.filter(f => f.fileType === 'txt');
     const totalFileCount = _lrImages.length;
 
-    const extractBtn = document.querySelector('#lrUploadSection .btn-primary');
+    const extractBtn = document.getElementById('lrSaveMaterialBtn');
     const origBtnText = extractBtn.textContent;
     extractBtn.disabled = true;
     extractBtn.textContent = '🔄 AI가 자료를 읽는 중...';
@@ -3980,7 +4100,7 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
     const list = window._lrMaterials.filter(m=>m.studentId===selectedLrStudent.id);
     const body = document.getElementById('lrMaterialListBody');
     if(!list.length) { body.innerHTML='<div style="text-align:center;color:#aaa;padding:20px;">등록된 자료가 없습니다</div>'; return; }
-    const typeLabels = { textbook:'교과서', worksheet:'활동지', workbook:'문제집', notes:'필기' };
+    const typeLabels = { textbook:'교과서', worksheet:'활동지', workbook:'문제집', notes:'필기', topic:'AI생성' };
     const typeBadges = { textbook:'lr-badge-textbook', worksheet:'lr-badge-worksheet', workbook:'lr-badge-workbook', notes:'lr-badge-notes' };
     body.innerHTML = list.map(m => `
       <div class="lr-material-item">
@@ -4198,7 +4318,7 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
 
   function renderSpDashboard(id) {
     selectedLrPreviewStudent = _students.find(s=>s.id===id);
-    const exam = window._lrExams.find(e=>e.studentId===id);
+    const exam = getActiveLrExam(id);
     if(!exam) {
       document.getElementById('spQuizArea').style.display='none';
       document.getElementById('spNoExamMsg').style.display='block';
@@ -4265,7 +4385,7 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
       if(!grouped[m.subject]) grouped[m.subject] = [];
       grouped[m.subject].push(m);
     });
-    const typeLabels = { textbook:'교과서', worksheet:'활동지', workbook:'문제집', notes:'필기' };
+    const typeLabels = { textbook:'교과서', worksheet:'활동지', workbook:'문제집', notes:'필기', topic:'AI생성' };
     const examMatIds = exam.materialIds || [];
     div.innerHTML = Object.keys(grouped).map(subject => `
       <div style="margin-bottom:10px;">
@@ -4371,7 +4491,7 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
     if(!selectedLrPreviewStudent) return;
     lrPracticeMode = false;
     lrPracticeConcepts = [];
-    lrCurrentExam = window._lrExams.find(e=>e.studentId===selectedLrPreviewStudent.id);
+    lrCurrentExam = getActiveLrExam(selectedLrPreviewStudent.id);
     if(!lrCurrentExam) { alert('설정된 시험이 없습니다.'); return; }
     lrCurrentRound = getNextLrRound(lrCurrentExam);
     const info = LR_PHASE_INFO[lrCurrentRound];
@@ -4745,7 +4865,9 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
   }
 
   async function generateLrContent(material, kind) {
-    const base = `아래는 학생의 학습 자료(${material.subject} · ${material.scope})에서 추출한 내용입니다.\n\n${(material.extractedContent||'').slice(0,6000)}\n\n핵심 개념: ${(material.concepts||[]).join(', ')}\n`;
+    const base = material.extractedContent
+      ? `아래는 학생의 학습 자료(${material.subject} · ${material.scope})에서 추출한 내용입니다.\n\n${material.extractedContent.slice(0,6000)}\n\n핵심 개념: ${(material.concepts||[]).join(', ')}\n`
+      : `학습 자료: ${material.subject} · ${material.scope}\n요약: ${material.summary||''}\n핵심 개념: ${(material.concepts||[]).join(', ')}\n(특정 교재 원문 없이, 이 단원의 일반적인 교육과정 지식을 바탕으로 만들어주세요.)\n`;
 
     let prompt, parseAs;
     if (kind === 'concept') {
@@ -4821,7 +4943,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     lrPracticeMode = true;
     lrPracticeConcepts = [];
 
-    lrCurrentExam = window._lrExams.find(e=>e.studentId===sid) || null;
+    lrCurrentExam = getActiveLrExam(sid);
     lrCurrentQIndex = 0;
     lrRoundScore = { correct:0, total: list.length };
     lrCurrentQuestions = list.map(w => ({
@@ -4895,7 +5017,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
 
     lrPracticeMode = true;
     lrPracticeConcepts = weak.map(w => w.concept);
-    lrCurrentExam = window._lrExams.find(e=>e.studentId===selectedLrPreviewStudent.id) || null;
+    lrCurrentExam = getActiveLrExam(selectedLrPreviewStudent.id);
 
     document.getElementById('lrFocusOverlay').style.display = 'block';
     document.getElementById('lrStartBtn').style.display = 'none';
@@ -4967,6 +5089,70 @@ type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 c
     showAdminApp();
     document.getElementById('pwScreen').style.display = 'flex';
   }
+  function openSpNewTopicForm() {
+    document.getElementById('spTopicSubject').value = '';
+    document.getElementById('spTopicScope').value = '';
+    document.getElementById('spTopicDifficulty').value = '보통';
+    document.getElementById('spTopicTarget').value = 90;
+    const d = new Date(); d.setDate(d.getDate() + 14);
+    document.getElementById('spTopicDate').value = d.toISOString().slice(0,10);
+    document.getElementById('spNewTopicModal').classList.add('open');
+  }
+  function closeSpNewTopicForm() {
+    document.getElementById('spNewTopicModal').classList.remove('open');
+  }
+  async function createSpTopicLearning() {
+    if (!window._spStudent) return;
+    const subject = document.getElementById('spTopicSubject').value.trim();
+    const scope = document.getElementById('spTopicScope').value.trim();
+    const difficulty = document.getElementById('spTopicDifficulty').value;
+    const target = parseInt(document.getElementById('spTopicTarget').value) || 90;
+    const date = document.getElementById('spTopicDate').value;
+    if (!subject || !scope) { alert('과목과 단원명을 입력해주세요.'); return; }
+    const today = new Date();
+    const examDate = new Date(date);
+    const daysLeft = Math.ceil((examDate - today)/(1000*60*60*24));
+    if (daysLeft < 1) { alert('목표일은 오늘 이후여야 해요.'); return; }
+
+    const btn = document.getElementById('spTopicSaveBtn');
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '🔄 AI가 만드는 중...';
+    try {
+      const material = await createTopicMaterial({ studentId: window._spStudent.id, grade: window._spStudent.grade, subject, scope });
+      window._lrMaterials.push(material);
+      saveLrToFirebase('material', material);
+
+      const exam = {
+        id: 'lre_' + Date.now(),
+        studentId: window._spStudent.id,
+        name: `${subject} ${scope}`,
+        subject,
+        date,
+        targetScore: target,
+        difficulty,
+        materialIds: [material.id],
+        daysLeft,
+        schedule: generateRepeatSchedule(daysLeft),
+        progress: { currentRound:1, completed:false },
+        createdAt: todayLocalDateStr()
+      };
+      window._lrExams.push(exam);
+      saveLrToFirebase('exam', exam);
+      saveLrLocal();
+
+      closeSpNewTopicForm();
+      renderSpMaterialList();
+      renderSpDashboard(window._spStudent.id);
+      alert('✅ "' + subject + ' ' + scope + '" 학습이 만들어졌어요! 대시보드에서 바로 시작할 수 있어요.');
+    } catch(e) {
+      alert('생성 중 오류: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = orig;
+    }
+  }
+
   function renderSpMaterialList() {
     const mats = window._lrMaterials.filter(m=>m.studentId===window._spStudent.id && m.status==='extracted');
     const div = document.getElementById('spMaterialList');
