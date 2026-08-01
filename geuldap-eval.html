@@ -1238,13 +1238,14 @@
 
 <script>
   // ===== 버전 정보 (콘솔에서 확인: APP_VERSION 또는 페이지 로드시 자동 출력) =====
-  const APP_VERSION = 'v1.4';
+  const APP_VERSION = 'v1.5';
   const APP_VERSION_LOG = [
     'v1.0 — 탭 구조 + UI 껍데기',
     'v1.1 — AI 문제 생성 + 개념 사다리',
     'v1.2 — Firebase 저장',
     'v1.3 — AI 자료 분석 + 교재 기반 문제 생성',
-    'v1.4 — 학생 이름 오류 수정, 확인 단계 멈춤 버그 수정, 지문 기반 문제 생성 추가'
+    'v1.4 — 학생 이름 오류 수정, 확인 단계 멈춤 버그 수정, 지문 기반 문제 생성 추가',
+    'v1.5 — 회차 진행 난이도 자동 조정 (60점 미만 재도전, 90점 이상 스킵)'
   ];
   console.log(`%c글답 학습기 ${APP_VERSION}`, 'font-weight:bold; font-size:14px; color:#0d1b4b;');
   console.log(APP_VERSION_LOG.join('\n'));
@@ -4043,12 +4044,16 @@ ${a.name}`;
     7: { phase:'응용', label:'7회차: 모의시험', desc:'실전처럼 풀어보는 단계', qType:'실전 난이도 종합 문제, 서술형' }
   };
 
+  function getNextLrRound(exam) {
+    const done = exam.schedule.filter(s=>s.done).length;
+    return Math.min(done + 1, 7);
+  }
+
   async function startLrLearning() {
     if(!selectedLrPreviewStudent) return;
     lrCurrentExam = window._lrExams.find(e=>e.studentId===selectedLrPreviewStudent.id);
     if(!lrCurrentExam) { alert('설정된 시험이 없습니다.'); return; }
-    const done = lrCurrentExam.schedule.filter(s=>s.done).length;
-    lrCurrentRound = Math.min(done + 1, 7);
+    lrCurrentRound = getNextLrRound(lrCurrentExam);
     const info = LR_PHASE_INFO[lrCurrentRound];
 
     document.getElementById('lrStartBtn').style.display='none';
@@ -4264,10 +4269,29 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
   function finishLrRound() {
     const info = LR_PHASE_INFO[lrCurrentRound];
     const pct = Math.round(lrRoundScore.correct / lrRoundScore.total * 100);
+    let skippedNext = false;
+    let willRetry = false;
 
     if(lrCurrentExam && lrCurrentExam.schedule[lrCurrentRound-1]) {
-      lrCurrentExam.schedule[lrCurrentRound-1].done = true;
-      lrCurrentExam.schedule[lrCurrentRound-1].score = pct;
+      if(pct >= 60) {
+        lrCurrentExam.schedule[lrCurrentRound-1].done = true;
+        lrCurrentExam.schedule[lrCurrentRound-1].score = pct;
+
+        // 90점 이상 & 다음 회차가 같은 단계(이해/암기/응용)면 건너뛰기
+        const nextRound = lrCurrentRound + 1;
+        const nextInfo = LR_PHASE_INFO[nextRound];
+        if(pct >= 90 && nextInfo && nextInfo.phase === info.phase && lrCurrentExam.schedule[nextRound-1] && !lrCurrentExam.schedule[nextRound-1].done) {
+          lrCurrentExam.schedule[nextRound-1].done = true;
+          lrCurrentExam.schedule[nextRound-1].score = null;
+          lrCurrentExam.schedule[nextRound-1].skipped = true;
+          skippedNext = true;
+        }
+      } else {
+        // 60점 미만이면 이 회차를 완료 처리하지 않음 → 다음에 같은 회차 재도전
+        lrCurrentExam.schedule[lrCurrentRound-1].score = pct;
+        lrCurrentExam.schedule[lrCurrentRound-1].done = false;
+        willRetry = true;
+      }
       updateLrExamInFirebase(lrCurrentExam);
       saveLrLocal();
     }
@@ -4277,12 +4301,14 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     document.getElementById('lrRoundCompleteTitle').textContent = `${lrCurrentRound}회차 완료! ${info.phase} 단계`;
 
     let msg = `${lrRoundScore.correct}/${lrRoundScore.total} 정답 (${pct}%)`;
-    if(pct >= 80) msg += '\n🌟 훌륭해요! 다음 단계로 넘어갈 준비가 됐어요.';
-    else if(pct >= 60) msg += '\n👍 잘하고 있어요. 틀린 부분만 한 번 더 보면 완벽해질 거예요.';
-    else msg += '\n💪 이 부분을 조금 더 복습하고 넘어가면 좋겠어요.';
+    if(willRetry) msg += '\n💪 아직 조금 부족해요. 이 회차를 한 번 더 연습해볼까요?';
+    else if(skippedNext) msg += '\n🌟🌟 완벽해요! 다음 회차는 건너뛰고 그다음 단계로 갈게요.';
+    else if(pct >= 80) msg += '\n🌟 훌륭해요! 다음 단계로 넘어갈 준비가 됐어요.';
+    else msg += '\n👍 잘하고 있어요. 다음 회차로 넘어갈게요.';
     document.getElementById('lrRoundCompleteMsg').textContent = msg;
 
-    document.getElementById('lrNextRoundBtn').style.display = lrCurrentRound < 7 ? 'inline-block' : 'none';
+    document.getElementById('lrNextRoundBtn').textContent = willRetry ? '🔁 이 회차 다시 도전' : '다음 회차 시작 →';
+    document.getElementById('lrNextRoundBtn').style.display = (lrCurrentRound < 7 || willRetry) ? 'inline-block' : 'none';
 
     selectLrPreviewStudent(selectedLrPreviewStudent.id);
   }
@@ -4290,8 +4316,9 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
   function closeLrRound() {
     document.getElementById('lrRoundComplete').style.display='none';
     document.getElementById('lrStartBtn').style.display='block';
-    document.getElementById('lrStartBtn').textContent = lrCurrentRound < 7
-      ? `🚀 ${lrCurrentRound+1}회차 학습 시작`
+    const nextRoundNum = lrCurrentExam ? getNextLrRound(lrCurrentExam) : lrCurrentRound + 1;
+    document.getElementById('lrStartBtn').textContent = nextRoundNum <= 7
+      ? `🚀 ${nextRoundNum}회차 학습 시작`
       : '🏆 모든 회차 완료!';
   }
 
