@@ -576,10 +576,10 @@
             <input type="text" id="lrScope" placeholder="단원명이나 페이지 범위를 입력하세요">
           </div>
           <div class="form-group full">
-            <label>자료 사진</label>
+            <label>자료 사진 / 파일</label>
             <div class="upload-area" onclick="document.getElementById('lrFileInput').click()">
-              📷 클릭하여 사진 업로드<br><span style="font-size:12px;color:#999;">여러 장 한번에 선택 가능</span>
-              <input type="file" id="lrFileInput" accept="image/*" multiple style="display:none;" onchange="previewLrImages(this)">
+              📎 클릭하여 업로드<br><span style="font-size:12px;color:#999;">사진(여러 장), PDF, TXT 파일 지원</span>
+              <input type="file" id="lrFileInput" accept="image/*,.pdf,.txt" multiple style="display:none;" onchange="previewLrFiles(this)">
             </div>
             <div id="lrImagePreview" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;"></div>
           </div>
@@ -3699,28 +3699,64 @@ ${a.name}`;
     renderLrMaterialList();
   }
 
-  function previewLrImages(input) {
+  function previewLrFiles(input) {
     const files = Array.from(input.files);
     (async () => {
       for (const file of files) {
         try {
-          const dataUrl = await loadOrientedImage(file);
-          _lrImages.push({ name: file.name, data: dataUrl, base64: dataUrl.split(',')[1] });
-          renderLrImagePreviews();
-        } catch(e) { alert('사진 처리 중 오류: ' + e.message); }
+          const ext = file.name.split('.').pop().toLowerCase();
+          if (ext === 'pdf') {
+            // PDF → base64로 읽어서 저장
+            const dataUrl = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = () => reject(new Error('파일 읽기 실패'));
+              reader.readAsDataURL(file);
+            });
+            _lrImages.push({ name: file.name, data: dataUrl, base64: dataUrl.split(',')[1], fileType: 'pdf', mediaType: 'application/pdf' });
+            renderLrFilePreviews();
+          } else if (ext === 'txt') {
+            // TXT → 텍스트로 읽기
+            const text = await new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result);
+              reader.onerror = () => reject(new Error('파일 읽기 실패'));
+              reader.readAsText(file);
+            });
+            _lrImages.push({ name: file.name, data: null, textContent: text, fileType: 'txt', mediaType: 'text/plain' });
+            renderLrFilePreviews();
+          } else {
+            // 이미지
+            const dataUrl = await loadOrientedImage(file);
+            _lrImages.push({ name: file.name, data: dataUrl, base64: dataUrl.split(',')[1], fileType: 'image', mediaType: 'image/jpeg' });
+            renderLrFilePreviews();
+          }
+        } catch(e) { alert('파일 처리 중 오류: ' + e.message); }
       }
     })();
     input.value = '';
   }
 
-  function renderLrImagePreviews() {
-    document.getElementById('lrImagePreview').innerHTML = _lrImages.map((img,i) => `
-      <div class="thumb-wrap">
-        <img src="${img.data}">
-        <button class="thumb-remove" onclick="_lrImages.splice(${i},1);renderLrImagePreviews();">×</button>
-        <div class="thumb-num">${i+1}</div>
-      </div>
-    `).join('');
+  function renderLrFilePreviews() {
+    document.getElementById('lrImagePreview').innerHTML = _lrImages.map((img,i) => {
+      if (img.fileType === 'image') {
+        return `<div class="thumb-wrap">
+          <img src="${img.data}">
+          <button class="thumb-remove" onclick="_lrImages.splice(${i},1);renderLrFilePreviews();">×</button>
+          <div class="thumb-num">${i+1}</div>
+        </div>`;
+      } else {
+        const icon = img.fileType === 'pdf' ? '📄' : '📝';
+        return `<div class="thumb-wrap" style="display:flex;align-items:center;justify-content:center;background:#f8f9fc;border:1px solid #ddd;border-radius:8px;width:100px;height:100px;position:relative;">
+          <div style="text-align:center;font-size:11px;padding:4px;">
+            <div style="font-size:28px;">${icon}</div>
+            <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px;">${img.name}</div>
+          </div>
+          <button class="thumb-remove" onclick="_lrImages.splice(${i},1);renderLrFilePreviews();">×</button>
+          <div class="thumb-num">${i+1}</div>
+        </div>`;
+      }
+    }).join('');
   }
 
   async function saveLrMaterial() {
@@ -3729,11 +3765,16 @@ ${a.name}`;
     const type = document.getElementById('lrMaterialType').value;
     const scope = document.getElementById('lrScope').value;
     if(!scope) { alert('단원/범위를 입력하세요.'); return; }
-    if(!_lrImages.length) { alert('자료 사진을 올려주세요.'); return; }
+    if(!_lrImages.length) { alert('자료 사진이나 파일을 올려주세요.'); return; }
 
     const typeLabels = { textbook:'교과서', worksheet:'학습활동지', workbook:'문제집', notes:'필기/정리' };
     const materialId = 'lrm_' + Date.now();
-    const savedImages = _lrImages.map(img => ({ base64: img.base64 }));
+
+    // 이미지와 파일 분리
+    const imageFiles = _lrImages.filter(f => f.fileType === 'image');
+    const pdfFiles = _lrImages.filter(f => f.fileType === 'pdf');
+    const txtFiles = _lrImages.filter(f => f.fileType === 'txt');
+    const totalFileCount = _lrImages.length;
 
     const extractBtn = document.querySelector('#lrUploadSection .btn-primary');
     const origBtnText = extractBtn.textContent;
@@ -3741,11 +3782,21 @@ ${a.name}`;
     extractBtn.textContent = '🔄 AI가 자료를 읽는 중...';
 
     try {
+      // 텍스트 파일 내용을 프롬프트에 추가
+      const txtContent = txtFiles.map(f => f.textContent).join('\n\n');
+      const fileNote = [
+        imageFiles.length ? `사진 ${imageFiles.length}장` : '',
+        pdfFiles.length ? `PDF ${pdfFiles.length}개` : '',
+        txtFiles.length ? `텍스트 파일 ${txtFiles.length}개` : ''
+      ].filter(Boolean).join(', ');
+
       const extractPrompt = `당신은 ${selectedLrStudent.grade} 학생의 학습 자료를 분석하는 교사입니다.
 
-첨부된 사진은 ${subject} 과목의 ${typeLabels[type]}입니다. (범위: ${scope})
+첨부된 자료는 ${subject} 과목의 ${typeLabels[type]}입니다. (범위: ${scope})
+(자료 구성: ${fileNote})
+${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
 
-사진에서 다음을 추출해주세요:
+첨부된 사진/PDF에서 다음을 추출해주세요:
 
 1. 본문 내용 전체를 가능한 정확하게 텍스트로 옮겨주세요.
 2. 핵심 개념/용어를 목록으로 정리해주세요.
@@ -3753,22 +3804,32 @@ ${a.name}`;
 
 아래 JSON 형식으로만 응답하세요:
 {
-  "fullText": "사진에서 추출한 전체 텍스트 (본문, 설명, 예시 등 모두 포함)",
+  "fullText": "사진/PDF에서 추출한 전체 텍스트 (본문, 설명, 예시 등 모두 포함)",
   "concepts": ["핵심 개념1", "핵심 개념2", "핵심 개념3"],
   "questions": ["문제가 있으면 여기에 (없으면 빈 배열)"],
   "summary": "이 자료의 내용을 3줄로 요약"
 }`;
 
-      const rawText = await callGeminiWithImages(extractPrompt,
-        savedImages.map(img => ({ data: img.base64, mediaType: 'image/jpeg' }))
-      );
+      // 이미지 + PDF를 함께 전송 (Gemini는 PDF도 처리 가능)
+      const mediaItems = [
+        ...imageFiles.map(img => ({ data: img.base64, mediaType: 'image/jpeg' })),
+        ...pdfFiles.map(f => ({ data: f.base64, mediaType: 'application/pdf' }))
+      ];
+
+      let rawText;
+      if (mediaItems.length > 0) {
+        rawText = await callGeminiWithImages(extractPrompt, mediaItems);
+      } else {
+        // 텍스트 파일만 있는 경우
+        rawText = await callGemini(extractPrompt);
+      }
       const parsed = JSON.parse(rawText.replace(/```json|```/g,'').trim());
 
       const material = {
         id: materialId,
         studentId: selectedLrStudent.id,
         subject, type, scope,
-        imageCount: savedImages.length,
+        imageCount: totalFileCount,
         extractedContent: (parsed.fullText || '').slice(0, 8000),
         concepts: (parsed.concepts || []).slice(0, 20),
         summary: parsed.summary || '',
@@ -3790,7 +3851,7 @@ ${a.name}`;
         id: materialId,
         studentId: selectedLrStudent.id,
         subject, type, scope,
-        imageCount: savedImages.length,
+        imageCount: totalFileCount,
         extractedContent: '', concepts: [], summary: '', questions: [],
         createdAt: todayLocalDateStr(),
         status: 'upload_only'
@@ -3823,7 +3884,7 @@ ${a.name}`;
         <span class="lr-material-badge ${typeBadges[m.type]}">${typeLabels[m.type]}</span>
         <div style="flex:1;">
           <div style="font-weight:600; font-size:14px;">${m.subject} · ${m.scope}</div>
-          <div style="font-size:12px; color:#888;">${m.createdAt} · 사진 ${m.imageCount}장 · ${m.status==='extracted'?'<span style="color:#2f855a;">✅ AI 분석 완료</span>':'<span style="color:#c5a149;">📎 업로드만</span>'}</div>
+          <div style="font-size:12px; color:#888;">${m.createdAt} · 파일 ${m.imageCount}개 · ${m.status==='extracted'?'<span style="color:#2f855a;">✅ AI 분석 완료</span>':'<span style="color:#c5a149;">📎 업로드만</span>'}</div>
           ${m.concepts && m.concepts.length ? '<div style="font-size:11px; color:#555; margin-top:3px;">핵심 개념: '+m.concepts.slice(0,5).join(', ')+(m.concepts.length>5?' 외 '+(m.concepts.length-5)+'개':'')+'</div>' : ''}
           ${m.summary ? '<div style="font-size:11px; color:#888; margin-top:2px;">'+m.summary.slice(0,80)+(m.summary.length>80?'...':'')+'</div>' : ''}
         </div>
