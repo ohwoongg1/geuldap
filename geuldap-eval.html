@@ -698,7 +698,7 @@
         <!-- AI 코치 메시지 -->
         <div style="background:#f0f8f0; border-left:4px solid #2f855a; border-radius:0 8px 8px 0; padding:14px; margin:16px 0;">
           <div style="font-size:13px; font-weight:600; color:#2f855a; margin-bottom:4px;">🤖 AI 코치</div>
-          <div style="font-size:14px; color:#444;" id="lrCoachMsg">3단원 문법 파트가 아직 약해요. 핵심 개념 정리를 한 번 더 하면 암기 단계에서 훨씬 수월할 거예요!</div>
+          <div style="font-size:14px; color:#444;" id="lrCoachMsg">학습을 시작하면 진행 상황에 맞춰 코멘트가 나와요.</div>
         </div>
 
         <!-- 예상 점수 -->
@@ -1238,14 +1238,15 @@
 
 <script>
   // ===== 버전 정보 (콘솔에서 확인: APP_VERSION 또는 페이지 로드시 자동 출력) =====
-  const APP_VERSION = 'v1.5';
+  const APP_VERSION = 'v1.6';
   const APP_VERSION_LOG = [
     'v1.0 — 탭 구조 + UI 껍데기',
     'v1.1 — AI 문제 생성 + 개념 사다리',
     'v1.2 — Firebase 저장',
     'v1.3 — AI 자료 분석 + 교재 기반 문제 생성',
     'v1.4 — 학생 이름 오류 수정, 확인 단계 멈춤 버그 수정, 지문 기반 문제 생성 추가',
-    'v1.5 — 회차 진행 난이도 자동 조정 (60점 미만 재도전, 90점 이상 스킵)'
+    'v1.5 — 회차 진행 난이도 자동 조정 (60점 미만 재도전, 90점 이상 스킵)',
+    'v1.6 — AI 코치 코멘트를 실제 회차별 점수 기반으로 동적 생성 (기존엔 고정 문구였음)'
   ];
   console.log(`%c글답 학습기 ${APP_VERSION}`, 'font-weight:bold; font-size:14px; color:#0d1b4b;');
   console.log(APP_VERSION_LOG.join('\n'));
@@ -4023,7 +4024,52 @@ ${a.name}`;
         lineIdx++;
       }
     });
+    renderLrCoachMsg(exam);
     renderLrPreviewStudents();
+  }
+
+  function renderLrCoachMsg(exam) {
+    const sch = exam.schedule || [];
+    const doneRounds = sch.filter(s=>s.done);
+    const scoredRounds = sch.map((s,i)=>({...s, round:i+1})).filter(s=>s.done && typeof s.score === 'number');
+    let msg;
+
+    if(doneRounds.length === 0) {
+      msg = '아직 학습을 시작하지 않았어요. 1회차부터 차근차근 시작해봐요!';
+    } else if(doneRounds.length >= sch.length) {
+      if(scoredRounds.length) {
+        const avg = Math.round(scoredRounds.reduce((a,s)=>a+s.score,0) / scoredRounds.length);
+        const worst = scoredRounds.reduce((min,s)=> s.score < min.score ? s : min, scoredRounds[0]);
+        if(avg >= 90) {
+          msg = `모든 회차를 완료했고 평균 ${avg}점이에요! 완벽하게 준비됐어요. 자신감 갖고 시험 보러 가도 좋아요.`;
+        } else if(worst.score < 70) {
+          const info = LR_PHASE_INFO[worst.round];
+          msg = `모든 회차를 완료했고 평균 ${avg}점이에요. ${worst.round}회차(${info.label}) 점수가 ${worst.score}점으로 가장 낮았으니, 시험 전에 그 부분만 한 번 더 훑어보면 좋겠어요.`;
+        } else {
+          msg = `모든 회차를 완료했고 평균 ${avg}점이에요. 전반적으로 고르게 잘하고 있어요. 이 페이스 유지하면 좋겠어요!`;
+        }
+      } else {
+        msg = '모든 회차를 완료했어요! 수고 많았어요.';
+      }
+    } else {
+      if(scoredRounds.length) {
+        const weak = scoredRounds.filter(s=>s.score < 70).sort((a,b)=>a.score-b.score)[0];
+        const nextRound = getNextLrRound(exam);
+        const nextInfo = LR_PHASE_INFO[nextRound];
+        if(weak) {
+          const info = LR_PHASE_INFO[weak.round];
+          msg = `${weak.round}회차(${info.label}) 점수가 ${weak.score}점으로 아직 약해요. ${nextInfo ? nextInfo.label + ' 넘어가기 전에' : '다음으로 넘어가기 전에'} 한 번 더 복습하면 훨씬 수월할 거예요.`;
+        } else {
+          const lastScored = scoredRounds[scoredRounds.length-1];
+          msg = `${lastScored.round}회차까지 ${lastScored.score}점으로 잘하고 있어요. 이 페이스로 ${nextInfo ? nextInfo.label + ' 계속 이어가요!' : '계속 이어가요!'}`;
+        }
+      } else {
+        msg = '학습을 진행 중이에요. 꾸준히 이어가 봐요!';
+      }
+    }
+
+    const el = document.getElementById('lrCoachMsg');
+    if(el) el.textContent = msg;
   }
 
   // ===== 학습기 AI 엔진 (7회 반복 + 개념 사다리) =====
