@@ -737,6 +737,7 @@
             <span style="font-size:12px; color:#888;" id="lrQPhase">이해 단계</span>
           </div>
           <div class="card" style="border-left:4px solid #c5a149;">
+            <div id="lrQPassage" style="display:none; background:#f8f9fc; border-radius:8px; padding:14px 16px; margin-bottom:14px; font-size:14px; line-height:1.9; color:#333; white-space:pre-wrap;"></div>
             <div style="font-size:15px; font-weight:600; color:#0d1b4b; margin-bottom:12px;" id="lrQText"></div>
             <div id="lrQChoices"></div>
             <div class="form-group" id="lrQTextInputWrap" style="display:none; margin-top:10px;">
@@ -4055,7 +4056,8 @@ ${a.name}`;
       const allConcepts = [...new Set(mats.flatMap(m=>m.concepts||[]))];
       const allQuestions = mats.flatMap(m=>m.questions||[]);
 
-      const prompt = `당신은 ${selectedLrPreviewStudent.grade} 학생을 가르치는 친절한 선생님입니다.
+      const prompt = `당신은 ${selectedLrPreviewStudent.grade} 학생인 "${selectedLrPreviewStudent.name}"(을)를 가르치는 친절한 선생님입니다.
+학생을 부를 때는 반드시 실제 이름 "${selectedLrPreviewStudent.name}"만 사용하고, 다른 이름을 지어내지 마세요.
 
 이 학생은 "${lrCurrentExam.name}" 시험을 준비 중이며, 7회 반복학습의 ${lrCurrentRound}회차(${info.label})를 하고 있습니다.
 
@@ -4065,16 +4067,20 @@ ${allConcepts.length ? '\n[핵심 개념 목록]\n' + allConcepts.join(', ') : '
 ${extractedTexts ? '\n[교재에서 추출한 실제 내용 — 이 내용을 바탕으로 문제를 만드세요]\n' + extractedTexts : ''}
 ${allQuestions.length ? '\n[교재/문제집에 있는 문제들 — 유사한 유형으로 변형하세요]\n' + allQuestions.slice(0,5).join('\n') : ''}
 
+[중요 — 지문 포함 문제]
+국어(문학/비문학) 과목이거나 내용 일치, 주제 파악, 시점, 인물의 심리, 글의 구조 등 지문을 읽어야 풀 수 있는 문제 유형이면, 반드시 위 [교재에서 추출한 실제 내용]에서 실제 지문(문단 전체 또는 문제 풀이에 필요한 만큼)을 발췌해서 "passage" 필드에 넣으세요. 지문 없이 <보기>만 한두 줄 요약해서 묻지 마세요 — 학생이 직접 읽고 판단할 수 있는 분량의 지문을 줘야 합니다. 지문이 필요 없는 단순 개념/용어 문제라면 passage는 빈 문자열로 두세요.
+
 [이번 회차 특징]
 - 단계: ${info.phase} (${info.desc})
 - 문제 유형: ${info.qType}
 ${lrCurrentRound <= 3 ? '- 이해 단계이므로 쉽고 기본적인 문제를 내세요. 학생이 내용을 "아, 이런 내용이구나" 하고 파악할 수 있는 수준.' : ''}
 ${lrCurrentRound >= 4 && lrCurrentRound <= 5 ? '- 암기 단계이므로 핵심 용어, 개념, 정의를 정확히 기억하는지 확인하는 문제를 내세요.' : ''}
-${lrCurrentRound >= 6 ? '- 응용 단계이므로 실전과 비슷한 난이도로, 배운 개념을 새로운 상황에 적용하는 문제를 내세요.' : ''}
+${lrCurrentRound >= 6 ? '- 응용 단계이므로 실전과 비슷한 난이도로, 배운 개념을 새로운 상황에 적용하는 문제를 내세요. 실제 시험처럼 지문 기반 문제를 적극 포함하세요.' : ''}
 
 문제를 5개 만들어주세요. 아래 JSON 배열로만 응답하세요:
 [
   {
+    "passage": "문제 풀이에 필요한 지문 발췌 (필요 없으면 빈 문자열)",
     "question": "문제 내용",
     "type": "choice",
     "choices": ["보기1","보기2","보기3","보기4"],
@@ -4110,6 +4116,13 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     const info = LR_PHASE_INFO[lrCurrentRound];
     document.getElementById('lrQProgress').textContent = `문제 ${lrCurrentQIndex+1}/${lrCurrentQuestions.length}`;
     document.getElementById('lrQPhase').textContent = `${info.label} · ${info.phase} 단계`;
+    if(q.passage && q.passage.trim()) {
+      document.getElementById('lrQPassage').textContent = q.passage;
+      document.getElementById('lrQPassage').style.display = 'block';
+    } else {
+      document.getElementById('lrQPassage').textContent = '';
+      document.getElementById('lrQPassage').style.display = 'none';
+    }
     document.getElementById('lrQText').textContent = q.question;
     document.getElementById('lrFeedback').style.display='none';
     document.getElementById('lrSubmitBtn').style.display='inline-block';
@@ -4163,9 +4176,11 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
       document.getElementById('lrConceptExplain').textContent = '개념을 불러오는 중...';
       document.getElementById('lrCheckWrap').style.display='none';
       document.getElementById('lrCheckResult').style.display='none';
+      document.getElementById('lrCheckSubmitBtn').style.display='inline-block';
 
       try {
-        const explainPrompt = `당신은 ${selectedLrPreviewStudent.grade} 학생에게 쉽게 설명해주는 선생님입니다.
+        const explainPrompt = `당신은 ${selectedLrPreviewStudent.grade} 학생인 "${selectedLrPreviewStudent.name}"에게 쉽게 설명해주는 선생님입니다.
+학생을 부를 때는 반드시 실제 이름 "${selectedLrPreviewStudent.name}"만 사용하고, 다른 이름을 지어내지 마세요.
 
 학생이 "${q.concept}" 개념이 포함된 문제를 틀렸습니다.
 틀린 문제: ${q.question}
