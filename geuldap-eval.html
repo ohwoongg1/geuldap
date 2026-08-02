@@ -368,10 +368,14 @@
       <div id="lrRoundComplete" style="display:none; text-align:center; padding:30px;">
         <div style="font-size:48px; margin-bottom:10px;">🎉</div>
         <div style="font-size:20px; font-weight:700; color:#2f855a;" id="lrRoundCompleteTitle">3회차 완료!</div>
-        <div style="font-size:14px; color:#888; margin:10px 0;" id="lrRoundCompleteMsg"></div>
+        <div style="font-size:14px; color:#888; margin:10px 0; white-space:pre-line;" id="lrRoundCompleteMsg"></div>
         <div style="display:flex; gap:10px; justify-content:center; margin-top:16px;">
           <button class="btn btn-secondary" onclick="closeLrRound()">돌아가기</button>
           <button class="btn btn-primary" onclick="startLrLearning()" id="lrNextRoundBtn" style="display:none;">다음 회차 시작 →</button>
+        </div>
+        <div id="lrMasteryReview" style="display:none; text-align:left; margin-top:20px; border-top:1px solid #eee; padding-top:16px;">
+          <div style="font-size:14px; font-weight:700; color:#0d1b4b; margin-bottom:10px;">📝 틀린 문제 확인하기</div>
+          <div id="lrMasteryReviewBody"></div>
         </div>
       </div>
       </div>
@@ -3944,6 +3948,36 @@ ${a.name}`;
     return window._lrExams.find(e => e.studentId === studentId && e.materialIds && e.materialIds.length === 1 && e.materialIds[0] === materialId) || null;
   }
 
+  // 예전 방식으로 같은 자료에 여러 개의 시험(세션)이 중복 생성된 경우를 하나로 합친다.
+  // "가장 잘 진행된 것"(마스터 통과 > 레벨 높은 순 > 최근 생성)을 남기고 나머지는 지운다.
+  function dedupeMaterialExams(studentId) {
+    const singleMatExams = window._lrExams.filter(e => e.studentId === studentId && e.materialIds && e.materialIds.length === 1);
+    const byMaterial = {};
+    singleMatExams.forEach(e => {
+      const mid = e.materialIds[0];
+      (byMaterial[mid] = byMaterial[mid] || []).push(e);
+    });
+    let changed = false;
+    Object.values(byMaterial).forEach(list => {
+      if (list.length < 2) return;
+      list.sort((a,b) => {
+        if (!!b.masteryPassed !== !!a.masteryPassed) return (b.masteryPassed?1:0) - (a.masteryPassed?1:0);
+        const diff = getLrExamLevel(b) - getLrExamLevel(a);
+        if (diff !== 0) return diff;
+        return (b.createdAt || '').localeCompare(a.createdAt || '');
+      });
+      const keep = list[0];
+      list.slice(1).forEach(dupe => {
+        if (window._spSelectedExamId === dupe.id) window._spSelectedExamId = keep.id;
+        deleteLrFromFirebase('exam', dupe.id);
+      });
+      const keepIds = new Set(list.slice(1).map(e=>e.id));
+      window._lrExams = window._lrExams.filter(e => !keepIds.has(e.id));
+      changed = true;
+    });
+    if (changed) saveLrLocal();
+  }
+
   function getOrCreateMaterialExam(studentId, materialId, opts) {
     opts = opts || {};
     let exam = findMaterialExam(studentId, materialId);
@@ -5168,6 +5202,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     document.getElementById('lrQPhase').textContent = lrMasteryMode ? '실전 모의고사' : `${info.label} · ${info.phase} 단계`;
     document.getElementById('lrMasteryTimerWrap').style.display = lrMasteryMode ? 'block' : 'none';
     document.getElementById('lrLiveLevelWrap').style.display = lrMasteryMode ? 'none' : 'flex';
+    document.getElementById('lrMasteryReview').style.display = 'none';
     if (!lrMasteryMode && lrCurrentExam) updateLrLiveLevelDisplay(lrCurrentExam);
     lrSelectedEvidence = [];
     document.getElementById('lrEvidenceStep').style.display = 'none';
@@ -5454,7 +5489,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     if (lrMasteryMode) {
       // 실전 모의고사 — 즉시 채점 결과를 안 보여주고 바로 다음 문제로 (실제 시험처럼)
       if (isCorrect) lrRoundScore.correct++;
-      lrMasteryAnswers.push({ question: q.question, userAnswer, correct: isCorrect });
+      lrMasteryAnswers.push({ question: q.question, userAnswer, correct: isCorrect, answer: q.answer, explanation: q.explanation || '', concept: q.concept || '' });
       lrCurrentQIndex++;
       if (lrCurrentQIndex >= lrCurrentQuestions.length) {
         finishLrMasteryExam(false);
@@ -5824,6 +5859,20 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
     el.style.color = t <= 60 ? '#e53e3e' : '#a67c00';
   }
 
+  function renderLrMasteryReview() {
+    const wrongs = lrMasteryAnswers.filter(a => !a.correct);
+    const reviewDiv = document.getElementById('lrMasteryReview');
+    const body = document.getElementById('lrMasteryReviewBody');
+    if (!wrongs.length) { reviewDiv.style.display = 'none'; return; }
+    body.innerHTML = wrongs.map(w => `
+      <div style="background:#fff5f5; border-left:3px solid #e53e3e; border-radius:6px; padding:10px 14px; margin-bottom:8px;">
+        <div style="font-weight:600; font-size:13px;">${w.question}</div>
+        <div style="font-size:12px; color:#888; margin-top:4px;">내 답: ${w.userAnswer || '(제출 안 함)'} → 정답: <span style="color:#2f855a;">${w.answer}</span></div>
+        ${w.explanation ? `<div style="font-size:12px; color:#666; margin-top:4px;">💡 ${w.explanation}</div>` : ''}
+      </div>`).join('');
+    reviewDiv.style.display = 'block';
+  }
+
   function finishLrMasteryExam(timedOut) {
     clearInterval(lrMasteryTimerInterval);
     lrMasteryMode = false;
@@ -5836,6 +5885,7 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
     document.getElementById('lrQuestionArea').style.display = 'none';
     document.getElementById('lrRoundComplete').style.display = 'block';
     document.getElementById('lrNextRoundBtn').onclick = startLrLearning;
+    renderLrMasteryReview();
 
     if (!exam) { closeLrRound(); return; }
 
@@ -6086,6 +6136,7 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
     hideAdminApp();
     document.getElementById('spHomeScreen').style.display = 'block';
     document.getElementById('spHomeName').textContent = match.name + '님';
+    dedupeMaterialExams(match.id);
     catchUpAllLrLevelPoints(match.id);
     document.getElementById('spHomePoints').textContent = `🏅 ${match.lrPoints || 0}포인트`;
     renderSpMaterialList();
