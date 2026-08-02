@@ -5074,11 +5074,11 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
       if (el) el.classList.add('lr-ev-correct');
     });
     if (lrSelectedEvidence.length === 0) {
-      document.getElementById('lrEvidenceResult').innerHTML = '문장을 하나도 안 골랐어요. 노란색으로 표시된 문장이 진짜 근거예요 — 다음엔 지문을 꼼꼼히 읽고 찾아봐요!';
+      document.getElementById('lrEvidenceResult').innerHTML = '문장을 하나도 안 골랐어요. 초록색으로 표시된 문장이 진짜 근거예요 — 다음엔 지문을 꼼꼼히 읽고 찾아봐요!';
     } else if (hasOverlap) {
       document.getElementById('lrEvidenceResult').innerHTML = '✅ <strong>정확해요!</strong> 근거를 잘 찾았어요.';
     } else {
-      document.getElementById('lrEvidenceResult').innerHTML = '아쉬워요. 노란색으로 표시된 문장이 진짜 근거예요. 지문을 다시 한번 살펴보세요!';
+      document.getElementById('lrEvidenceResult').innerHTML = '아쉬워요. 초록색으로 표시된 문장이 진짜 근거예요. 지문을 다시 한번 살펴보세요!';
     }
     document.getElementById('lrEvidenceNextBtn').style.display = 'inline-block';
   }
