@@ -4768,6 +4768,7 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
       ).join('\n\n');
       const allConcepts = [...new Set(mats.flatMap(m=>m.concepts||[]))];
       const allQuestions = mats.flatMap(m=>m.questions||[]);
+      const isMathSubject = mats.some(m => m.subject==='수학' || m.subject==='과학') || lrCurrentExam.subject==='수학' || lrCurrentExam.subject==='과학';
 
       const prompt = `당신은 ${selectedLrPreviewStudent.grade} 학생을 가르치는 친절한 선생님입니다.
 문제 내용에는 학생의 이름을 언급하거나 지어내지 마세요.
@@ -4782,7 +4783,14 @@ ${allQuestions.length ? '\n[교재/문제집에 있는 문제들 — 유사한 �
 
 [중요 — 지문 포함 문제]
 국어(문학/비문학) 과목이거나 내용 일치, 주제 파악, 시점, 인물의 심리, 글의 구조 등 지문을 읽어야 풀 수 있는 문제 유형이면, 반드시 위 [교재에서 추출한 실제 내용]에서 실제 지문(문단 전체 또는 문제 풀이에 필요한 만큼)을 발췌해서 "passage" 필드에 넣으세요. 지문 없이 <보기>만 한두 줄 요약해서 묻지 마세요 — 학생이 직접 읽고 판단할 수 있는 분량의 지문을 줘야 합니다. 지문이 필요 없는 단순 개념/용어 문제라면 passage는 빈 문자열로 두세요.
-
+${isMathSubject ? `
+[중요 — 수학/과학 문제는 실제로 계산해서 풀어야 합니다]
+"다음 중 옳은 설명은?"처럼 개념을 알아보는 객관식 문제 위주로 내지 마세요. 학생이 직접 손으로 계산해서 답을 구해야 하는 실제 계산·풀이 문제를 내세요.
+예: "3x + 5 = 20일 때 x의 값을 구하시오." / "다음 이차방정식의 해를 구하시오: x² - 5x + 6 = 0"
+- type은 대부분 "short"(단답형)로 만들고, choice는 개념 확인용으로 최대 1개만 섞으세요.
+- answer는 학생이 계산해서 나올 정확한 값(숫자, 분수, 간단한 식 등)으로 적으세요. 학생이 그대로 입력할 수 있는 형태로요 (예: "6", "x=2 또는 x=3").
+- explanation에는 반드시 풀이 과정을 단계별로 적어주세요.
+` : ''}
 [이번 회차 특징]
 - 단계: ${info.phase} (${info.desc})
 - 문제 유형: ${info.qType}
@@ -5378,6 +5386,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     document.getElementById('lrAiLoadingText').textContent = '취약 유형 집중 문제를 만들고 있어요...';
 
     try {
+      const isMathSubject = lrCurrentExam && (lrCurrentExam.subject==='수학' || lrCurrentExam.subject==='과학');
       const prompt = `당신은 ${selectedLrPreviewStudent.grade} 학생을 가르치는 친절한 선생님입니다.
 문제 내용에는 학생의 이름을 언급하거나 지어내지 마세요.
 
@@ -5387,7 +5396,10 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
 ${lrPracticeConcepts.join(', ')}
 
 각 개념마다 최소 1문제씩, 총 ${lrPracticeConcepts.length < 5 ? 5 : lrPracticeConcepts.length}개 문제를 만들어주세요. 쉬운 것부터 시작해서 점점 확실히 이해했는지 확인하는 방식으로 구성하세요.
-
+${isMathSubject ? `
+[중요 — 수학/과학은 실제로 계산해서 풀어야 합니다]
+개념을 알아보는 객관식이 아니라, 학생이 직접 계산해서 답을 구해야 하는 문제를 내세요. type은 대부분 "short"로 하고, answer는 계산 결과 값으로, explanation에는 풀이 과정을 단계별로 적어주세요.
+` : ''}
 아래 JSON 배열로만 응답하세요:
 [
   {
