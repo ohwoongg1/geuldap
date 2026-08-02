@@ -177,7 +177,16 @@
   </div>
   <div style="max-width:640px; margin:0 auto; padding:20px;">
 
-    <div id="spNoExamMsg" style="display:none; text-align:center; color:#aaa; padding:20px; margin-bottom:16px;">아직 선생님이 시험을 설정하지 않았어요.</div>
+    <div class="card" id="spExamListCard" style="margin-bottom:20px;">
+      <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+        📚 내 학습 목록
+        <button class="btn btn-secondary btn-sm" id="spMergeBtn" onclick="mergeSpExams()" style="display:none;">선택한 항목 통합하기</button>
+      </div>
+      <div style="font-size:12px; color:#888; margin-bottom:10px;">여러 개를 체크하면 하나로 합쳐서 한 번에 학습할 수 있어요.</div>
+      <div id="spExamListBody"></div>
+    </div>
+
+    <div id="spNoExamMsg" style="display:none; text-align:center; color:#aaa; padding:20px; margin-bottom:16px;">아직 학습 세션이 없어요. 아래 "+ 나만의 학습 만들기"로 만들어보세요.</div>
 
     <div class="card" id="spQuizArea" style="display:none; margin-bottom:20px;">
       <div style="background:#f0f8f0; border-radius:12px; padding:20px; text-align:center; margin-bottom:16px;">
@@ -350,9 +359,15 @@
 
 <!-- 학생용 - 나만의 학습 만들기 모달 -->
 <div class="modal-bg" id="spNewTopicModal">
-  <div class="modal" style="max-width:480px;">
+  <div class="modal" style="max-width:480px; max-height:85vh; overflow-y:auto;">
     <div class="modal-title">✏️ 나만의 학습 만들기</div>
-    <div style="font-size:13px; color:#888; margin-bottom:14px;">사진 없이 과목·단원명만 입력하면 AI가 바로 학습 계획을 만들어줘요.</div>
+    <div style="font-size:13px; color:#888; margin-bottom:14px;">과목·단원명만 입력하거나, 내 교재를 사진으로 올려서 만들 수 있어요.</div>
+
+    <div style="display:flex; gap:8px; margin-bottom:16px;">
+      <button type="button" class="btn btn-primary btn-sm" id="spModeTopicBtn" onclick="switchSpUploadMode('topic')">✏️ 제목만 입력</button>
+      <button type="button" class="btn btn-secondary btn-sm" id="spModePhotoBtn" onclick="switchSpUploadMode('photo')">📷 사진/파일 올리기</button>
+    </div>
+
     <div class="form-grid">
       <div class="form-group full">
         <label>과목</label>
@@ -361,6 +376,15 @@
       <div class="form-group full">
         <label>단원명 / 주제</label>
         <input type="text" id="spTopicScope" placeholder="예: 인수분해">
+      </div>
+      <div class="form-group full" id="spPhotoUploadGroup" style="display:none;">
+        <label>내 교재 사진 / 파일</label>
+        <div style="font-size:12px; color:#c5a149; margin-bottom:6px;">⚠️ 본인이 직접 산 교재만 올려주세요. 선생님이 확인 후 부적절한 자료는 삭제될 수 있어요.</div>
+        <div class="upload-area" onclick="document.getElementById('spFileInput').click()">
+          📎 클릭하여 업로드<br><span style="font-size:12px;color:#999;">사진(여러 장), PDF, TXT 파일 지원</span>
+          <input type="file" id="spFileInput" accept="image/*,.pdf,.txt" multiple style="display:none;" onchange="previewLrFiles(this, _spImages, 'spImagePreview')">
+        </div>
+        <div id="spImagePreview" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;"></div>
       </div>
       <div class="form-group">
         <label>난이도</label>
@@ -396,6 +420,9 @@
     </div>
   </div>
 </div>
+
+<!-- AI 분석 재시도용 숨김 파일 입력 (관리자·학생 공용) -->
+<input type="file" id="lrRetryFileInput" accept="image/*,.pdf,.txt" multiple style="display:none;" onchange="handleLrRetryFiles(this)">
 
 <!-- 헤더 -->
 <div class="header">
@@ -1276,7 +1303,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getFirestore, collection, addDoc, getDocs, getDoc, setDoc, query, where, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-  import { getStorage, ref, uploadString, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+  import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
   const app = initializeApp({
     apiKey: "AIzaSyC5nf84GbQQ_5vIDwhIvTZ5zPqf7nrnSxU",
     authDomain: "starspoon-120d7.firebaseapp.com",
@@ -1310,6 +1337,48 @@
       urls.push(await getDownloadURL(r));
     }
     return urls;
+  };
+
+  // 학습기 자료 원본을 Storage에 올려둔다. AI 분석에 성공하면 바로 지우고,
+  // 실패하면 남겨둬서 재시도 버튼 한 번으로 자동 재분석할 수 있게 한다.
+  window._uploadLrFiles = async function(studentId, materialId, images) {
+    const stored = [];
+    for (let i = 0; i < images.length; i++) {
+      const img = images[i];
+      const ext = img.fileType === 'pdf' ? 'pdf' : img.fileType === 'txt' ? 'txt' : 'jpg';
+      const path = `lr_materials/${studentId}/${materialId}/file_${i}.${ext}`;
+      const r = ref(storage, path);
+      if (img.fileType === 'txt') {
+        await uploadString(r, img.textContent, 'raw');
+      } else {
+        const dataUrl = img.data || ('data:' + (img.mediaType||'application/octet-stream') + ';base64,' + img.base64);
+        await uploadString(r, dataUrl, 'data_url');
+      }
+      const url = await getDownloadURL(r);
+      stored.push({ path, url, fileType: img.fileType, name: img.name });
+    }
+    return stored;
+  };
+  window._deleteLrFiles = async function(storedFiles) {
+    for (const f of (storedFiles || [])) {
+      try { await deleteObject(ref(storage, f.path)); } catch(e) { console.log('Storage 삭제 실패(무시):', e); }
+    }
+  };
+  // 저장된 다운로드 URL에서 파일을 다시 읽어 base64/텍스트로 변환 (재시도용)
+  window._fetchLrFileAsData = async function(storedFile) {
+    const res = await fetch(storedFile.url);
+    if (storedFile.fileType === 'txt') {
+      const text = await res.text();
+      return { name: storedFile.name, fileType: 'txt', textContent: text };
+    }
+    const blob = await res.blob();
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error('파일 변환 실패'));
+      reader.readAsDataURL(blob);
+    });
+    return { name: storedFile.name, fileType: storedFile.fileType, base64: dataUrl.split(',')[1] };
   };
 
   // Firestore 문서의 자동 ID와 우리가 쓰는 데이터의 id가 달라서,
@@ -3778,6 +3847,7 @@ ${a.name}`;
   let selectedLrExamStudent = null;
   let selectedLrPreviewStudent = null;
   let _lrImages = [];
+  let _spImages = [];
 
   // window 전역 배열 사용 (Firebase에서 로드됨)
   function getLrMaterials() { return window._lrMaterials || []; }
@@ -3788,6 +3858,15 @@ ${a.name}`;
   function getActiveLrExam(studentId) {
     const list = window._lrExams.filter(e => e.studentId === studentId);
     return list.length ? list[list.length - 1] : null;
+  }
+
+  // 학생이 "학습 목록"에서 특정 세션을 선택했으면 그것을, 아니면 최근 것을 반환
+  function getSelectedOrActiveLrExam(studentId) {
+    if (window._spSelectedExamId) {
+      const picked = window._lrExams.find(e => e.id === window._spSelectedExamId && e.studentId === studentId);
+      if (picked) return picked;
+    }
+    return getActiveLrExam(studentId);
   }
 
   // ===== 제목/단원명만으로 자료 생성 (사진 없이, 일반 교육과정 지식 기반) =====
@@ -3820,6 +3899,180 @@ ${a.name}`;
       status: 'extracted'
     };
   }
+
+  // ===== 사진/파일 기반 자료 생성 (공통 — 관리자·학생 모두 사용) =====
+  async function extractMaterialContent({ grade, subject, scope, images }) {
+    const imageFiles = images.filter(f => f.fileType === 'image');
+    const pdfFiles = images.filter(f => f.fileType === 'pdf');
+    const txtFiles = images.filter(f => f.fileType === 'txt');
+    const txtContent = txtFiles.map(f => f.textContent).join('\n\n');
+    const fileNote = [
+      imageFiles.length ? `사진 ${imageFiles.length}장` : '',
+      pdfFiles.length ? `PDF ${pdfFiles.length}개` : '',
+      txtFiles.length ? `텍스트 파일 ${txtFiles.length}개` : ''
+    ].filter(Boolean).join(', ');
+
+    const extractPrompt = `당신은 ${grade} 학생의 학습 자료를 분석하는 교사입니다.
+
+첨부된 자료는 ${subject} 과목입니다. (범위: ${scope})
+(자료 구성: ${fileNote})
+${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
+
+첨부된 사진/PDF에서 다음을 추출해주세요:
+
+1. 본문 내용 전체를 가능한 정확하게 텍스트로 옮겨주세요.
+2. 핵심 개념/용어를 목록으로 정리해주세요.
+3. 문제가 있다면 문제와 보기도 옮겨주세요.
+
+아래 JSON 형식으로만 응답하세요:
+{
+  "fullText": "사진/PDF에서 추출한 전체 텍스트 (본문, 설명, 예시 등 모두 포함)",
+  "concepts": ["핵심 개념1", "핵심 개념2", "핵심 개념3"],
+  "questions": ["문제가 있으면 여기에 (없으면 빈 배열)"],
+  "summary": "이 자료의 내용을 3줄로 요약"
+}`;
+
+    const mediaItems = [
+      ...imageFiles.map(img => ({ data: img.base64, mediaType: 'image/jpeg' })),
+      ...pdfFiles.map(f => ({ data: f.base64, mediaType: 'application/pdf' }))
+    ];
+
+    let rawText;
+    if (mediaItems.length > 0) {
+      rawText = await callGeminiWithImages(extractPrompt, mediaItems);
+    } else {
+      rawText = await callGemini(extractPrompt);
+    }
+    const parsed = JSON.parse(rawText.replace(/```json|```/g,'').trim());
+    return {
+      imageCount: images.length,
+      extractedContent: (parsed.fullText || '').slice(0, 8000),
+      concepts: (parsed.concepts || []).slice(0, 20),
+      summary: parsed.summary || '',
+      questions: (parsed.questions || []).slice(0, 10),
+      status: 'extracted'
+    };
+  }
+
+  async function createPhotoMaterial({ studentId, grade, subject, scope, images, uploadedBy }) {
+    const materialId = 'lrm_' + Date.now();
+    let storedFiles = [];
+    if (window._fbReady) {
+      try { storedFiles = await window._uploadLrFiles(studentId, materialId, images); }
+      catch(e) { console.log('학습기 원본 Storage 업로드 실패(분석은 계속 진행):', e); }
+    }
+    try {
+      const extracted = await extractMaterialContent({ grade, subject, scope, images });
+      // 분석 성공 — 원본은 더 이상 필요 없으니 Storage에서 정리
+      if (storedFiles.length) window._deleteLrFiles(storedFiles);
+      return {
+        id: materialId, studentId, subject, scope,
+        type: 'workbook',
+        uploadedBy: uploadedBy || 'teacher',
+        createdAt: todayLocalDateStr(),
+        ...extracted
+      };
+    } catch(e) {
+      // 분석 실패 — 재시도 버튼 한 번으로 자동 재분석할 수 있도록 원본을 남겨둔다
+      return {
+        id: materialId, studentId, subject, scope,
+        type: 'workbook',
+        uploadedBy: uploadedBy || 'teacher',
+        createdAt: todayLocalDateStr(),
+        imageCount: images.length,
+        extractedContent: '', concepts: [], summary: '', questions: [],
+        status: 'upload_only',
+        storedFiles
+      };
+    }
+  }
+
+  // ===== AI 분석 재시도 =====
+  // Storage에 원본이 저장되어 있으면 자동으로 재분석 (버튼 한 번), 없으면 파일 선택창으로 재업로드
+  let _lrRetryTargetId = null;
+  async function openLrRetry(materialId) {
+    const material = window._lrMaterials.find(m => m.id === materialId);
+    if (!material) return;
+
+    if (material.storedFiles && material.storedFiles.length) {
+      await autoRetryLrMaterial(material);
+      return;
+    }
+    // 저장된 원본이 없는 예전 자료 — 파일을 다시 선택해서 재시도
+    _lrRetryTargetId = materialId;
+    document.getElementById('lrRetryFileInput').click();
+  }
+
+  async function autoRetryLrMaterial(material) {
+    const student = _students.find(s => s.id === material.studentId);
+    try {
+      const tempImages = await Promise.all(material.storedFiles.map(f => window._fetchLrFileAsData(f)));
+      const extracted = await extractMaterialContent({
+        grade: student ? student.grade : '',
+        subject: material.subject,
+        scope: material.scope,
+        images: tempImages
+      });
+      const oldStoredFiles = material.storedFiles;
+      Object.assign(material, extracted);
+      delete material.storedFiles;
+      if (window._fbReady) {
+        updateLrMaterialInFirebase(material);
+        window._deleteLrFiles(oldStoredFiles); // 분석 성공했으니 원본 정리
+      }
+      saveLrLocal();
+      renderLrMaterialList();
+      if (window._spStudent) renderSpMaterialList();
+      alert('✅ 재분석 완료! 핵심 개념: ' + material.concepts.join(', '));
+    } catch(e) {
+      alert('재분석 중 오류: ' + e.message + '\n잠시 후 다시 시도해주세요.');
+    }
+  }
+
+  async function handleLrRetryFiles(input) {
+    const files = Array.from(input.files);
+    input.value = '';
+    if (!files.length || !_lrRetryTargetId) return;
+    const material = window._lrMaterials.find(m => m.id === _lrRetryTargetId);
+    if (!material) return;
+
+    const tempImages = [];
+    for (const file of files) {
+      try {
+        const ext = file.name.split('.').pop().toLowerCase();
+        if (ext === 'pdf') {
+          const dataUrl = await new Promise((res, rej) => { const r = new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(new Error('파일 읽기 실패')); r.readAsDataURL(file); });
+          tempImages.push({ name: file.name, base64: dataUrl.split(',')[1], fileType: 'pdf' });
+        } else if (ext === 'txt') {
+          const text = await new Promise((res, rej) => { const r = new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(new Error('파일 읽기 실패')); r.readAsText(file); });
+          tempImages.push({ name: file.name, textContent: text, fileType: 'txt' });
+        } else {
+          const dataUrl = await loadOrientedImage(file);
+          tempImages.push({ name: file.name, base64: dataUrl.split(',')[1], fileType: 'image' });
+        }
+      } catch(e) { alert('파일 처리 중 오류: ' + e.message); return; }
+    }
+
+    const student = _students.find(s => s.id === material.studentId);
+    try {
+      const extracted = await extractMaterialContent({
+        grade: student ? student.grade : '',
+        subject: material.subject,
+        scope: material.scope,
+        images: tempImages
+      });
+      Object.assign(material, extracted);
+      if (window._fbReady) updateLrMaterialInFirebase(material);
+      saveLrLocal();
+      renderLrMaterialList();
+      if (window._spStudent) renderSpMaterialList();
+      alert('✅ 재분석 완료! 핵심 개념: ' + material.concepts.join(', '));
+    } catch(e) {
+      alert('재분석 중 오류: ' + e.message + '\n다시 시도해주세요.');
+    }
+    _lrRetryTargetId = null;
+  }
+
 
   async function saveLrToFirebase(type, item) {
     try {
@@ -3888,7 +4141,9 @@ ${a.name}`;
     renderLrMaterialList();
   }
 
-  function previewLrFiles(input) {
+  function previewLrFiles(input, targetArr, targetPreviewId) {
+    targetArr = targetArr || _lrImages;
+    targetPreviewId = targetPreviewId || 'lrImagePreview';
     const files = Array.from(input.files);
     (async () => {
       for (const file of files) {
@@ -3902,8 +4157,8 @@ ${a.name}`;
               reader.onerror = () => reject(new Error('파일 읽기 실패'));
               reader.readAsDataURL(file);
             });
-            _lrImages.push({ name: file.name, data: dataUrl, base64: dataUrl.split(',')[1], fileType: 'pdf', mediaType: 'application/pdf' });
-            renderLrFilePreviews();
+            targetArr.push({ name: file.name, data: dataUrl, base64: dataUrl.split(',')[1], fileType: 'pdf', mediaType: 'application/pdf' });
+            renderLrFilePreviews(targetArr, targetPreviewId);
           } else if (ext === 'txt') {
             // TXT → 텍스트로 읽기
             const text = await new Promise((resolve, reject) => {
@@ -3912,13 +4167,13 @@ ${a.name}`;
               reader.onerror = () => reject(new Error('파일 읽기 실패'));
               reader.readAsText(file);
             });
-            _lrImages.push({ name: file.name, data: null, textContent: text, fileType: 'txt', mediaType: 'text/plain' });
-            renderLrFilePreviews();
+            targetArr.push({ name: file.name, data: null, textContent: text, fileType: 'txt', mediaType: 'text/plain' });
+            renderLrFilePreviews(targetArr, targetPreviewId);
           } else {
             // 이미지
             const dataUrl = await loadOrientedImage(file);
-            _lrImages.push({ name: file.name, data: dataUrl, base64: dataUrl.split(',')[1], fileType: 'image', mediaType: 'image/jpeg' });
-            renderLrFilePreviews();
+            targetArr.push({ name: file.name, data: dataUrl, base64: dataUrl.split(',')[1], fileType: 'image', mediaType: 'image/jpeg' });
+            renderLrFilePreviews(targetArr, targetPreviewId);
           }
         } catch(e) { alert('파일 처리 중 오류: ' + e.message); }
       }
@@ -3926,12 +4181,15 @@ ${a.name}`;
     input.value = '';
   }
 
-  function renderLrFilePreviews() {
-    document.getElementById('lrImagePreview').innerHTML = _lrImages.map((img,i) => {
+  function renderLrFilePreviews(targetArr, targetPreviewId) {
+    targetArr = targetArr || _lrImages;
+    targetPreviewId = targetPreviewId || 'lrImagePreview';
+    const arrName = targetArr === _lrImages ? '_lrImages' : '_spImages';
+    document.getElementById(targetPreviewId).innerHTML = targetArr.map((img,i) => {
       if (img.fileType === 'image') {
         return `<div class="thumb-wrap">
           <img src="${img.data}">
-          <button class="thumb-remove" onclick="_lrImages.splice(${i},1);renderLrFilePreviews();">×</button>
+          <button class="thumb-remove" onclick="${arrName}.splice(${i},1);renderLrFilePreviews(${arrName},'${targetPreviewId}');">×</button>
           <div class="thumb-num">${i+1}</div>
         </div>`;
       } else {
@@ -3941,7 +4199,7 @@ ${a.name}`;
             <div style="font-size:28px;">${icon}</div>
             <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px;">${img.name}</div>
           </div>
-          <button class="thumb-remove" onclick="_lrImages.splice(${i},1);renderLrFilePreviews();">×</button>
+          <button class="thumb-remove" onclick="${arrName}.splice(${i},1);renderLrFilePreviews(${arrName},'${targetPreviewId}');">×</button>
           <div class="thumb-num">${i+1}</div>
         </div>`;
       }
@@ -3991,104 +4249,32 @@ ${a.name}`;
     const type = document.getElementById('lrMaterialType').value;
     if(!_lrImages.length) { alert('자료 사진이나 파일을 올려주세요.'); return; }
 
-    const typeLabels = { textbook:'교과서', worksheet:'학습활동지', workbook:'문제집', notes:'필기/정리', topic:'AI 생성(제목기반)' };
-    const materialId = 'lrm_' + Date.now();
-
-    // 이미지와 파일 분리
-    const imageFiles = _lrImages.filter(f => f.fileType === 'image');
-    const pdfFiles = _lrImages.filter(f => f.fileType === 'pdf');
-    const txtFiles = _lrImages.filter(f => f.fileType === 'txt');
-    const totalFileCount = _lrImages.length;
-
     const extractBtn = document.getElementById('lrSaveMaterialBtn');
     const origBtnText = extractBtn.textContent;
     extractBtn.disabled = true;
     extractBtn.textContent = '🔄 AI가 자료를 읽는 중...';
 
     try {
-      // 텍스트 파일 내용을 프롬프트에 추가
-      const txtContent = txtFiles.map(f => f.textContent).join('\n\n');
-      const fileNote = [
-        imageFiles.length ? `사진 ${imageFiles.length}장` : '',
-        pdfFiles.length ? `PDF ${pdfFiles.length}개` : '',
-        txtFiles.length ? `텍스트 파일 ${txtFiles.length}개` : ''
-      ].filter(Boolean).join(', ');
-
-      const extractPrompt = `당신은 ${selectedLrStudent.grade} 학생의 학습 자료를 분석하는 교사입니다.
-
-첨부된 자료는 ${subject} 과목의 ${typeLabels[type]}입니다. (범위: ${scope})
-(자료 구성: ${fileNote})
-${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
-
-첨부된 사진/PDF에서 다음을 추출해주세요:
-
-1. 본문 내용 전체를 가능한 정확하게 텍스트로 옮겨주세요.
-2. 핵심 개념/용어를 목록으로 정리해주세요.
-3. 문제가 있다면 문제와 보기도 옮겨주세요.
-
-아래 JSON 형식으로만 응답하세요:
-{
-  "fullText": "사진/PDF에서 추출한 전체 텍스트 (본문, 설명, 예시 등 모두 포함)",
-  "concepts": ["핵심 개념1", "핵심 개념2", "핵심 개념3"],
-  "questions": ["문제가 있으면 여기에 (없으면 빈 배열)"],
-  "summary": "이 자료의 내용을 3줄로 요약"
-}`;
-
-      // 이미지 + PDF를 함께 전송 (Gemini는 PDF도 처리 가능)
-      const mediaItems = [
-        ...imageFiles.map(img => ({ data: img.base64, mediaType: 'image/jpeg' })),
-        ...pdfFiles.map(f => ({ data: f.base64, mediaType: 'application/pdf' }))
-      ];
-
-      let rawText;
-      if (mediaItems.length > 0) {
-        rawText = await callGeminiWithImages(extractPrompt, mediaItems);
+      const material = await createPhotoMaterial({
+        studentId: selectedLrStudent.id, grade: selectedLrStudent.grade,
+        subject, scope, images: _lrImages, uploadedBy: 'teacher'
+      });
+      material.type = type; // 관리자가 지정한 자료 종류(교과서/활동지/문제집/필기) 반영
+      window._lrMaterials.push(material);
+      saveLrToFirebase('material', material);
+      saveLrLocal();
+      _lrImages = [];
+      document.getElementById('lrImagePreview').innerHTML = '';
+      document.getElementById('lrScope').value = '';
+      renderLrStudents();
+      renderLrMaterialList();
+      if (material.status === 'extracted') {
+        alert('✅ 자료 저장 완료! (' + subject + ' · ' + scope + ')\n\nAI가 추출한 핵심 개념: ' + material.concepts.join(', '));
       } else {
-        // 텍스트 파일만 있는 경우
-        rawText = await callGemini(extractPrompt);
+        alert('⚠️ 자료는 저장했지만 AI 분석에 실패했어요.\n"등록된 자료 목록"에서 재시도 버튼을 눌러보세요.');
       }
-      const parsed = JSON.parse(rawText.replace(/```json|```/g,'').trim());
-
-      const material = {
-        id: materialId,
-        studentId: selectedLrStudent.id,
-        subject, type, scope,
-        imageCount: totalFileCount,
-        extractedContent: (parsed.fullText || '').slice(0, 8000),
-        concepts: (parsed.concepts || []).slice(0, 20),
-        summary: parsed.summary || '',
-        questions: (parsed.questions || []).slice(0, 10),
-        createdAt: todayLocalDateStr(),
-        status: 'extracted'
-      };
-      window._lrMaterials.push(material);
-      saveLrToFirebase('material', material);
-      saveLrLocal();
-      _lrImages = [];
-      document.getElementById('lrImagePreview').innerHTML = '';
-      document.getElementById('lrScope').value = '';
-      renderLrStudents();
-      renderLrMaterialList();
-      alert('✅ 자료 저장 완료! (' + subject + ' · ' + scope + ')\n\nAI가 추출한 핵심 개념: ' + (parsed.concepts||[]).join(', '));
     } catch(e) {
-      const material = {
-        id: materialId,
-        studentId: selectedLrStudent.id,
-        subject, type, scope,
-        imageCount: totalFileCount,
-        extractedContent: '', concepts: [], summary: '', questions: [],
-        createdAt: todayLocalDateStr(),
-        status: 'upload_only'
-      };
-      window._lrMaterials.push(material);
-      saveLrToFirebase('material', material);
-      saveLrLocal();
-      _lrImages = [];
-      document.getElementById('lrImagePreview').innerHTML = '';
-      document.getElementById('lrScope').value = '';
-      renderLrStudents();
-      renderLrMaterialList();
-      alert('⚠️ 자료는 저장했지만 AI 분석에 실패했어요.\n(' + e.message + ')\n범위 정보만으로도 문제 생성은 가능합니다.');
+      alert('오류가 발생했습니다: ' + e.message);
     } finally {
       extractBtn.disabled = false;
       extractBtn.textContent = origBtnText;
@@ -4107,11 +4293,12 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
         <input type="checkbox" class="lr-mat-check" value="${m.id}" checked onchange="updateLrMatSelectAll()" style="margin-right:6px;">
         <span class="lr-material-badge ${typeBadges[m.type]}">${typeLabels[m.type]}</span>
         <div style="flex:1;">
-          <div style="font-weight:600; font-size:14px;">${m.subject} · ${m.scope}</div>
+          <div style="font-weight:600; font-size:14px;">${m.subject} · ${m.scope} ${m.uploadedBy==='student'?'<span style="background:#fff5cc; color:#a67c00; border-radius:6px; padding:1px 7px; font-size:11px; font-weight:700; margin-left:4px;">👦 학생 업로드</span>':''}</div>
           <div style="font-size:12px; color:#888;">${m.createdAt} · 파일 ${m.imageCount}개 · ${m.status==='extracted'?'<span style="color:#2f855a;">✅ AI 분석 완료</span>':'<span style="color:#c5a149;">📎 업로드만</span>'}</div>
           ${m.concepts && m.concepts.length ? '<div style="font-size:11px; color:#555; margin-top:3px;">핵심 개념: '+m.concepts.slice(0,5).join(', ')+(m.concepts.length>5?' 외 '+(m.concepts.length-5)+'개':'')+'</div>' : ''}
           ${m.summary ? '<div style="font-size:11px; color:#888; margin-top:2px;">'+m.summary.slice(0,80)+(m.summary.length>80?'...':'')+'</div>' : ''}
         </div>
+        ${m.status!=='extracted' ? `<button class="btn btn-secondary btn-sm" onclick="openLrRetry('${m.id}')" style="margin-right:6px;">${m.storedFiles&&m.storedFiles.length?'🔄 재시도':'🔄 재시도 (파일 다시 올리기)'}</button>` : ''}
         <button class="btn btn-danger btn-sm" onclick="deleteLrMaterial('${m.id}')">삭제</button>
       </div>
     `).join('');
@@ -4132,6 +4319,8 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
 
   function deleteLrMaterial(id) {
     if(!confirm('이 자료를 삭제할까요?')) return;
+    const material = window._lrMaterials.find(m=>m.id===id);
+    if (material && material.storedFiles && material.storedFiles.length) window._deleteLrFiles(material.storedFiles);
     window._lrMaterials = window._lrMaterials.filter(m=>m.id!==id);
     deleteLrFromFirebase('material', id);
     saveLrLocal();
@@ -4318,11 +4507,12 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
 
   function renderSpDashboard(id) {
     selectedLrPreviewStudent = _students.find(s=>s.id===id);
-    const exam = getActiveLrExam(id);
+    const exam = getSelectedOrActiveLrExam(id);
     if(!exam) {
       document.getElementById('spQuizArea').style.display='none';
       document.getElementById('spNoExamMsg').style.display='block';
       renderSpWeakTypes(id);
+      if (window._spStudent) renderSpExamList(id);
       return;
     }
     document.getElementById('spNoExamMsg').style.display='none';
@@ -4361,6 +4551,7 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
       document.getElementById('lrStartBtn').textContent = `🚀 ${done+1}회차 학습 시작`;
     }
     renderSpWeakTypes(id);
+    if (window._spStudent) renderSpExamList(id);
   }
 
   function renderLrCodeList() {
@@ -4491,7 +4682,7 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
     if(!selectedLrPreviewStudent) return;
     lrPracticeMode = false;
     lrPracticeConcepts = [];
-    lrCurrentExam = getActiveLrExam(selectedLrPreviewStudent.id);
+    lrCurrentExam = getSelectedOrActiveLrExam(selectedLrPreviewStudent.id);
     if(!lrCurrentExam) { alert('설정된 시험이 없습니다.'); return; }
     lrCurrentRound = getNextLrRound(lrCurrentExam);
     const info = LR_PHASE_INFO[lrCurrentRound];
@@ -4943,7 +5134,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     lrPracticeMode = true;
     lrPracticeConcepts = [];
 
-    lrCurrentExam = getActiveLrExam(sid);
+    lrCurrentExam = getSelectedOrActiveLrExam(sid);
     lrCurrentQIndex = 0;
     lrRoundScore = { correct:0, total: list.length };
     lrCurrentQuestions = list.map(w => ({
@@ -5003,13 +5194,101 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
       return;
     }
     window._spStudent = match;
+    window._spSelectedExamId = null;
     document.getElementById('studentPortalScreen').style.display = 'none';
     hideAdminApp();
     document.getElementById('spHomeScreen').style.display = 'block';
     document.getElementById('spHomeName').textContent = match.name + '님';
     renderSpMaterialList();
+    renderSpExamList(match.id);
     renderSpDashboard(match.id);
   }
+  // ===== 학습 목록 (여러 시험/세션 중 선택 · 통합) =====
+  function renderSpExamList(studentId) {
+    const exams = window._lrExams.filter(e => e.studentId === studentId);
+    const body = document.getElementById('spExamListBody');
+    if (!exams.length) {
+      body.innerHTML = '<div style="color:#aaa; font-size:13px; padding:10px 0;">아직 학습 세션이 없어요.</div>';
+      document.getElementById('spMergeBtn').style.display = 'none';
+      return;
+    }
+    const currentId = window._spSelectedExamId || (getActiveLrExam(studentId) || {}).id;
+    body.innerHTML = exams.slice().reverse().map(e => {
+      const done = e.schedule.filter(s=>s.done).length;
+      const pct = Math.round(done/7*100);
+      const isCurrent = e.id === currentId;
+      return `
+      <div style="display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; margin-bottom:6px; background:${isCurrent?'#f0f8f0':'#f8f9fc'}; border:${isCurrent?'1px solid #2f855a':'1px solid transparent'};">
+        <input type="checkbox" class="sp-exam-check" value="${e.id}" onchange="updateSpMergeBtn()">
+        <div style="flex:1; cursor:pointer;" onclick="selectSpExam('${e.id}')">
+          <div style="font-weight:600; font-size:14px;">${e.subject} · ${e.name}${isCurrent?' <span style="color:#2f855a; font-size:11px;">(현재 학습중)</span>':''}</div>
+          <div style="font-size:12px; color:#888; margin-top:2px;">진행률 ${pct}% (${done}/7) · 목표 ${e.targetScore}점</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="selectSpExam('${e.id}')">학습하기</button>
+      </div>`;
+    }).join('');
+    updateSpMergeBtn();
+  }
+
+  function selectSpExam(examId) {
+    window._spSelectedExamId = examId;
+    renderSpExamList(window._spStudent.id);
+    renderSpDashboard(window._spStudent.id);
+    document.getElementById('spQuizArea').scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  function updateSpMergeBtn() {
+    const checked = document.querySelectorAll('.sp-exam-check:checked');
+    document.getElementById('spMergeBtn').style.display = checked.length >= 2 ? 'inline-block' : 'none';
+  }
+
+  function mergeSpExams() {
+    const checkedIds = Array.from(document.querySelectorAll('.sp-exam-check:checked')).map(c=>c.value);
+    if (checkedIds.length < 2) return;
+    const targets = window._lrExams.filter(e => checkedIds.includes(e.id));
+    if (!confirm(`선택한 ${targets.length}개를 하나로 합칠까요? 원래 목록에선 사라지고, 하나의 학습으로 합쳐져요. (이미 진행한 회차 중 가장 많이 진행된 걸 기준으로 이어갑니다)`)) return;
+
+    // 과목: 가장 많이 겹치는 과목 이름 사용, 자료: 전부 합침(중복 제거)
+    const subjectCounts = {};
+    targets.forEach(e => { subjectCounts[e.subject] = (subjectCounts[e.subject]||0) + 1; });
+    const mainSubject = Object.entries(subjectCounts).sort((a,b)=>b[1]-a[1])[0][0];
+    const materialIds = [...new Set(targets.flatMap(e => e.materialIds))];
+    const targetScore = Math.max(...targets.map(e => e.targetScore));
+    const earliestDate = targets.map(e=>e.date).sort()[0];
+    // 진행이 가장 많이 된 것의 스케줄을 이어받아서, 애써 진행한 회차가 사라지지 않게 한다
+    const mostProgressed = targets.slice().sort((a,b) => b.schedule.filter(s=>s.done).length - a.schedule.filter(s=>s.done).length)[0];
+    const today = new Date();
+    const examDate = new Date(earliestDate);
+    const daysLeft = Math.max(1, Math.ceil((examDate - today)/(1000*60*60*24)));
+
+    const merged = {
+      id: 'lre_' + Date.now(),
+      studentId: window._spStudent.id,
+      name: `통합 학습 (${targets.length}개 단원)`,
+      subject: mainSubject,
+      date: earliestDate,
+      targetScore,
+      difficulty: mostProgressed.difficulty,
+      materialIds,
+      daysLeft,
+      schedule: mostProgressed.schedule,
+      progress: { currentRound:1, completed:false },
+      createdAt: todayLocalDateStr()
+    };
+    window._lrExams.push(merged);
+    saveLrToFirebase('exam', merged);
+    targets.forEach(e => {
+      window._lrExams = window._lrExams.filter(x => x.id !== e.id);
+      deleteLrFromFirebase('exam', e.id);
+    });
+    saveLrLocal();
+
+    window._spSelectedExamId = merged.id;
+    renderSpExamList(window._spStudent.id);
+    renderSpDashboard(window._spStudent.id);
+    alert('✅ 통합 완료! "' + merged.name + '"으로 이어서 학습할 수 있어요.');
+  }
+
   async function startWeakFocusLearning() {
     if (!selectedLrPreviewStudent) return;
     const weak = computeWeakTypes(selectedLrPreviewStudent.id);
@@ -5017,7 +5296,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
 
     lrPracticeMode = true;
     lrPracticeConcepts = weak.map(w => w.concept);
-    lrCurrentExam = getActiveLrExam(selectedLrPreviewStudent.id);
+    lrCurrentExam = getSelectedOrActiveLrExam(selectedLrPreviewStudent.id);
 
     document.getElementById('lrFocusOverlay').style.display = 'block';
     document.getElementById('lrStartBtn').style.display = 'none';
@@ -5089,6 +5368,14 @@ type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 c
     showAdminApp();
     document.getElementById('pwScreen').style.display = 'flex';
   }
+  let spUploadMode = 'topic';
+  function switchSpUploadMode(mode) {
+    spUploadMode = mode;
+    document.getElementById('spModeTopicBtn').className = mode==='topic' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+    document.getElementById('spModePhotoBtn').className = mode==='photo' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+    document.getElementById('spPhotoUploadGroup').style.display = mode==='photo' ? 'block' : 'none';
+  }
+
   function openSpNewTopicForm() {
     document.getElementById('spTopicSubject').value = '';
     document.getElementById('spTopicScope').value = '';
@@ -5096,6 +5383,9 @@ type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 c
     document.getElementById('spTopicTarget').value = 90;
     const d = new Date(); d.setDate(d.getDate() + 14);
     document.getElementById('spTopicDate').value = d.toISOString().slice(0,10);
+    _spImages = [];
+    document.getElementById('spImagePreview').innerHTML = '';
+    switchSpUploadMode('topic');
     document.getElementById('spNewTopicModal').classList.add('open');
   }
   function closeSpNewTopicForm() {
@@ -5109,6 +5399,7 @@ type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 c
     const target = parseInt(document.getElementById('spTopicTarget').value) || 90;
     const date = document.getElementById('spTopicDate').value;
     if (!subject || !scope) { alert('과목과 단원명을 입력해주세요.'); return; }
+    if (spUploadMode === 'photo' && !_spImages.length) { alert('사진이나 파일을 올려주세요.'); return; }
     const today = new Date();
     const examDate = new Date(date);
     const daysLeft = Math.ceil((examDate - today)/(1000*60*60*24));
@@ -5117,11 +5408,29 @@ type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 c
     const btn = document.getElementById('spTopicSaveBtn');
     const orig = btn.textContent;
     btn.disabled = true;
-    btn.textContent = '🔄 AI가 만드는 중...';
+    btn.textContent = spUploadMode === 'photo' ? '🔄 AI가 자료를 읽는 중...' : '🔄 AI가 만드는 중...';
     try {
-      const material = await createTopicMaterial({ studentId: window._spStudent.id, grade: window._spStudent.grade, subject, scope });
+      let material;
+      if (spUploadMode === 'photo') {
+        material = await createPhotoMaterial({
+          studentId: window._spStudent.id, grade: window._spStudent.grade,
+          subject, scope, images: _spImages, uploadedBy: 'student'
+        });
+      } else {
+        material = await createTopicMaterial({ studentId: window._spStudent.id, grade: window._spStudent.grade, subject, scope });
+      }
+      material.uploadedBy = 'student';
       window._lrMaterials.push(material);
       saveLrToFirebase('material', material);
+      saveLrLocal();
+      _spImages = [];
+
+      if (material.status !== 'extracted') {
+        closeSpNewTopicForm();
+        renderSpMaterialList();
+        alert('자료는 저장했지만 AI 분석에는 실패했어요. "내 학습 자료" 목록에서 재시도할 수 있어요.');
+        return;
+      }
 
       const exam = {
         id: 'lre_' + Date.now(),
@@ -5140,6 +5449,7 @@ type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 c
       window._lrExams.push(exam);
       saveLrToFirebase('exam', exam);
       saveLrLocal();
+      window._spSelectedExamId = exam.id;
 
       closeSpNewTopicForm();
       renderSpMaterialList();
@@ -5154,7 +5464,7 @@ type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 c
   }
 
   function renderSpMaterialList() {
-    const mats = window._lrMaterials.filter(m=>m.studentId===window._spStudent.id && m.status==='extracted');
+    const mats = window._lrMaterials.filter(m=>m.studentId===window._spStudent.id);
     const div = document.getElementById('spMaterialList');
     if (!mats.length) { div.innerHTML = '<div style="color:#aaa; font-size:13px;">아직 등록된 자료가 없어요. 선생님께 문의해보세요.</div>'; return; }
     const grouped = {};
@@ -5168,13 +5478,17 @@ type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 c
         ${grouped[subject].map(m => `
           <div style="padding:8px 0; border-top:1px solid #f0f0f0;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-              <div style="font-weight:600; font-size:14px;">${m.scope}</div>
+              <div style="font-weight:600; font-size:14px;">${m.scope} ${m.status!=='extracted'?'<span style="color:#e53e3e; font-size:11px; font-weight:600;">⚠️ 분석 실패</span>':''}</div>
               <button class="btn btn-danger btn-sm" onclick="spDeleteMaterial('${m.id}')" style="padding:2px 8px; font-size:11px;">✕</button>
             </div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              ${m.status==='extracted' ? `
               <button class="btn btn-secondary btn-sm" onclick="openLrContent('${m.id}','concept')">📇 개념카드</button>
               <button class="btn btn-secondary btn-sm" onclick="openLrContent('${m.id}','summary')">📋 요약노트</button>
               <button class="btn btn-secondary btn-sm" onclick="openLrContent('${m.id}','flashcard')">🗂 플래시카드</button>
+              ` : `
+              <button class="btn btn-primary btn-sm" onclick="openLrRetry('${m.id}')">${m.storedFiles&&m.storedFiles.length?'🔄 재시도':'🔄 재시도 (사진 다시 올리기)'}</button>
+              `}
             </div>
           </div>`).join('')}
       </div>`).join('');
@@ -5182,6 +5496,8 @@ type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 c
 
   function spDeleteMaterial(id) {
     if (!confirm('이 자료를 삭제할까요? 만들어둔 개념카드·요약노트·플래시카드도 함께 사라져요.')) return;
+    const material = window._lrMaterials.find(m=>m.id===id);
+    if (material && material.storedFiles && material.storedFiles.length) window._deleteLrFiles(material.storedFiles);
     window._lrMaterials = window._lrMaterials.filter(m=>m.id!==id);
     deleteLrFromFirebase('material', id);
     saveLrLocal();
@@ -5193,7 +5509,10 @@ type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 c
     const targets = window._lrMaterials.filter(m=>m.studentId===window._spStudent.id && m.subject===subject);
     if (!targets.length) return;
     if (!confirm(`"${subject}" 과목의 자료 ${targets.length}개를 모두 삭제할까요?`)) return;
-    targets.forEach(m => deleteLrFromFirebase('material', m.id));
+    targets.forEach(m => {
+      if (m.storedFiles && m.storedFiles.length) window._deleteLrFiles(m.storedFiles);
+      deleteLrFromFirebase('material', m.id);
+    });
     window._lrMaterials = window._lrMaterials.filter(m=>!(m.studentId===window._spStudent.id && m.subject===subject));
     saveLrLocal();
     renderSpMaterialList();
