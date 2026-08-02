@@ -183,8 +183,14 @@
 
     <div class="card" id="spSubjectTabsCard" style="margin-bottom:20px;">
       <div class="card-title">📚 과목 선택</div>
-      <div style="font-size:12px; color:#888; margin-bottom:10px;">과목을 고르면 그 과목 자료로 학습을 이어갈 수 있어요.</div>
+      <div style="font-size:12px; color:#888; margin-bottom:10px;">과목을 고르면 그 과목 안의 자료별 진행 상황이 보여요.</div>
       <div id="spSubjectTabs" style="display:flex; gap:8px; flex-wrap:wrap;"></div>
+    </div>
+
+    <div class="card" id="spSessionListCard" style="display:none; margin-bottom:20px;">
+      <div class="card-title">📖 자료별 진행 상황</div>
+      <div style="font-size:12px; color:#888; margin-bottom:10px;">자료마다 회차가 따로 진행돼요. 원하는 자료를 눌러서 이어가세요.</div>
+      <div id="spSessionListBody"></div>
     </div>
 
     <div id="spNoExamMsg" style="display:none; text-align:center; color:#aaa; padding:20px; margin-bottom:16px;">등록된 자료가 없어요. 아래 "+ 나만의 학습 만들기"로 만들어보세요.</div>
@@ -3863,42 +3869,35 @@ ${a.name}`;
   function getLrMaterials() { return window._lrMaterials || []; }
   function getLrExams() { return window._lrExams || []; }
 
-  // ===== 과목별 단일 학습 세션 =====
-  // "시험을 따로 만든다"는 개념을 없애고, 학생(studentId)+과목(subject) 조합마다 진행 상황 하나만 유지한다.
-  // 이미 있으면 그걸 계속 이어서 쓰고, 없으면 그 자리에서 조용히 하나 만든다(이름 입력 등 별도 절차 없음).
+  // ===== 자료(과정)별 학습 세션 =====
+  // 자료 하나당 진행 상황(회차)을 독립적으로 유지한다. 자료 id로 연결하니 같은 이름으로 여러 번
+  // 만들어도 세션이 겹치거나 중복되지 않는다. 선생님이 "시험 설정"에서 여러 자료를 묶어 만드는
+  // 정식 시험은 별개로 그대로 둔다(그건 실제 시험 범위를 사람이 직접 정하는 경우라 예외로 둠).
   function getStudentSubjects(studentId) {
     return [...new Set(window._lrMaterials.filter(m=>m.studentId===studentId && m.status==='extracted').map(m=>m.subject))];
   }
 
-  function findSubjectExam(studentId, subject) {
-    return window._lrExams.find(e => e.studentId === studentId && e.subject === subject) || null;
+  function findMaterialExam(studentId, materialId) {
+    return window._lrExams.find(e => e.studentId === studentId && e.materialIds && e.materialIds.length === 1 && e.materialIds[0] === materialId) || null;
   }
 
-  function getOrCreateSubjectExam(studentId, subject, opts) {
+  function getOrCreateMaterialExam(studentId, materialId, opts) {
     opts = opts || {};
-    let exam = findSubjectExam(studentId, subject);
-    const subjectMatIds = window._lrMaterials.filter(m=>m.studentId===studentId && m.subject===subject && m.status==='extracted').map(m=>m.id);
-    if (exam) {
-      // 새로 생긴 같은 과목 자료가 있으면 자동으로 편입
-      const merged = [...new Set([...(exam.materialIds||[]), ...subjectMatIds])];
-      if (merged.length !== (exam.materialIds||[]).length) {
-        exam.materialIds = merged;
-        if (window._fbReady) updateLrExamInFirebase(exam);
-        saveLrLocal();
-      }
-      return exam;
-    }
+    let exam = findMaterialExam(studentId, materialId);
+    if (exam) return exam;
+    const material = window._lrMaterials.find(m => m.id === materialId);
+    if (!material) return null;
     const today = new Date();
     const date = opts.date || (() => { const d = new Date(); d.setDate(d.getDate()+14); return d.toISOString().slice(0,10); })();
     const daysLeft = Math.max(1, Math.ceil((new Date(date) - today)/(1000*60*60*24)));
     exam = {
       id: 'lre_' + Date.now() + '_' + Math.floor(Math.random()*1000),
-      studentId, subject,
-      name: subject,
+      studentId, subject: material.subject,
+      name: material.scope,
       date,
       targetScore: opts.targetScore || 90,
       difficulty: opts.difficulty || '보통',
-      materialIds: subjectMatIds,
+      materialIds: [materialId],
       daysLeft,
       schedule: generateRepeatSchedule(daysLeft),
       progress: { currentRound:1, completed:false },
@@ -3911,9 +3910,8 @@ ${a.name}`;
   }
 
   function getSelectedOrActiveLrExam(studentId) {
-    const subject = window._spSelectedSubject;
-    if (!subject) return null;
-    return getOrCreateSubjectExam(studentId, subject);
+    if (!window._spSelectedExamId) return null;
+    return window._lrExams.find(e => e.id === window._spSelectedExamId && e.studentId === studentId) || null;
   }
 
   // ===== 제목/단원명만으로 자료 생성 (사진 없이, 일반 교육과정 지식 기반) =====
@@ -4488,32 +4486,22 @@ ${(parsed.concepts || []).join(', ')}
     const daysLeft = Math.ceil((examDate - today)/(1000*60*60*24));
     if(daysLeft < 1) { alert('시험 일자는 오늘 이후여야 합니다.'); return; }
 
-    // 같은 학생·같은 과목은 새로 만들지 않고 기존 세션을 이어서 갱신한다 (중복 방지)
-    let exam = findSubjectExam(selectedLrExamStudent.id, subject);
-    const isNew = !exam;
-    if (exam) {
-      const done = exam.schedule.filter(s=>s.done).length;
-      if (done > 0 && !confirm(`이미 "${subject}" 학습이 ${done}회차까지 진행 중이에요. 설정을 바꾸면 진행 스케줄이 새로 짜여요(진행률은 유지되도록 최대한 맞춰드릴게요). 계속할까요?`)) return;
-      Object.assign(exam, { name, date, targetScore: target, materialIds: checkedMats, daysLeft, schedule: generateRepeatSchedule(daysLeft) });
-      if (window._fbReady) updateLrExamInFirebase(exam);
-    } else {
-      exam = {
-        id: 'lre_' + Date.now(),
-        studentId: selectedLrExamStudent.id,
-        name, subject, date, targetScore: target,
-        materialIds: checkedMats,
-        daysLeft,
-        schedule: generateRepeatSchedule(daysLeft),
-        progress: { currentRound:1, completed:false },
-        createdAt: todayLocalDateStr()
-      };
-      window._lrExams.push(exam);
-      saveLrToFirebase('exam', exam);
-    }
+    const exam = {
+      id: 'lre_' + Date.now(),
+      studentId: selectedLrExamStudent.id,
+      name, subject, date, targetScore: target,
+      materialIds: checkedMats,
+      daysLeft,
+      schedule: generateRepeatSchedule(daysLeft),
+      progress: { currentRound:1, completed:false },
+      createdAt: todayLocalDateStr()
+    };
+    window._lrExams.push(exam);
+    saveLrToFirebase('exam', exam);
     saveLrLocal();
     renderLrExamStudents();
     renderLrExamList();
-    alert((isNew ? '✅ 7회 반복 스케줄이 생성되었습니다!\n' : '✅ 학습 설정이 갱신되었습니다!\n') + exam.schedule.map((s,i)=>`${i+1}회차: ${s.label} (${s.date})`).join('\n'));
+    alert('✅ 7회 반복 스케줄이 생성되었습니다!\n' + exam.schedule.map((s,i)=>`${i+1}회차: ${s.label} (${s.date})`).join('\n'));
   }
 
   function generateRepeatSchedule(daysLeft) {
@@ -5012,6 +5000,24 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     }
   }
 
+  // 단답형 채점: 숫자/수식 답은 정확히 일치해야 정답(부분 포함 금지 — "2"인데 "12"라고 써도 오답 처리),
+  // 용어·설명형 답은 기존처럼 부분 포함도 허용한다. 정답에 "x=2 또는 x=3"처럼 여러 개가 있을 수도 있다.
+  function isLrShortAnswerCorrect(userAnswer, correctAnswer) {
+    const norm = s => s.replace(/\s+/g,'').toLowerCase();
+    const u = norm(userAnswer);
+    const candidates = correctAnswer.split(/또는|혹은|,|\//).map(norm).filter(Boolean);
+    for (const c of candidates) {
+      const bare = s => s.replace(/^x=/,'');
+      const isNumeric = /^-?[\d.]+$/.test(bare(c)) || /^-?[\d.]+\/[\d.]+$/.test(bare(c));
+      if (isNumeric) {
+        if (u === c || bare(u) === bare(c)) return true;
+      } else {
+        if (u.includes(c) || c.includes(u)) return true;
+      }
+    }
+    return false;
+  }
+
   async function submitLrAnswer() {
     const q = lrCurrentQuestions[lrCurrentQIndex];
     let userAnswer = '';
@@ -5027,7 +5033,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     document.getElementById('lrSubmitBtn').style.display='none';
     const isCorrect = q.type==='choice'
       ? userAnswer === q.answer
-      : userAnswer.replace(/\s/g,'').includes(q.answer.replace(/\s/g,'')) || q.answer.replace(/\s/g,'').includes(userAnswer.replace(/\s/g,''));
+      : isLrShortAnswerCorrect(userAnswer, q.answer);
 
     document.getElementById('lrFeedback').style.display='block';
 
@@ -5463,6 +5469,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     }
     window._spStudent = match;
     window._spSelectedSubject = null;
+    window._spSelectedExamId = null;
     document.getElementById('studentPortalScreen').style.display = 'none';
     hideAdminApp();
     document.getElementById('spHomeScreen').style.display = 'block';
@@ -5471,12 +5478,13 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     renderSpSubjectTabs(match.id);
     renderSpDashboard(match.id);
   }
-  // ===== 과목 탭 (자료 선택 → 진행 상황) =====
+  // ===== 과목 탭 → 그 과목의 자료별 진행 목록 =====
   function renderSpSubjectTabs(studentId) {
     const subjects = getStudentSubjects(studentId);
     const tabsDiv = document.getElementById('spSubjectTabs');
     if (!subjects.length) {
       tabsDiv.innerHTML = '<div style="color:#aaa; font-size:13px;">등록된 자료가 없어요.</div>';
+      document.getElementById('spSessionListCard').style.display = 'none';
       document.getElementById('spQuizArea').style.display = 'none';
       document.getElementById('spNoExamMsg').style.display = 'block';
       return;
@@ -5485,20 +5493,49 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
       window._spSelectedSubject = subjects[0];
     }
     tabsDiv.innerHTML = subjects.map(subject => {
-      const exam = findSubjectExam(studentId, subject);
-      const pct = exam ? Math.round(exam.schedule.filter(s=>s.done).length/7*100) : 0;
       const isActive = subject === window._spSelectedSubject;
-      return `<button class="btn ${isActive?'btn-primary':'btn-secondary'} btn-sm" onclick="selectSpSubject('${subject.replace(/'/g,"\\'")}')">${subject}${exam?` (${pct}%)`:''}</button>`;
+      return `<button class="btn ${isActive?'btn-primary':'btn-secondary'} btn-sm" onclick="selectSpSubject('${subject.replace(/'/g,"\\'")}')">${subject}</button>`;
     }).join('');
+    renderSpSessionList(studentId, window._spSelectedSubject);
   }
 
   function selectSpSubject(subject) {
     window._spSelectedSubject = subject;
     renderSpSubjectTabs(window._spStudent.id);
+  }
+
+  // 선택한 과목 안의 자료들을 각자의 회차 진행률과 함께 목록으로 보여준다 (자료마다 회차는 서로 독립적)
+  function renderSpSessionList(studentId, subject) {
+    const listCard = document.getElementById('spSessionListCard');
+    const body = document.getElementById('spSessionListBody');
+    const mats = window._lrMaterials.filter(m=>m.studentId===studentId && m.subject===subject && m.status==='extracted');
+    if (!mats.length) { listCard.style.display = 'none'; return; }
+    listCard.style.display = 'block';
+    body.innerHTML = mats.map(m => {
+      const exam = findMaterialExam(studentId, m.id);
+      const done = exam ? exam.schedule.filter(s=>s.done).length : 0;
+      const pct = Math.round(done/7*100);
+      const isCurrent = exam && exam.id === window._spSelectedExamId;
+      return `
+      <div style="display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; margin-bottom:6px; background:${isCurrent?'#f0f8f0':'#f8f9fc'}; border:${isCurrent?'1px solid #2f855a':'1px solid transparent'};">
+        <div style="flex:1;">
+          <div style="font-weight:600; font-size:14px;">${m.scope}${isCurrent?' <span style="color:#2f855a; font-size:11px;">(현재 학습중)</span>':''}</div>
+          <div style="font-size:12px; color:#888; margin-top:2px;">${exam ? `진행률 ${pct}% (${done}/7회차) · 목표 ${exam.targetScore}점` : '아직 시작 전'}</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="selectSpMaterialSession('${m.id}')">학습하기</button>
+      </div>`;
+    }).join('');
+  }
+
+  function selectSpMaterialSession(materialId) {
+    const exam = getOrCreateMaterialExam(window._spStudent.id, materialId);
+    if (!exam) return;
+    window._spSelectedExamId = exam.id;
+    window._spSelectedSubject = exam.subject;
+    renderSpSessionList(window._spStudent.id, exam.subject);
     renderSpDashboard(window._spStudent.id);
     document.getElementById('spQuizArea').scrollIntoView({ behavior:'smooth', block:'start' });
   }
-
 
   async function startWeakFocusLearning() {
     if (!selectedLrPreviewStudent) return;
@@ -5649,17 +5686,15 @@ type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 c
         return;
       }
 
-      const exam = getOrCreateSubjectExam(window._spStudent.id, subject, { targetScore: target, difficulty, date });
-      if (!exam.materialIds.includes(material.id)) exam.materialIds.push(material.id);
-      if (window._fbReady) updateLrExamInFirebase(exam);
-      saveLrLocal();
+      const exam = getOrCreateMaterialExam(window._spStudent.id, material.id, { targetScore: target, difficulty, date });
       window._spSelectedSubject = subject;
+      window._spSelectedExamId = exam.id;
 
       closeSpNewTopicForm();
       renderSpMaterialList();
       renderSpSubjectTabs(window._spStudent.id);
       renderSpDashboard(window._spStudent.id);
-      alert('✅ "' + subject + ' ' + scope + '" 학습 자료가 추가됐어요! ' + subject + ' 탭에서 이어서 학습할 수 있어요.');
+      alert('✅ "' + subject + ' ' + scope + '" 학습이 만들어졌어요! ' + subject + ' 탭에서 이어서 학습할 수 있어요.');
     } catch(e) {
       alert('생성 중 오류: ' + e.message);
     } finally {
