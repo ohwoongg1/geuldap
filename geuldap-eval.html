@@ -259,7 +259,7 @@
       <!-- 학습 시작 영역 -->
       <div style="margin-top:20px; border-top:2px solid #e0e0e0; padding-top:20px;">
         <div id="lrPreviewMaterials" style="margin-bottom:16px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div id="lrPreviewSelectAllRow" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <div style="font-size:14px; font-weight:600; color:#555;">📚 학습할 자료 선택</div>
             <label style="font-size:12px; cursor:pointer; display:flex; align-items:center; gap:4px;">
               <input type="checkbox" id="lrPreviewSelectAll" onchange="toggleAllLrPreviewMats(this.checked)" checked> 전체
@@ -3979,6 +3979,23 @@ ${a.name}`;
     if (changed) saveLrLocal();
   }
 
+  // 이미 참조하던 자료가 전부 삭제된(이 정리 로직이 생기기 전에 그렇게 된) 고아 시험을 정리한다
+  function cleanupOrphanedExams(studentId) {
+    const orphaned = window._lrExams.filter(e => {
+      if (e.studentId !== studentId) return false;
+      if (!e.materialIds || !e.materialIds.length) return true;
+      return !e.materialIds.some(id => window._lrMaterials.some(m => m.id === id));
+    });
+    if (!orphaned.length) return;
+    orphaned.forEach(e => {
+      deleteLrFromFirebase('exam', e.id);
+      if (window._spSelectedExamId === e.id) window._spSelectedExamId = null;
+    });
+    const orphanIds = new Set(orphaned.map(e=>e.id));
+    window._lrExams = window._lrExams.filter(e => !orphanIds.has(e.id));
+    saveLrLocal();
+  }
+
   function getOrCreateMaterialExam(studentId, materialId, opts) {
     opts = opts || {};
     let exam = findMaterialExam(studentId, materialId);
@@ -4577,13 +4594,26 @@ ${(parsed.concepts || []).join(', ')}
   // 자료가 삭제될 때, 그 자료를 참조하던 시험(materialIds)에서도 정리해서 참조가 끊기지 않게 한다
   function cleanupExamMaterialRef(materialId) {
     let changed = false;
+    const toDelete = [];
     window._lrExams.forEach(e => {
       if (e.materialIds && e.materialIds.includes(materialId)) {
         e.materialIds = e.materialIds.filter(mid => mid !== materialId);
         changed = true;
-        if (window._fbReady) updateLrExamInFirebase(e);
+        if (e.materialIds.length === 0) {
+          // 이 시험이 참조하던 자료가 전부 삭제됐으면, 더 이상 공부할 내용이 없는 빈 시험이니 같이 정리한다
+          toDelete.push(e.id);
+        } else if (window._fbReady) {
+          updateLrExamInFirebase(e);
+        }
       }
     });
+    if (toDelete.length) {
+      toDelete.forEach(id => {
+        deleteLrFromFirebase('exam', id);
+        if (window._spSelectedExamId === id) window._spSelectedExamId = null;
+      });
+      window._lrExams = window._lrExams.filter(e => !toDelete.includes(e.id));
+    }
     if (changed) saveLrLocal();
   }
 
@@ -4919,8 +4949,23 @@ ${(parsed.concepts || []).join(', ')}
   }
 
   function renderLrPreviewMaterials(exam) {
-    const allMats = window._lrMaterials.filter(m=>m.studentId===selectedLrPreviewStudent.id && m.subject===exam.subject && m.status==='extracted');
+    const wrapper = document.getElementById('lrPreviewMaterials');
+    const selectAllRow = document.getElementById('lrPreviewSelectAllRow');
     const div = document.getElementById('lrPreviewMatList');
+    const examMatIds = exam.materialIds || [];
+
+    // 자료 1개짜리 개별 세션은 "여러 자료 중 골라 묶기" UI가 필요 없다 — 그냥 이 자료로 공부한다는 것만 보여준다
+    if (examMatIds.length === 1) {
+      const m = window._lrMaterials.find(mm => mm.id === examMatIds[0]);
+      selectAllRow.style.display = 'none';
+      div.innerHTML = m
+        ? `<div style="padding:8px 0; color:#555;">📖 <strong>${m.scope}</strong> 로 학습해요.</div><input type="checkbox" class="lr-preview-mat" value="${m.id}" checked style="display:none;">`
+        : `<div style="color:#e53e3e;">연결된 자료를 찾을 수 없어요. 자료가 삭제됐을 수 있어요.</div>`;
+      return;
+    }
+
+    selectAllRow.style.display = 'flex';
+    const allMats = window._lrMaterials.filter(m=>m.studentId===selectedLrPreviewStudent.id && m.subject===exam.subject && m.status==='extracted');
     if(!allMats.length) { div.innerHTML='<div style="color:#aaa;">등록된 자료가 없습니다.</div>'; return; }
     // 과목별 그룹핑 (이제 exam.subject 하나뿐이지만, 구조는 유지)
     const grouped = {};
@@ -4929,7 +4974,6 @@ ${(parsed.concepts || []).join(', ')}
       grouped[m.subject].push(m);
     });
     const typeLabels = { textbook:'교과서', worksheet:'활동지', workbook:'문제집', notes:'필기', topic:'AI생성' };
-    const examMatIds = exam.materialIds || [];
     // 시험이 참조하는 자료가 삭제 등으로 다 사라졌으면(연결이 끊겼으면), 안전하게 전체 자료를 기본 선택 처리한다
     const hasValidRef = examMatIds.some(id => allMats.some(m => m.id === id));
     div.innerHTML = Object.keys(grouped).map(subject => `
@@ -6147,6 +6191,7 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
     document.getElementById('spHomeScreen').style.display = 'block';
     document.getElementById('spHomeName').textContent = match.name + '님';
     dedupeMaterialExams(match.id);
+    cleanupOrphanedExams(match.id);
     catchUpAllLrLevelPoints(match.id);
     document.getElementById('spHomePoints').textContent = `🏅 ${match.lrPoints || 0}포인트`;
     renderSpMaterialList();
