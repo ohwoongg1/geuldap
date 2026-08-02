@@ -268,6 +268,9 @@
           <div id="lrPreviewMatList" style="font-size:13px;"></div>
         </div>
         <button class="btn btn-primary" onclick="startLrLearning()" id="lrStartBtn" style="width:100%; padding:16px; font-size:16px;">🚀 학습 시작</button>
+        <div style="text-align:center; margin-top:8px;">
+          <a href="#" id="lrContinuePracticeLink" style="display:none; font-size:12px; color:#888; text-decoration:underline;" onclick="startLrLearning(); return false;">그냥 계속 연습하기 (레벨 더 올리기)</a>
+        </div>
       </div>
     </div>
 
@@ -4837,18 +4840,29 @@ ${(parsed.concepts || []).join(', ')}
     });
     renderLrCoachMsg(exam);
     renderLrPreviewMaterials(exam);
+    awardLevelUpPoints(exam); // 레벨이 올라있는데 아직 정산 안 된 포인트가 있으면 여기서도 놓치지 않게 확인
+    const earlyEligible = level < 7 && predict >= exam.targetScore;
+    const continueLink = document.getElementById('lrContinuePracticeLink');
     if (exam.masteryPassed) {
       document.getElementById('lrStartBtn').textContent = '🏆 마스터 완료! (복습하기)';
       document.getElementById('lrStartBtn').onclick = startLrLearning;
-    } else if (level >= 7 && exam.masteryExhausted) {
-      document.getElementById('lrStartBtn').textContent = '레벨 7 (특별점수는 놓쳤어요, 복습하기)';
+      continueLink.style.display = 'none';
+    } else if ((level >= 7 || earlyEligible) && exam.masteryExhausted) {
+      document.getElementById('lrStartBtn').textContent = '특별점수는 놓쳤어요 (복습하기)';
       document.getElementById('lrStartBtn').onclick = startLrLearning;
+      continueLink.style.display = 'none';
     } else if (level >= 7) {
       document.getElementById('lrStartBtn').textContent = '🎯 마스터 도전 시험 보기';
       document.getElementById('lrStartBtn').onclick = startLrMasteryExam;
+      continueLink.style.display = 'none';
+    } else if (earlyEligible) {
+      document.getElementById('lrStartBtn').textContent = `🎯 마스터 도전 시험 보기 (목표 점수 조기 달성!)`;
+      document.getElementById('lrStartBtn').onclick = startLrMasteryExam;
+      continueLink.style.display = 'block';
     } else {
       document.getElementById('lrStartBtn').textContent = `🚀 학습 시작 (현재 레벨 ${level.toFixed(1)}/7)`;
       document.getElementById('lrStartBtn').onclick = startLrLearning;
+      continueLink.style.display = 'none';
     }
     renderSpWeakTypes(id);
     if (window._spStudent) renderSpSubjectTabs(id);
@@ -5066,6 +5080,7 @@ ${isKoreanSubject ? `
 - "passageSentences" 필드에 지문을 문장 단위로 쪼개서 배열로 넣으세요 (passage와 내용은 같아야 함, 순서대로).
 - "evidenceIndices" 필드에 정답의 직접적인 근거가 되는 문장의 인덱스(passageSentences 배열 기준 0부터 시작)를 배열로 넣으세요. 보통 1~2개면 충분합니다.
 - passage가 없는 문제는 passageSentences, evidenceIndices 모두 빈 배열 []로 두세요. **모든 문제에 근거 찾기를 시킬 필요는 없습니다.**
+- **절대 금지**: "①~④ 중에서" "밑줄 친 ⓐ~ⓓ 중" "1)~4) 중 지문에 표시된 것 중"처럼, 지문 안에 번호나 기호가 실제로 표시되어 있다는 전제로 묻는 문제는 내지 마세요. 지금 화면에는 그런 번호 표시가 지문에 나타나지 않아서 학생이 풀 수 없습니다. 보기(choices)는 항상 실제 문장·단어·설명을 그대로 풀어서 제시하세요 (예: "① 그는 슬펐다" (X) → "그는 결과에 실망하여 슬퍼했다" (O)).
 ` : ''}
 ${isMathSubject ? `
 [중요 — 수학/과학 문제는 실제로 계산해서 풀어야 합니다]
@@ -5396,6 +5411,13 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     return totalPoints;
   }
 
+  // 이미 레벨이 올라있는데 포인트 정산이 안 된 자료들을 한 번에 정산한다.
+  // (레벨 7에 도달하면 "학습 시작" 버튼이 "마스터 도전 시험 보기"로 바뀌면서 일반 채점 경로를
+  //  더 이상 안 타게 되는데, 레벨업 포인트는 그 경로에서만 지급되던 게 버그였음 — 로그인 때마다 정산)
+  function catchUpAllLrLevelPoints(studentId) {
+    window._lrExams.filter(e => e.studentId === studentId).forEach(e => awardLevelUpPoints(e));
+  }
+
   function awardMasteryPoints(exam) {
     if (exam.masteryAwarded) return 0;
     const difficulty = getExamDifficulty(exam);
@@ -5630,7 +5652,10 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     // 레벨은 문제마다 이미 실시간으로 갱신됐다 — 여기선 이번 세트에서 레벨이 어떻게 움직였는지 보여주기만 한다
     const levelNow = lrCurrentExam ? getLrExamLevel(lrCurrentExam) : lrLevelBeforeSet;
     const levelDelta = Math.round((levelNow - lrLevelBeforeSet) * 100) / 100;
-    const reachedMasteryGate = lrCurrentExam && levelNow >= 7 && !lrCurrentExam.masteryPassed && !lrCurrentExam.masteryExhausted;
+    const gatePct = Math.round((levelNow - 1) / 6 * 100);
+    const gatePredict = lrCurrentExam ? Math.min(100, Math.round(lrCurrentExam.targetScore * gatePct/100 * 1.1)) : 0;
+    const gateEligible = levelNow >= 7 || (lrCurrentExam && gatePredict >= lrCurrentExam.targetScore);
+    const reachedMasteryGate = lrCurrentExam && gateEligible && !lrCurrentExam.masteryPassed && !lrCurrentExam.masteryExhausted;
 
     // 새로 완료된 단계에는 이번 세트 점수를 기록해둔다 (코치 메시지·선생님 화면 호환용)
     if (lrCurrentExam) {
@@ -5643,7 +5668,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     document.getElementById('lrRoundComplete').style.display='block';
 
     if (reachedMasteryGate) {
-      document.getElementById('lrRoundCompleteTitle').textContent = '🎯 레벨 7 도달!';
+      document.getElementById('lrRoundCompleteTitle').textContent = levelNow >= 7 ? '🎯 레벨 7 도달!' : '🎯 목표 점수 조기 달성!';
       document.getElementById('lrRoundCompleteMsg').textContent =
         `${lrRoundScore.correct}/${lrRoundScore.total} 정답 (${pct}%)\n\n마스터 특별 점수를 받으려면 실전 모의고사(${getExamVolumeInfo(lrCurrentExam).questionCount}문제, 시간제한)에서 90점 이상을 받아야 해요.`;
       document.getElementById('lrNextRoundBtn').textContent = '🎯 마스터 도전 시험 보기';
@@ -5735,7 +5760,7 @@ ${extractedTexts ? '\n[자료 원문]\n' + extractedTexts : ''}
 - 배운 범위 전체를 골고루 다루세요. 한쪽 개념에만 몰리지 마세요.
 - 난이도는 실제 학교 시험 수준으로, 쉬운 문제부터 변별력 있는 어려운 문제까지 섞으세요.
 - 90점 이상을 받아야 통과하는 시험이니, 억지로 어렵게 꼬지 말고 정직하게 실력을 평가하는 문제로 내주세요.
-${isKoreanSubject ? '- 지문이 필요한 문제는 실제 시험처럼 충분히 긴 지문(passage)과 문장 분리(passageSentences), 근거 문장(evidenceIndices)을 포함하세요.' : ''}
+${isKoreanSubject ? '- 지문이 필요한 문제는 실제 시험처럼 충분히 긴 지문(passage)과 문장 분리(passageSentences), 근거 문장(evidenceIndices)을 포함하세요. 단, "①~④ 중" "밑줄 친 ⓐ~ⓓ 중"처럼 지문에 번호·기호가 실제로 표시되어 있다는 전제의 문제는 절대 내지 마세요 — 화면에 그런 표시가 없어서 풀 수 없습니다. 보기는 항상 실제 문장·내용을 그대로 풀어서 제시하세요.' : ''}
 ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내고, type은 대부분 "short"로, answer는 학생이 계산해서 나올 정확한 값으로 적으세요.' : ''}
 
 아래 JSON 배열로만 응답하세요 (문제 정확히 ${qCount}개):
@@ -6057,6 +6082,7 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
     hideAdminApp();
     document.getElementById('spHomeScreen').style.display = 'block';
     document.getElementById('spHomeName').textContent = match.name + '님';
+    catchUpAllLrLevelPoints(match.id);
     document.getElementById('spHomePoints').textContent = `🏅 ${match.lrPoints || 0}포인트`;
     renderSpMaterialList();
     renderSpSubjectTabs(match.id);
@@ -6139,11 +6165,13 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
     if (!mats.length && !multiMatExams.length) { listCard.style.display = 'none'; return; }
     listCard.style.display = 'block';
 
-    function masteryStatusBadge(exam, level) {
+    function masteryStatusBadge(exam, level, pct) {
       if (!exam) return '';
+      const predict = Math.min(100, Math.round(exam.targetScore * pct/100 * 1.1));
+      const eligible = level >= 7 || (level < 7 && predict >= exam.targetScore);
       if (exam.masteryAwarded) return ` <span style="color:#c5a149; font-weight:700;">🏆 마스터 +${exam.masteryPoints}p</span>`;
-      if (level >= 7 && exam.masteryExhausted) return ` <span style="color:#e53e3e; font-weight:700;">😔 특별점수 놓침</span>`;
-      if (level >= 7) return ` <span style="color:#fff; background:#c5a149; border-radius:6px; padding:1px 8px; font-size:11px; font-weight:700;">🎯 마스터 도전 가능!</span>`;
+      if (eligible && exam.masteryExhausted) return ` <span style="color:#e53e3e; font-weight:700;">😔 특별점수 놓침</span>`;
+      if (eligible) return ` <span style="color:#fff; background:#c5a149; border-radius:6px; padding:1px 8px; font-size:11px; font-weight:700;">🎯 마스터 도전 가능!</span>`;
       return '';
     }
 
@@ -6154,7 +6182,7 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
       const isCurrent = exam && exam.id === window._spSelectedExamId;
       const diffLabel = typeof m.difficultyLevel === 'number' ? getLrDifficultyLabel(m.difficultyLevel) : null;
       const diffBadge = diffLabel ? `<span style="background:#eef0fb; color:#4a5aa8; border-radius:6px; padding:1px 6px; font-size:10px; font-weight:700; margin-left:6px;">${diffLabel}</span>` : '';
-      const masteredBadge = masteryStatusBadge(exam, level);
+      const masteredBadge = masteryStatusBadge(exam, level, pct);
       return `
       <div style="display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; margin-bottom:6px; background:${isCurrent?'#f0f8f0':'#f8f9fc'}; border:${isCurrent?'1px solid #2f855a':'1px solid transparent'};">
         <div style="flex:1;">
@@ -6169,7 +6197,7 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
       const pct = Math.round((level - 1) / 6 * 100);
       const isCurrent = e.id === window._spSelectedExamId;
       const matNames = (e.materialIds||[]).map(id => { const m = window._lrMaterials.find(mm=>mm.id===id); return m ? m.scope : null; }).filter(Boolean);
-      const masteredBadge = masteryStatusBadge(e, level);
+      const masteredBadge = masteryStatusBadge(e, level, pct);
       return `
       <div style="display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; margin-bottom:6px; background:${isCurrent?'#f0f8f0':'#fff8e6'}; border:${isCurrent?'1px solid #2f855a':'1px solid #e8c96a'};">
         <div style="flex:1;">
