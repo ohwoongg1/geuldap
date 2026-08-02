@@ -1528,6 +1528,7 @@
   } catch(e) { console.log('Firebase 로드:', e); }
   renderStudents();
   window._fbReady = true;
+  if (typeof tryRestoreStudentSession === 'function') tryRestoreStudentSession();
 </script>
 
 <script>
@@ -4471,10 +4472,13 @@ ${(parsed.concepts || []).join(', ')}
   async function saveLrMaterial() {
     if(!selectedLrStudent) { alert('학생을 먼저 선택하세요.'); return; }
     const subject = document.getElementById('lrSubject').value;
-    const scope = document.getElementById('lrScope').value;
+    let scope = document.getElementById('lrScope').value;
     if(!scope) { alert('단원/범위를 입력하세요.'); return; }
 
     if (lrUploadMode === 'topic') {
+      const resolvedScope = resolveLrScopeName(selectedLrStudent.id, subject, scope);
+      if (resolvedScope === null) return; // 취소함
+      scope = resolvedScope;
       const btn = document.getElementById('lrSaveMaterialBtn');
       const orig = btn.textContent;
       btn.disabled = true;
@@ -6129,10 +6133,16 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
       document.getElementById('spError').classList.add('show');
       return;
     }
+    sessionStorage.setItem('spAuth', JSON.stringify({ name: match.name, code: match.accessCode }));
+    enterStudentPortal(match);
+  }
+
+  function enterStudentPortal(match) {
     window._spStudent = match;
     window._spSelectedSubject = null;
     window._spSelectedExamId = null;
     document.getElementById('studentPortalScreen').style.display = 'none';
+    document.getElementById('pwScreen').style.display = 'none';
     hideAdminApp();
     document.getElementById('spHomeScreen').style.display = 'block';
     document.getElementById('spHomeName').textContent = match.name + '님';
@@ -6143,6 +6153,19 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
     renderSpSubjectTabs(match.id);
     renderSpDashboard(match.id);
   }
+
+  // 새로고침해도 로그인 상태가 유지되도록, Firebase 데이터가 다 불러와진 뒤 세션을 복원한다
+  function tryRestoreStudentSession() {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem('spAuth') || 'null');
+      if (!saved) return false;
+      const match = _students.find(s => s.name === saved.name && s.accessCode === saved.code);
+      if (!match) return false;
+      enterStudentPortal(match);
+      return true;
+    } catch(e) { return false; }
+  }
+
   // ===== 과목 탭 → 그 과목의 자료별 진행 목록 =====
   function renderSpOverallCoach(studentId) {
     const card = document.getElementById('spOverallCoachCard');
@@ -6238,7 +6261,7 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
       const diffLabel = typeof m.difficultyLevel === 'number' ? getLrDifficultyLabel(m.difficultyLevel) : null;
       const diffBadge = diffLabel ? `<span style="background:#eef0fb; color:#4a5aa8; border-radius:6px; padding:1px 6px; font-size:10px; font-weight:700; margin-left:6px;">${diffLabel}</span>` : '';
       const masteredBadge = masteryStatusBadge(exam, level, pct);
-      return `
+      const html = `
       <div style="display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; margin-bottom:6px; background:${isCurrent?'#f0f8f0':'#f8f9fc'}; border:${isCurrent?'1px solid #2f855a':'1px solid transparent'};">
         <div style="flex:1;">
           <div style="font-weight:600; font-size:14px;">${m.scope}${diffBadge}${masteredBadge}${isCurrent?' <span style="color:#2f855a; font-size:11px;">(현재 학습중)</span>':''}</div>
@@ -6246,6 +6269,7 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
         </div>
         <button class="btn btn-secondary btn-sm" onclick="selectSpMaterialSession('${m.id}')">학습하기</button>
       </div>`;
+      return { html, mastered: !!(exam && exam.masteryAwarded) };
     });
     const examRows = multiMatExams.map(e => {
       const level = getLrExamLevel(e);
@@ -6253,7 +6277,7 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
       const isCurrent = e.id === window._spSelectedExamId;
       const matNames = (e.materialIds||[]).map(id => { const m = window._lrMaterials.find(mm=>mm.id===id); return m ? m.scope : null; }).filter(Boolean);
       const masteredBadge = masteryStatusBadge(e, level, pct);
-      return `
+      const html = `
       <div style="display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; margin-bottom:6px; background:${isCurrent?'#f0f8f0':'#fff8e6'}; border:${isCurrent?'1px solid #2f855a':'1px solid #e8c96a'};">
         <div style="flex:1;">
           <div style="font-weight:600; font-size:14px;">📋 ${e.name}${masteredBadge}${isCurrent?' <span style="color:#2f855a; font-size:11px;">(현재 학습중)</span>':''}</div>
@@ -6261,8 +6285,21 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
         </div>
         <button class="btn btn-secondary btn-sm" onclick="selectSpExamDirect('${e.id}')">학습하기</button>
       </div>`;
+      return { html, mastered: !!e.masteryAwarded };
     });
-    body.innerHTML = examRows.join('') + matRows.join('');
+
+    const allRows = [...examRows, ...matRows];
+    const activeRows = allRows.filter(r => !r.mastered);
+    const masteredRows = allRows.filter(r => r.mastered);
+
+    let out = activeRows.map(r => r.html).join('');
+    if (masteredRows.length) {
+      out += `
+        <div style="display:flex; align-items:center; gap:8px; margin:16px 0 8px; padding-top:12px; border-top:1px dashed #e0d5b0;">
+          <span style="font-size:13px; font-weight:700; color:#c5a149;">🏆 마스터 달성 (${masteredRows.length}개)</span>
+        </div>` + masteredRows.map(r => r.html).join('');
+    }
+    body.innerHTML = out || '<div style="color:#aaa; font-size:13px;">아직 등록된 자료가 없어요.</div>';
   }
 
   function selectSpExamDirect(examId) {
@@ -6364,6 +6401,7 @@ type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 c
     `;
   }
   function studentPortalLogout() {
+    sessionStorage.removeItem('spAuth');
     window._spStudent = null;
     selectedLrPreviewStudent = null;
     document.getElementById('spHomeScreen').style.display = 'none';
@@ -6393,15 +6431,32 @@ type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 c
   function closeSpNewTopicForm() {
     document.getElementById('spNewTopicModal').classList.remove('open');
   }
+  // 같은 학생·같은 과목에 이미 같은 이름의 자료가 있으면 확인받고, 진행하면 "(1)", "(2)"처럼 번호를 붙여 구분한다.
+  // 취소하면 null을 반환한다.
+  function resolveLrScopeName(studentId, subject, scope) {
+    const existing = window._lrMaterials
+      .filter(m => m.studentId === studentId && m.subject === subject)
+      .map(m => m.scope);
+    if (!existing.includes(scope)) return scope;
+    if (!confirm(`이미 "${scope}"라는 자료가 있어요. 그래도 새로 만들까요?`)) return null;
+    let n = 1;
+    let candidate = `${scope} (${n})`;
+    while (existing.includes(candidate)) { n++; candidate = `${scope} (${n})`; }
+    return candidate;
+  }
+
   async function createSpTopicLearning() {
     if (!window._spStudent) return;
     const subject = document.getElementById('spTopicSubject').value.trim();
-    const scope = document.getElementById('spTopicScope').value.trim();
+    let scope = document.getElementById('spTopicScope').value.trim();
     const difficulty = document.getElementById('spTopicDifficulty').value;
     const target = parseInt(document.getElementById('spTopicTarget').value) || 90;
     const date = document.getElementById('spTopicDate').value;
     if (!subject || !scope) { alert('과목과 단원명을 입력해주세요.'); return; }
     if (spUploadMode === 'photo' && !_spImages.length) { alert('사진이나 파일을 올려주세요.'); return; }
+    const resolvedScope = resolveLrScopeName(window._spStudent.id, subject, scope);
+    if (resolvedScope === null) return; // 취소함
+    scope = resolvedScope;
     const today = new Date();
     const examDate = new Date(date);
     const daysLeft = Math.ceil((examDate - today)/(1000*60*60*24));
