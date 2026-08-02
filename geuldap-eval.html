@@ -4807,6 +4807,7 @@ ${(parsed.concepts || []).join(', ')}
     }
     document.getElementById('spNoExamMsg').style.display='none';
     document.getElementById('spQuizArea').style.display='block';
+    lrCurrentExam = exam;
     document.getElementById('lrPreviewStudentName').textContent = selectedLrPreviewStudent.name;
     document.getElementById('lrPreviewExamInfo').textContent = (exam.name && exam.name !== exam.subject ? exam.name + ' · ' : '') + exam.subject + ' · ' + exam.date;
     document.getElementById('lrTargetDisplay').textContent = exam.targetScore;
