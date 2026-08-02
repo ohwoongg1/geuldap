@@ -4773,6 +4773,10 @@ ${(parsed.concepts || []).join(', ')}
     const exam = getSelectedOrActiveLrExam(id);
     if(!exam) {
       document.getElementById('spQuizArea').style.display='none';
+      const hasAnyMaterial = getStudentSubjects(id).length > 0;
+      document.getElementById('spNoExamMsg').textContent = hasAnyMaterial
+        ? '위 목록에서 자료를 골라 "학습하기"를 눌러 시작해보세요.'
+        : '등록된 자료가 없어요. 아래 "+ 나만의 학습 만들기"로 만들어보세요.';
       document.getElementById('spNoExamMsg').style.display='block';
       renderSpWeakTypes(id);
       if (window._spStudent) renderSpSubjectTabs(id);
