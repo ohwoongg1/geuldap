@@ -42,6 +42,10 @@
     .lr-exam-item { display:flex; align-items:center; justify-content:space-between; padding:14px; border-radius:10px; background:#f8f9fc; margin-bottom:8px; border-left:4px solid #2f855a; }
     .lr-dashboard-row { display:grid; grid-template-columns:100px 70px 1fr 60px 60px 160px; align-items:center; gap:10px; padding:12px; border-radius:8px; background:#f8f9fc; margin-bottom:6px; font-size:13px; }
     @media(max-width:600px) { .lr-dashboard-row { grid-template-columns:1fr; gap:4px; } }
+    .lr-evidence-sentence { cursor:pointer; padding:1px 2px; border-radius:3px; transition:background 0.15s; }
+    .lr-evidence-sentence:hover { background:#f0e6c8; }
+    .lr-evidence-sentence.lr-ev-selected { background:#fff3b0; text-decoration:underline; text-decoration-color:#c5a149; text-decoration-thickness:2px; }
+    .lr-evidence-sentence.lr-ev-correct { background:#d4f4dd; text-decoration:underline; text-decoration-color:#2f855a; text-decoration-thickness:2px; }
 
     .header { background: linear-gradient(135deg, #0d1b4b, #1a2f6b); padding: 18px 32px; display: flex; align-items: center; justify-content: space-between; }
     .header-title { font-family: 'Noto Serif KR', serif; font-size: 20px; font-weight: 700; color: #fff; }
@@ -294,7 +298,7 @@
           <div id="lrFeedbackCorrect" style="display:none; background:#f0fff4; border-left:4px solid #2f855a; border-radius:0 8px 8px 0; padding:14px;">
             <div style="font-size:15px; font-weight:700; color:#2f855a;">✅ 정답!</div>
             <div style="font-size:14px; color:#444; margin-top:6px;" id="lrFeedbackCorrectMsg"></div>
-            <button class="btn btn-primary btn-sm" onclick="nextLrQuestion()" style="margin-top:10px;">다음 문제 →</button>
+            <button class="btn btn-primary btn-sm" onclick="goToNextOrEvidence()" style="margin-top:10px;">다음 문제 →</button>
           </div>
           <!-- 오답일 때 — 개념 사다리 -->
           <div id="lrFeedbackWrong" style="display:none;">
@@ -317,8 +321,17 @@
             <!-- 3단계: 확인 결과 -->
             <div id="lrCheckResult" style="display:none; background:#f0fff4; border-left:4px solid #2f855a; border-radius:0 8px 8px 0; padding:14px;">
               <div style="font-size:14px; color:#444;" id="lrCheckResultMsg"></div>
-              <button class="btn btn-primary btn-sm" onclick="nextLrQuestion()" style="margin-top:10px;">다음 문제 →</button>
+              <button class="btn btn-primary btn-sm" onclick="goToNextOrEvidence()" style="margin-top:10px;">다음 문제 →</button>
             </div>
+          </div>
+
+          <!-- 지문 근거 찾기 (국어 지문 문제에서만 등장) -->
+          <div id="lrEvidenceStep" style="display:none; margin-top:16px; background:#fffdf0; border:1px solid #e8c96a; border-radius:8px; padding:14px;">
+            <div style="font-weight:700; color:#a67c00; margin-bottom:6px;">✏️ 지문에서 근거 찾기</div>
+            <div style="font-size:13px; color:#666; margin-bottom:10px;">위 지문에서 이 문제의 정답 근거가 되는 문장을 찾아 클릭해보세요. (여러 문장 선택 가능)</div>
+            <div id="lrEvidenceResult" style="display:none; font-size:13px; margin-top:8px; line-height:1.6;"></div>
+            <button class="btn btn-secondary btn-sm" onclick="submitEvidence()" id="lrEvidenceSubmitBtn" style="margin-top:10px;">확인</button>
+            <button class="btn btn-primary btn-sm" onclick="nextLrQuestion()" id="lrEvidenceNextBtn" style="display:none; margin-top:10px;">다음 문제 →</button>
           </div>
         </div>
       </div>
@@ -4324,12 +4337,26 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
     return Array.from(document.querySelectorAll('.lr-mat-check:checked')).map(c => c.value);
   }
 
+  // 자료가 삭제될 때, 그 자료를 참조하던 시험(materialIds)에서도 정리해서 참조가 끊기지 않게 한다
+  function cleanupExamMaterialRef(materialId) {
+    let changed = false;
+    window._lrExams.forEach(e => {
+      if (e.materialIds && e.materialIds.includes(materialId)) {
+        e.materialIds = e.materialIds.filter(mid => mid !== materialId);
+        changed = true;
+        if (window._fbReady) updateLrExamInFirebase(e);
+      }
+    });
+    if (changed) saveLrLocal();
+  }
+
   function deleteLrMaterial(id) {
     if(!confirm('이 자료를 삭제할까요?')) return;
     const material = window._lrMaterials.find(m=>m.id===id);
     if (material && material.storedFiles && material.storedFiles.length) window._deleteLrFiles(material.storedFiles);
     window._lrMaterials = window._lrMaterials.filter(m=>m.id!==id);
     deleteLrFromFirebase('material', id);
+    cleanupExamMaterialRef(id);
     saveLrLocal();
     renderLrStudents();
     renderLrMaterialList();
@@ -4637,11 +4664,13 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
     });
     const typeLabels = { textbook:'교과서', worksheet:'활동지', workbook:'문제집', notes:'필기', topic:'AI생성' };
     const examMatIds = exam.materialIds || [];
+    // 시험이 참조하는 자료가 삭제 등으로 다 사라졌으면(연결이 끊겼으면), 안전하게 전체 자료를 기본 선택 처리한다
+    const hasValidRef = examMatIds.some(id => allMats.some(m => m.id === id));
     div.innerHTML = Object.keys(grouped).map(subject => `
       <div style="margin-bottom:10px;">
         <div style="font-weight:600; color:#2f855a; font-size:13px; margin-bottom:4px;">${subject}</div>
         ${grouped[subject].map(m => {
-          const isInExam = examMatIds.includes(m.id);
+          const isInExam = hasValidRef ? examMatIds.includes(m.id) : true;
           return `<div style="display:flex; align-items:center; gap:6px; padding:4px 0; padding-left:12px; flex-wrap:wrap;">
             <label style="display:flex; align-items:center; gap:6px; cursor:pointer; flex:1; min-width:160px;">
               <input type="checkbox" class="lr-preview-mat" value="${m.id}" ${isInExam?'checked':''} onchange="updateLrPreviewSelectAll()">
@@ -4723,13 +4752,13 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
   let lrPracticeConcepts = []; // 취약유형 집중학습 세션에서 다룬 개념들 (완료 시 오답노트 resolved 처리용)
 
   const LR_PHASE_INFO = {
-    1: { phase:'이해', label:'1회차: 훑어읽기', desc:'전체 내용을 가볍게 파악하는 단계', qType:'핵심 내용 파악, OX 판단, 주제 찾기' },
-    2: { phase:'이해', label:'2회차: 구조 파악', desc:'글의 구조와 흐름을 이해하는 단계', qType:'문단 순서, 원인-결과, 중심 문장 찾기' },
-    3: { phase:'이해', label:'3회차: 핵심 정리', desc:'핵심 개념을 정리하는 단계', qType:'개념 설명, 용어 정의, 요약' },
-    4: { phase:'암기', label:'4회차: 핵심 암기', desc:'핵심 내용을 기억하는 단계', qType:'빈칸 채우기, 핵심어 매칭, 정의 쓰기' },
-    5: { phase:'암기', label:'5회차: 빈칸 테스트', desc:'정확히 기억하는지 확인하는 단계', qType:'빈칸 완성, 단답형, OX 퀴즈' },
-    6: { phase:'응용', label:'6회차: 실전 문제', desc:'배운 것을 적용하는 단계', qType:'실전 유형 문제, 보기 분석, 적용' },
-    7: { phase:'응용', label:'7회차: 모의시험', desc:'실전처럼 풀어보는 단계', qType:'실전 난이도 종합 문제, 서술형' }
+    1: { phase:'이해', label:'1회차: 훑어읽기', desc:'전체 내용을 가볍게 파악하는 단계', qType:'핵심 내용 파악, OX 판단, 주제 찾기', difficulty:'매우 쉬움 (7단계 중 1단계) — 자료를 처음 접한다는 가정으로, 정답이 눈에 잘 보이는 기본적인 질문' },
+    2: { phase:'이해', label:'2회차: 구조 파악', desc:'글의 구조와 흐름을 이해하는 단계', qType:'문단 순서, 원인-결과, 중심 문장 찾기', difficulty:'쉬움 (7단계 중 2단계) — 1회차보다 조금 더 세부적인 이해를 요구' },
+    3: { phase:'이해', label:'3회차: 핵심 정리', desc:'핵심 개념을 정리하는 단계', qType:'개념 설명, 용어 정의, 요약', difficulty:'쉬움~보통 (7단계 중 3단계) — 개념 간 관계를 정리해서 물어봄' },
+    4: { phase:'암기', label:'4회차: 핵심 암기', desc:'핵심 내용을 기억하는 단계', qType:'빈칸 채우기, 핵심어 매칭, 정의 쓰기', difficulty:'보통 (7단계 중 4단계) — 자료를 안 보고도 떠올릴 수 있어야 하는 수준' },
+    5: { phase:'암기', label:'5회차: 빈칸 테스트', desc:'정확히 기억하는지 확인하는 단계', qType:'빈칸 완성, 단답형, OX 퀴즈', difficulty:'보통~어려움 (7단계 중 5단계) — 비슷한 개념끼리 헷갈리게 만드는 함정 포함' },
+    6: { phase:'응용', label:'6회차: 실전 문제', desc:'배운 것을 적용하는 단계', qType:'실전 유형 문제, 보기 분석, 적용', difficulty:'어려움 (7단계 중 6단계) — 배운 개념을 새로운 상황·예시에 적용해야 풀리는 문제' },
+    7: { phase:'응용', label:'7회차: 모의시험', desc:'실전처럼 풀어보는 단계', qType:'실전 난이도 종합 문제, 서술형', difficulty:'가장 어려움 (7단계 중 7단계) — 실제 시험 수준의 종합 문제, 여러 개념을 엮어서 묻기' }
   };
 
   function getNextLrRound(exam) {
@@ -4771,6 +4800,8 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
       const allConcepts = [...new Set(mats.flatMap(m=>m.concepts||[]))];
       const allQuestions = mats.flatMap(m=>m.questions||[]);
       const isMathSubject = mats.some(m => m.subject==='수학' || m.subject==='과학') || lrCurrentExam.subject==='수학' || lrCurrentExam.subject==='과학';
+      const isKoreanSubject = mats.some(m => m.subject==='국어') || lrCurrentExam.subject==='국어';
+      const pastQuestions = (lrCurrentExam.pastQuestions || []).slice(-25);
 
       const prompt = `당신은 ${selectedLrPreviewStudent.grade} 학생을 가르치는 친절한 선생님입니다.
 문제 내용에는 학생의 이름을 언급하거나 지어내지 마세요.
@@ -4783,9 +4814,18 @@ ${matInfo}
 ${allConcepts.length ? '\n[핵심 개념 목록]\n' + allConcepts.join(', ') : ''}
 ${extractedTexts ? '\n[교재에서 추출한 실제 내용 — 이 내용을 바탕으로 문제를 만드세요]\n' + extractedTexts : ''}
 ${allQuestions.length ? '\n[교재/문제집에 있는 문제들 — 유사한 유형으로 변형하세요]\n' + allQuestions.slice(0,5).join('\n') : ''}
+${pastQuestions.length ? '\n[중요 — 이미 이전 회차에서 낸 문제들입니다. 절대 그대로/비슷하게 반복하지 마세요. 같은 개념이라도 완전히 다른 질문 방식, 다른 지문 부분, 다른 예시로 새롭게 만드세요]\n' + pastQuestions.map(q=>'- '+q).join('\n') : ''}
 
 [중요 — 지문 포함 문제]
 국어(문학/비문학) 과목이거나 내용 일치, 주제 파악, 시점, 인물의 심리, 글의 구조 등 지문을 읽어야 풀 수 있는 문제 유형이면, 반드시 위 [교재에서 추출한 실제 내용]에서 실제 지문(문단 전체 또는 문제 풀이에 필요한 만큼)을 발췌해서 "passage" 필드에 넣으세요. 지문 없이 <보기>만 한두 줄 요약해서 묻지 마세요 — 학생이 직접 읽고 판단할 수 있는 분량의 지문을 줘야 합니다. 지문이 필요 없는 단순 개념/용어 문제라면 passage는 빈 문자열로 두세요.
+매 회차 지문은 자료 전체 중 이전 회차와는 다른 문단·다른 부분에서 발췌하세요. 자료가 짧아서 겹칠 수밖에 없다면, 최소한 묻는 관점(주제/세부정보/추론/어휘 등)을 다르게 하세요.
+${isKoreanSubject ? `
+[국어 지문 문제 — 반드시 지킬 것]
+- 지문은 충분히 길게 주세요 (최소 5문장 이상, 200자 이상). 한두 문장짜리 짧은 지문으로 묻지 마세요.
+- 오답 선택지들도 지문의 서로 다른 부분에 근거해서 만드세요 — 정답과 오답이 전부 같은 문장 근처에서만 나오면 안 됩니다. 학생이 지문 전체를 꼼꼼히 읽어야 정답과 오답을 구별할 수 있게 하세요.
+- "passageSentences" 필드에 지문을 문장 단위로 쪼개서 배열로 넣으세요 (passage와 내용은 같아야 함, 순서대로).
+- "evidenceIndices" 필드에 정답의 직접적인 근거가 되는 문장의 인덱스(passageSentences 배열 기준 0부터 시작)를 배열로 넣으세요. 보통 1~2개면 충분합니다.
+` : ''}
 ${isMathSubject ? `
 [중요 — 수학/과학 문제는 실제로 계산해서 풀어야 합니다]
 "다음 중 옳은 설명은?"처럼 개념을 알아보는 객관식 문제 위주로 내지 마세요. 학생이 직접 손으로 계산해서 답을 구해야 하는 실제 계산·풀이 문제를 내세요.
@@ -4795,9 +4835,11 @@ ${isMathSubject ? `
 - explanation에는 반드시 풀이 과정을 단계별로 적어주세요.
 - 수식 표기는 절대 LaTeX 문법($, \\times, \\frac, \\cdot 등)을 쓰지 마세요. 화면에 그대로 텍스트로 표시되니, 사람이 읽기 편한 일반 표기만 쓰세요: 곱셈은 ×, 나눗셈은 ÷, 거듭제곱은 2^3 또는 2³(유니코드 위첨자), 분수는 3/4 형태로 쓰세요.
 ` : ''}
-[이번 회차 특징]
+[이번 회차 특징 — 반드시 지킬 것]
 - 단계: ${info.phase} (${info.desc})
+- 난이도: ${info.difficulty}
 - 문제 유형: ${info.qType}
+- 7회 반복학습의 핵심은 "같은 문제를 7번 반복"하는 게 아니라, 매 회차 쉬운 것부터 시작해서 회차가 올라갈수록 확실하게 더 어려워지는 것입니다. ${lrCurrentRound}회차는 1회차보다 ${lrCurrentRound}배 정도 더 도전적이어야 합니다 — 문장 길이, 어휘 난이도, 요구되는 사고 단계(단순 확인 → 이해 → 암기 → 적용 → 종합)를 회차마다 확실히 올리세요.
 ${lrCurrentRound <= 3 ? '- 이해 단계이므로 쉽고 기본적인 문제를 내세요. 학생이 내용을 "아, 이런 내용이구나" 하고 파악할 수 있는 수준.' : ''}
 ${lrCurrentRound >= 4 && lrCurrentRound <= 5 ? '- 암기 단계이므로 핵심 용어, 개념, 정의를 정확히 기억하는지 확인하는 문제를 내세요.' : ''}
 ${lrCurrentRound >= 6 ? '- 응용 단계이므로 실전과 비슷한 난이도로, 배운 개념을 새로운 상황에 적용하는 문제를 내세요. 실제 시험처럼 지문 기반 문제를 적극 포함하세요.' : ''}
@@ -4806,6 +4848,8 @@ ${lrCurrentRound >= 6 ? '- 응용 단계이므로 실전과 비슷한 난이도�
 [
   {
     "passage": "문제 풀이에 필요한 지문 발췌 (필요 없으면 빈 문자열)",
+    "passageSentences": ["문장1", "문장2", "문장3"],
+    "evidenceIndices": [1],
     "question": "문제 내용",
     "type": "choice",
     "choices": ["보기1","보기2","보기3","보기4"],
@@ -4814,6 +4858,7 @@ ${lrCurrentRound >= 6 ? '- 응용 단계이므로 실전과 비슷한 난이도�
     "explanation": "정답 해설 1-2문장"
   }
 ]
+passageSentences와 evidenceIndices는 지문이 있는 문제에서만 채우고, 지문이 없는 문제는 빈 배열 []로 두세요.
 
 type은 "choice"(4지선다) 또는 "short"(단답형)으로 섞어주세요.
 ${lrCurrentRound <= 3 ? 'choice 위주로 내세요.' : ''}
@@ -4826,6 +4871,13 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
       lrCurrentQIndex = 0;
       lrRoundScore = { correct:0, total:lrCurrentQuestions.length };
 
+      // 다음 회차에서 반복을 피하도록, 이번에 낸 문제를 기록해둔다
+      if (!lrCurrentExam.pastQuestions) lrCurrentExam.pastQuestions = [];
+      lrCurrentExam.pastQuestions.push(...lrCurrentQuestions.map(q => q.question));
+      lrCurrentExam.pastQuestions = lrCurrentExam.pastQuestions.slice(-40);
+      if (window._fbReady) updateLrExamInFirebase(lrCurrentExam);
+      saveLrLocal();
+
       document.getElementById('lrAiLoading').style.display='none';
       document.getElementById('lrQuestionArea').style.display='block';
       showLrQuestion();
@@ -4837,12 +4889,20 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     }
   }
 
+  let lrSelectedEvidence = [];
   function showLrQuestion() {
     const q = lrCurrentQuestions[lrCurrentQIndex];
     const info = LR_PHASE_INFO[lrCurrentRound];
     document.getElementById('lrQProgress').textContent = `문제 ${lrCurrentQIndex+1}/${lrCurrentQuestions.length}`;
     document.getElementById('lrQPhase').textContent = `${info.label} · ${info.phase} 단계`;
-    if(q.passage && q.passage.trim()) {
+    lrSelectedEvidence = [];
+    document.getElementById('lrEvidenceStep').style.display = 'none';
+    if(q.passageSentences && q.passageSentences.length) {
+      document.getElementById('lrQPassage').innerHTML = q.passageSentences.map((s,i) =>
+        `<span class="lr-evidence-sentence" data-idx="${i}" onclick="toggleEvidenceSentence(${i})">${s}</span> `
+      ).join('');
+      document.getElementById('lrQPassage').style.display = 'block';
+    } else if(q.passage && q.passage.trim()) {
       document.getElementById('lrQPassage').textContent = q.passage;
       document.getElementById('lrQPassage').style.display = 'block';
     } else {
@@ -4980,6 +5040,47 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     } else {
       document.getElementById('lrCheckResultMsg').innerHTML = `정답은 <strong style="color:#2f855a;">${lrCheckAnswer}</strong>예요. 괜찮아요, 이 부분은 교재에서 한 번 더 읽어보면 금방 이해될 거예요!`;
     }
+  }
+
+  function toggleEvidenceSentence(idx) {
+    const el = document.querySelector(`.lr-evidence-sentence[data-idx="${idx}"]`);
+    if (!el) return;
+    const pos = lrSelectedEvidence.indexOf(idx);
+    if (pos > -1) { lrSelectedEvidence.splice(pos,1); el.classList.remove('lr-ev-selected'); }
+    else { lrSelectedEvidence.push(idx); el.classList.add('lr-ev-selected'); }
+  }
+
+  function goToNextOrEvidence() {
+    const q = lrCurrentQuestions[lrCurrentQIndex];
+    if (q.passageSentences && q.passageSentences.length && q.evidenceIndices && q.evidenceIndices.length) {
+      document.getElementById('lrEvidenceStep').style.display = 'block';
+      document.getElementById('lrEvidenceResult').style.display = 'none';
+      document.getElementById('lrEvidenceSubmitBtn').style.display = 'inline-block';
+      document.getElementById('lrEvidenceNextBtn').style.display = 'none';
+      document.getElementById('lrEvidenceStep').scrollIntoView({ behavior:'smooth', block:'nearest' });
+    } else {
+      nextLrQuestion();
+    }
+  }
+
+  function submitEvidence() {
+    const q = lrCurrentQuestions[lrCurrentQIndex];
+    const correctSet = new Set(q.evidenceIndices);
+    const hasOverlap = lrSelectedEvidence.some(i => correctSet.has(i));
+    document.getElementById('lrEvidenceSubmitBtn').style.display = 'none';
+    document.getElementById('lrEvidenceResult').style.display = 'block';
+    q.evidenceIndices.forEach(i => {
+      const el = document.querySelector(`.lr-evidence-sentence[data-idx="${i}"]`);
+      if (el) el.classList.add('lr-ev-correct');
+    });
+    if (lrSelectedEvidence.length === 0) {
+      document.getElementById('lrEvidenceResult').innerHTML = '문장을 하나도 안 골랐어요. 노란색으로 표시된 문장이 진짜 근거예요 — 다음엔 지문을 꼼꼼히 읽고 찾아봐요!';
+    } else if (hasOverlap) {
+      document.getElementById('lrEvidenceResult').innerHTML = '✅ <strong>정확해요!</strong> 근거를 잘 찾았어요.';
+    } else {
+      document.getElementById('lrEvidenceResult').innerHTML = '아쉬워요. 노란색으로 표시된 문장이 진짜 근거예요. 지문을 다시 한번 살펴보세요!';
+    }
+    document.getElementById('lrEvidenceNextBtn').style.display = 'inline-block';
   }
 
   function nextLrQuestion() {
@@ -5591,6 +5692,7 @@ type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 c
     if (material && material.storedFiles && material.storedFiles.length) window._deleteLrFiles(material.storedFiles);
     window._lrMaterials = window._lrMaterials.filter(m=>m.id!==id);
     deleteLrFromFirebase('material', id);
+    cleanupExamMaterialRef(id);
     saveLrLocal();
     renderSpMaterialList();
   }
@@ -5603,6 +5705,7 @@ type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 c
     targets.forEach(m => {
       if (m.storedFiles && m.storedFiles.length) window._deleteLrFiles(m.storedFiles);
       deleteLrFromFirebase('material', m.id);
+      cleanupExamMaterialRef(m.id);
     });
     window._lrMaterials = window._lrMaterials.filter(m=>!(m.studentId===window._spStudent.id && m.subject===subject));
     saveLrLocal();
