@@ -175,7 +175,7 @@
   <div style="background:#0d1b4b; color:#fff; padding:18px 20px; display:flex; justify-content:space-between; align-items:center;">
     <div>
       <div style="font-size:18px; font-weight:700;" id="spHomeName">학생 이름</div>
-      <div style="font-size:12px; opacity:0.7;">글답 학습기</div>
+      <div style="font-size:12px; opacity:0.7;">글답 학습기 · <span id="spHomePoints">🏅 0포인트</span></div>
     </div>
     <button onclick="studentPortalLogout()" style="background:rgba(255,255,255,0.15); border:none; color:#fff; padding:8px 14px; border-radius:8px; font-size:13px; cursor:pointer;">로그아웃</button>
   </div>
@@ -286,11 +286,14 @@
 
       <!-- 문제 영역 -->
       <div id="lrQuestionArea" style="display:none; margin-top:20px;">
+        <div id="lrMasteryTimerWrap" style="display:none; background:#fff5f5; border:1px solid #e53e3e; border-radius:8px; padding:8px 14px; margin-bottom:10px; text-align:center;">
+          <span id="lrMasteryTimerText" style="font-size:14px; font-weight:700; color:#e53e3e;">⏱ 남은 시간 00:00</span>
+        </div>
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
           <span style="font-size:14px; font-weight:700; color:#0d1b4b;" id="lrQProgress">문제 1/5</span>
           <span style="font-size:12px; color:#888;" id="lrQPhase">이해 단계</span>
         </div>
-        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+        <div id="lrLiveLevelWrap" style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
           <div style="flex:1; height:10px; background:#e0e0e0; border-radius:5px; overflow:hidden;">
             <div id="lrLiveLevelBar" style="height:100%; width:0%; background:linear-gradient(90deg,#c5a149,#e8c96a); border-radius:5px; transition:width 0.4s ease;"></div>
           </div>
@@ -319,7 +322,7 @@
           <!-- 정답일 때 -->
           <div id="lrFeedbackCorrect" style="display:none; background:#f0fff4; border-left:4px solid #2f855a; border-radius:0 8px 8px 0; padding:14px;">
             <div style="font-size:15px; font-weight:700; color:#2f855a;">✅ 정답!</div>
-            <div style="font-size:14px; color:#444; margin-top:6px;" id="lrFeedbackCorrectMsg"></div>
+            <div style="font-size:14px; color:#444; margin-top:6px; white-space:pre-line;" id="lrFeedbackCorrectMsg"></div>
             <button class="btn btn-primary btn-sm" onclick="goToNextOrEvidence()" style="margin-top:10px;">다음 문제 →</button>
           </div>
           <!-- 오답일 때 — 개념 사다리 -->
@@ -4034,10 +4037,18 @@ ${a.name}`;
 - 확실하지 않다면 개념 개수를 5개보다 적게 내도 괜찮습니다. 억지로 채우지 마세요.
 수식이 필요하면 LaTeX 문법을 쓰지 말고 일반 텍스트(×, ÷, ^, 위첨자, 3/4 분수 표기)로 쓰세요.
 
+마지막으로, 이 단원이 한국 초중고 전체 교육과정에서 **객관적으로 얼마나 어려운 내용인지** 1~5 사이 숫자로 평가해주세요 (다른 학년·단원과 비교했을 때의 상대적 난이도입니다):
+1 = 초등 저학년 수준의 기초 내용
+2 = 초등 고학년 수준
+3 = 중학교 수준
+4 = 고등학교 1~2학년 수준
+5 = 고등학교 3학년 또는 수능 심화 수준 (예: 미적분, 수열의 극한 등)
+
 아래 JSON으로만 응답하세요:
 {
   "concepts": ["핵심 개념1", "핵심 개념2", "핵심 개념3"],
-  "summary": "이 단원에서 배우는 내용을 3줄로 요약"
+  "summary": "이 단원에서 배우는 내용을 3줄로 요약",
+  "difficultyLevel": 3
 }`;
     const rawText = await callGemini(prompt);
     const parsed = JSON.parse(rawText.replace(/```json|```/g,'').trim());
@@ -4049,6 +4060,7 @@ ${a.name}`;
       extractedContent: '', // 원문 없음 — 제목/단원명 기반이라 저작권 걱정 없음
       concepts: (parsed.concepts || []).slice(0, 20),
       summary: parsed.summary || '',
+      difficultyLevel: Math.max(1, Math.min(5, Math.round(parsed.difficultyLevel) || 3)),
       questions: [],
       createdAt: todayLocalDateStr(),
       status: 'extracted'
@@ -4082,12 +4094,16 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
 주의: 페이지 번호, 머리말/꼬리말, 출판사 로고 문구, 손글씨 낙서, 형광펜 표시 설명, 사진에 우연히 같이 찍힌 다른 페이지·다른 단원 내용처럼 본문과 무관한 것은 절대 포함하지 마세요. 글자가 흐릿하거나 확신이 안 서는 부분은 억지로 추측해서 채우지 말고 자연스럽게 이어지도록 옮기세요.
 수식은 LaTeX 문법 대신 일반 텍스트(×, ÷, ^, 위첨자, 3/4 분수 표기)로 옮겨주세요.
 
+마지막으로, 이 자료가 한국 초중고 전체 교육과정에서 **객관적으로 얼마나 어려운 내용인지** 1~5 사이 숫자로 평가해주세요:
+1 = 초등 저학년 수준, 2 = 초등 고학년 수준, 3 = 중학교 수준, 4 = 고등학교 1~2학년 수준, 5 = 고등학교 3학년/수능 심화 수준
+
 아래 JSON 형식으로만 응답하세요:
 {
   "fullText": "사진/PDF에서 추출한 전체 텍스트 (본문, 설명, 예시 등 모두 포함)",
   "concepts": ["핵심 개념1", "핵심 개념2", "핵심 개념3"],
   "questions": ["문제가 있으면 여기에 (없으면 빈 배열)"],
-  "summary": "이 자료의 내용을 3줄로 요약"
+  "summary": "이 자료의 내용을 3줄로 요약",
+  "difficultyLevel": 3
 }`;
 
     const mediaItems = [
@@ -4142,6 +4158,7 @@ ${(parsed.concepts || []).join(', ')}
       extractedContent: (parsed.fullText || '').slice(0, 8000),
       concepts: (parsed.concepts || []).slice(0, 20),
       summary: parsed.summary || '',
+      difficultyLevel: Math.max(1, Math.min(5, Math.round(parsed.difficultyLevel) || 3)),
       questions: (parsed.questions || []).slice(0, 10),
       status: 'extracted'
     };
@@ -4819,10 +4836,18 @@ ${(parsed.concepts || []).join(', ')}
     });
     renderLrCoachMsg(exam);
     renderLrPreviewMaterials(exam);
-    if (level >= 7) {
-      document.getElementById('lrStartBtn').textContent = '🏆 마스터! (복습하기)';
+    if (exam.masteryPassed) {
+      document.getElementById('lrStartBtn').textContent = '🏆 마스터 완료! (복습하기)';
+      document.getElementById('lrStartBtn').onclick = startLrLearning;
+    } else if (level >= 7 && exam.masteryExhausted) {
+      document.getElementById('lrStartBtn').textContent = '레벨 7 (특별점수는 놓쳤어요, 복습하기)';
+      document.getElementById('lrStartBtn').onclick = startLrLearning;
+    } else if (level >= 7) {
+      document.getElementById('lrStartBtn').textContent = '🎯 마스터 도전 시험 보기';
+      document.getElementById('lrStartBtn').onclick = startLrMasteryExam;
     } else {
       document.getElementById('lrStartBtn').textContent = `🚀 학습 시작 (현재 레벨 ${level.toFixed(1)}/7)`;
+      document.getElementById('lrStartBtn').onclick = startLrLearning;
     }
     renderSpWeakTypes(id);
     if (window._spStudent) renderSpSubjectTabs(id);
@@ -4957,6 +4982,10 @@ ${(parsed.concepts || []).join(', ')}
   let lrCheckAnswer = '';
   let lrPracticeMode = false; // true면 오답 재도전/취약유형 집중학습 세션 — 실제 7회차 스케줄을 건드리지 않음
   let lrLevelBeforeSet = 1; // 이번 5문제 세트를 시작하기 전의 레벨 (세트 완료 화면에서 변화량 표시용)
+  let lrMasteryMode = false; // true면 마스터 도전 시험(10문제, 시간제한, 채점은 끝나고 한번에) 진행 중
+  let lrMasteryAnswers = [];
+  let lrMasteryTimerInterval = null;
+  let lrMasteryTimeLeft = 0; // 초 단위
   let lrPracticeConcepts = []; // 취약유형 집중학습 세션에서 다룬 개념들 (완료 시 오답노트 resolved 처리용)
 
   const LR_PHASE_INFO = {
@@ -5113,9 +5142,13 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
   function showLrQuestion() {
     const q = lrCurrentQuestions[lrCurrentQIndex];
     const info = LR_PHASE_INFO[lrCurrentRound];
-    document.getElementById('lrQProgress').textContent = `문제 ${lrCurrentQIndex+1}/${lrCurrentQuestions.length}`;
-    document.getElementById('lrQPhase').textContent = `${info.label} · ${info.phase} 단계`;
-    if (lrCurrentExam) updateLrLiveLevelDisplay(lrCurrentExam);
+    document.getElementById('lrQProgress').textContent = lrMasteryMode
+      ? `모의고사 ${lrCurrentQIndex+1}/${lrCurrentQuestions.length}`
+      : `문제 ${lrCurrentQIndex+1}/${lrCurrentQuestions.length}`;
+    document.getElementById('lrQPhase').textContent = lrMasteryMode ? '실전 모의고사' : `${info.label} · ${info.phase} 단계`;
+    document.getElementById('lrMasteryTimerWrap').style.display = lrMasteryMode ? 'block' : 'none';
+    document.getElementById('lrLiveLevelWrap').style.display = lrMasteryMode ? 'none' : 'flex';
+    if (!lrMasteryMode && lrCurrentExam) updateLrLiveLevelDisplay(lrCurrentExam);
     lrSelectedEvidence = [];
     document.getElementById('lrEvidenceStep').style.display = 'none';
     lrDrawingDataUrl = null;
@@ -5308,6 +5341,59 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     return { before, after: exam.level };
   }
 
+  // 시험(자료)의 난이도 — 연결된 자료들의 difficultyLevel 평균 (1~5, 기본값 3)
+  function getExamDifficulty(exam) {
+    const mats = (exam.materialIds || []).map(id => window._lrMaterials.find(m=>m.id===id)).filter(Boolean);
+    if (!mats.length) return 3;
+    const withDiff = mats.filter(m => typeof m.difficultyLevel === 'number');
+    if (!withDiff.length) return 3;
+    return withDiff.reduce((a,m)=>a+m.difficultyLevel, 0) / withDiff.length;
+  }
+
+  const LR_DIFFICULTY_LABELS = { 1:'초등 저학년', 2:'초등 고학년', 3:'중학교', 4:'고1~2', 5:'고3/수능심화' };
+  function getLrDifficultyLabel(level) {
+    return LR_DIFFICULTY_LABELS[Math.round(Math.max(1,Math.min(5,level)))] || '중학교';
+  }
+
+  // 마스터 달성 시 난이도에 비례해서 포인트를 준다 (인수분해 마스터 ≠ 미적분 마스터)
+  // 학생에게 포인트를 실제로 지급하고 화면에 반영하는 공통 함수
+  function grantLrPoints(studentId, points) {
+    if (points <= 0) return;
+    const student = _students.find(s => s.id === studentId);
+    if (!student) return;
+    student.lrPoints = (student.lrPoints || 0) + points;
+    if (window._fbReady) window._updateByFieldId('geuldap_students', student.id, { lrPoints: student.lrPoints }).catch(console.error);
+    localStorage.setItem('gs', JSON.stringify(_students));
+    const pointsEl = document.getElementById('spHomePoints');
+    if (pointsEl && window._spStudent && window._spStudent.id === student.id) pointsEl.textContent = `🏅 ${student.lrPoints}포인트`;
+  }
+
+  // 레벨이 하나씩(2,3,4...) 올라갈 때마다 난이도 비례로 소액 포인트 지급 (마스터 시험 통과 보너스보다는 작게)
+  function awardLevelUpPoints(exam) {
+    if (!exam.pointsAwardedForLevel) exam.pointsAwardedForLevel = 1; // 시작 레벨 1은 기본, 포인트 대상 아님
+    const currentFloor = Math.min(7, Math.floor(exam.level));
+    if (currentFloor <= exam.pointsAwardedForLevel) return 0;
+    const difficulty = getExamDifficulty(exam);
+    const perLevel = Math.round(difficulty * 5); // 1(초등저)→5점 ~ 5(고3/수능)→25점, 레벨 하나당
+    const levelsGained = currentFloor - exam.pointsAwardedForLevel;
+    const totalPoints = perLevel * levelsGained;
+    exam.pointsAwardedForLevel = currentFloor;
+    if (window._fbReady) updateLrExamInFirebase(exam);
+    grantLrPoints(exam.studentId, totalPoints);
+    return totalPoints;
+  }
+
+  function awardMasteryPoints(exam) {
+    if (exam.masteryAwarded) return 0;
+    const difficulty = getExamDifficulty(exam);
+    const points = Math.round(difficulty * 20); // 1(초등저)→20점 ~ 5(고3/수능)→100점
+    exam.masteryAwarded = true;
+    exam.masteryPoints = points;
+    if (window._fbReady) updateLrExamInFirebase(exam);
+    grantLrPoints(exam.studentId, points);
+    return points;
+  }
+
   async function submitLrAnswer() {
     const q = lrCurrentQuestions[lrCurrentQIndex];
     let userAnswer = '';
@@ -5325,8 +5411,23 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
       ? userAnswer === q.answer
       : isLrShortAnswerCorrect(userAnswer, q.answer);
 
+    if (lrMasteryMode) {
+      // 실전 모의고사 — 즉시 채점 결과를 안 보여주고 바로 다음 문제로 (실제 시험처럼)
+      if (isCorrect) lrRoundScore.correct++;
+      lrMasteryAnswers.push({ question: q.question, userAnswer, correct: isCorrect });
+      lrCurrentQIndex++;
+      if (lrCurrentQIndex >= lrCurrentQuestions.length) {
+        finishLrMasteryExam(false);
+      } else {
+        showLrQuestion();
+      }
+      return;
+    }
+
+    let lrLevelUpPointsGained = 0;
     if (!lrPracticeMode && lrCurrentExam) {
       updateLrLevel(lrCurrentExam, isCorrect);
+      lrLevelUpPointsGained = awardLevelUpPoints(lrCurrentExam);
       if (window._fbReady) updateLrExamInFirebase(lrCurrentExam);
       saveLrLocal();
       updateLrLiveLevelDisplay(lrCurrentExam);
@@ -5344,7 +5445,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
       lrRoundScore.correct++;
       document.getElementById('lrFeedbackCorrect').style.display='block';
       document.getElementById('lrFeedbackWrong').style.display='none';
-      document.getElementById('lrFeedbackCorrectMsg').textContent = q.explanation || '잘했어요!';
+      document.getElementById('lrFeedbackCorrectMsg').textContent = (q.explanation || '잘했어요!') + (lrLevelUpPointsGained > 0 ? `\n🎉 레벨 업! +${lrLevelUpPointsGained}포인트 획득!` : '');
     } else {
       document.getElementById('lrFeedbackCorrect').style.display='none';
       document.getElementById('lrFeedbackWrong').style.display='block';
@@ -5515,7 +5616,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     // 레벨은 문제마다 이미 실시간으로 갱신됐다 — 여기선 이번 세트에서 레벨이 어떻게 움직였는지 보여주기만 한다
     const levelNow = lrCurrentExam ? getLrExamLevel(lrCurrentExam) : lrLevelBeforeSet;
     const levelDelta = Math.round((levelNow - lrLevelBeforeSet) * 100) / 100;
-    const mastered = levelNow >= 7 && pct >= 80;
+    const reachedMasteryGate = lrCurrentExam && levelNow >= 7 && !lrCurrentExam.masteryPassed && !lrCurrentExam.masteryExhausted;
 
     // 새로 완료된 단계에는 이번 세트 점수를 기록해둔다 (코치 메시지·선생님 화면 호환용)
     if (lrCurrentExam) {
@@ -5527,16 +5628,20 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     document.getElementById('lrQuestionArea').style.display='none';
     document.getElementById('lrRoundComplete').style.display='block';
 
-    if (mastered) {
-      document.getElementById('lrRoundCompleteTitle').textContent = '🏆 마스터 달성!';
-    } else {
-      document.getElementById('lrRoundCompleteTitle').textContent = `레벨 ${lrLevelBeforeSet.toFixed(1)} → ${levelNow.toFixed(1)}`;
+    if (reachedMasteryGate) {
+      document.getElementById('lrRoundCompleteTitle').textContent = '🎯 레벨 7 도달!';
+      document.getElementById('lrRoundCompleteMsg').textContent =
+        `${lrRoundScore.correct}/${lrRoundScore.total} 정답 (${pct}%)\n\n마스터 특별 점수를 받으려면 실전 모의고사(10문제, 시간제한)에서 90점 이상을 받아야 해요.`;
+      document.getElementById('lrNextRoundBtn').textContent = '🎯 마스터 도전 시험 보기';
+      document.getElementById('lrNextRoundBtn').style.display = 'inline-block';
+      document.getElementById('lrNextRoundBtn').onclick = startLrMasteryExam;
+      renderSpDashboard(selectedLrPreviewStudent.id);
+      return;
     }
 
+    document.getElementById('lrRoundCompleteTitle').textContent = `레벨 ${lrLevelBeforeSet.toFixed(1)} → ${levelNow.toFixed(1)}`;
     let msg = `${lrRoundScore.correct}/${lrRoundScore.total} 정답 (${pct}%)`;
-    if (mastered) {
-      msg += '\n🏆 이 자료를 완전히 마스터했어요! 정말 잘했어요.';
-    } else if (levelDelta > 0.1) {
+    if (levelDelta > 0.1) {
       msg += `\n🌟 레벨이 ${levelDelta.toFixed(1)} 올랐어요! 이 페이스 좋아요.`;
     } else if (levelDelta < -0.1) {
       msg += `\n💪 레벨이 조금 내려갔어요. 방금 튼 부분을 한 번 더 다지고 갈게요.`;
@@ -5544,8 +5649,8 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
       msg += `\n👍 비슷한 레벨을 유지하고 있어요. 계속 이어가요.`;
     }
     document.getElementById('lrRoundCompleteMsg').textContent = msg;
-
-    document.getElementById('lrNextRoundBtn').textContent = mastered ? '🔁 복습하기' : '계속하기 →';
+    document.getElementById('lrNextRoundBtn').textContent = '계속하기 →';
+    document.getElementById('lrNextRoundBtn').onclick = startLrLearning;
     document.getElementById('lrNextRoundBtn').style.display = 'inline-block';
 
     renderSpDashboard(selectedLrPreviewStudent.id);
@@ -5554,15 +5659,180 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
   function closeLrRound() {
     lrPracticeMode = false;
     lrPracticeConcepts = [];
+    lrMasteryMode = false;
+    clearInterval(lrMasteryTimerInterval);
     document.getElementById('lrFocusOverlay').style.display='none';
     document.getElementById('lrRoundComplete').style.display='none';
     document.getElementById('lrStartBtn').style.display='block';
+    document.getElementById('lrNextRoundBtn').onclick = startLrLearning;
     const level = lrCurrentExam ? getLrExamLevel(lrCurrentExam) : 1;
-    if (level >= 7) {
-      document.getElementById('lrStartBtn').textContent = '🏆 마스터! (복습하기)';
+    if (lrCurrentExam && lrCurrentExam.masteryPassed) {
+      document.getElementById('lrStartBtn').textContent = '🏆 마스터 완료! (복습하기)';
+    } else if (level >= 7 && lrCurrentExam && lrCurrentExam.masteryExhausted) {
+      document.getElementById('lrStartBtn').textContent = '레벨 7 (특별점수는 놓쳤어요, 복습하기)';
+    } else if (level >= 7) {
+      document.getElementById('lrStartBtn').textContent = '🎯 마스터 도전 시험 보기';
+      document.getElementById('lrStartBtn').onclick = startLrMasteryExam;
     } else {
       document.getElementById('lrStartBtn').textContent = `🚀 학습 시작 (현재 레벨 ${level.toFixed(1)}/7)`;
+      document.getElementById('lrStartBtn').onclick = startLrLearning;
     }
+  }
+
+  // ===== 마스터 도전 시험 (10문제, 시간제한, 90점 이상이어야 특별 점수) =====
+  // 학교/수능 시험의 문제당 시간 배분을 참고: 국어·영어는 지문 읽는 시간까지 고려해 넉넉히,
+  // 수학은 풀이 시간이 오래 걸려 가장 길게, 탐구(사회/과학 등)는 상대적으로 짧게 잡는다.
+  function getLrExamMinutesPerQuestion(subject) {
+    const map = { '국어': 2.5, '영어': 2, '수학': 4, '사회': 1.5, '과학': 1.5, '역사': 1.5, '도덕': 1.5 };
+    return map[subject] || 2;
+  }
+
+  async function startLrMasteryExam() {
+    if (!lrCurrentExam || !selectedLrPreviewStudent) return;
+    const exam = lrCurrentExam;
+
+    document.getElementById('lrFocusOverlay').style.display = 'block';
+    document.getElementById('lrRoundComplete').style.display = 'none';
+    document.getElementById('lrQuestionArea').style.display = 'none';
+    document.getElementById('lrAiLoading').style.display = 'block';
+    document.getElementById('lrAiLoadingText').textContent = '실전 모의고사를 만들고 있어요...';
+
+    try {
+      const mats = (exam.materialIds || []).map(id => window._lrMaterials.find(m=>m.id===id)).filter(Boolean);
+      const matInfo = mats.map(m=>`[${m.subject}] ${m.scope}`).join(', ') || exam.subject;
+      const extractedTexts = mats.filter(m=>m.extractedContent).map(m=>
+        `--- ${m.subject} ${m.scope} ---\n${m.extractedContent.slice(0,3000)}`
+      ).join('\n\n');
+      const allConcepts = [...new Set(mats.flatMap(m=>m.concepts||[]))];
+      const isMathSubject = exam.subject === '수학' || exam.subject === '과학';
+      const isKoreanSubject = exam.subject === '국어';
+
+      const prompt = `당신은 ${selectedLrPreviewStudent.grade} 학생에게 실전 모의고사를 출제하는 선생님입니다.
+문제 내용에는 학생의 이름을 언급하거나 지어내지 마세요.
+수식이 필요하면 LaTeX 문법을 쓰지 말고 일반 텍스트(×, ÷, ^, 3/4 분수 표기)로 쓰세요.
+
+[시험 범위] ${matInfo}
+${allConcepts.length ? '\n[핵심 개념]\n' + allConcepts.join(', ') : ''}
+${extractedTexts ? '\n[자료 원문]\n' + extractedTexts : ''}
+
+이 학생은 이 범위를 충분히 학습해서 레벨 7(만점)에 도달했습니다. 이제 실제 학교 시험처럼 종합적으로 평가하는 **실전 모의고사 10문제**를 내주세요.
+- 배운 범위 전체를 골고루 다루세요. 한쪽 개념에만 몰리지 마세요.
+- 난이도는 실제 학교 시험 수준으로, 쉬운 문제부터 변별력 있는 어려운 문제까지 섞으세요.
+- 90점 이상(10문제 중 9문제 이상)을 받아야 통과하는 시험이니, 억지로 어렵게 꼬지 말고 정직하게 실력을 평가하는 문제로 내주세요.
+${isKoreanSubject ? '- 지문이 필요한 문제는 실제 시험처럼 충분히 긴 지문(passage)과 문장 분리(passageSentences), 근거 문장(evidenceIndices)을 포함하세요.' : ''}
+${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내고, type은 대부분 "short"로, answer는 학생이 계산해서 나올 정확한 값으로 적으세요.' : ''}
+
+아래 JSON 배열로만 응답하세요 (문제 정확히 10개):
+[
+  {
+    "passage": "", "passageSentences": [], "evidenceIndices": [],
+    "question": "문제 내용", "type": "choice",
+    "choices": ["보기1","보기2","보기3","보기4"],
+    "answer": "정답", "concept": "핵심 개념", "explanation": "해설"
+  }
+]
+지문이 없는 문제는 passage, passageSentences, evidenceIndices를 각각 "", [], []로 두고, 단답형(short)이면 choices는 빈 배열로 두세요.`;
+
+      const rawText = await callGemini(prompt);
+      const text = rawText.replace(/```json|```/g,'').trim();
+      lrCurrentQuestions = JSON.parse(text);
+      lrCurrentQIndex = 0;
+      lrRoundScore = { correct:0, total: lrCurrentQuestions.length };
+      lrMasteryMode = true;
+      lrMasteryAnswers = [];
+
+      const minutesPerQ = getLrExamMinutesPerQuestion(exam.subject);
+      lrMasteryTimeLeft = Math.round(minutesPerQ * lrCurrentQuestions.length * 60);
+
+      document.getElementById('lrAiLoading').style.display = 'none';
+      document.getElementById('lrQuestionArea').style.display = 'block';
+      startLrMasteryTimer();
+      showLrQuestion();
+    } catch(e) {
+      document.getElementById('lrAiLoading').style.display = 'none';
+      document.getElementById('lrFocusOverlay').style.display = 'none';
+      alert('시험 생성 중 오류: ' + e.message);
+      renderSpDashboard(selectedLrPreviewStudent.id);
+    }
+  }
+
+  function startLrMasteryTimer() {
+    clearInterval(lrMasteryTimerInterval);
+    updateLrMasteryTimerDisplay();
+    lrMasteryTimerInterval = setInterval(() => {
+      lrMasteryTimeLeft--;
+      updateLrMasteryTimerDisplay();
+      if (lrMasteryTimeLeft <= 0) {
+        clearInterval(lrMasteryTimerInterval);
+        finishLrMasteryExam(true);
+      }
+    }, 1000);
+  }
+
+  function updateLrMasteryTimerDisplay() {
+    const el = document.getElementById('lrMasteryTimerText');
+    if (!el) return;
+    const t = Math.max(0, lrMasteryTimeLeft);
+    const m = Math.floor(t / 60);
+    const s = t % 60;
+    el.textContent = `⏱ 남은 시간 ${m}:${String(s).padStart(2,'0')}`;
+    el.style.color = t <= 60 ? '#e53e3e' : '#a67c00';
+  }
+
+  function finishLrMasteryExam(timedOut) {
+    clearInterval(lrMasteryTimerInterval);
+    lrMasteryMode = false;
+    const exam = lrCurrentExam;
+    const totalAnswered = lrMasteryAnswers.length;
+    const totalQuestions = lrCurrentQuestions.length;
+    const pct = totalQuestions ? Math.round((lrRoundScore.correct / totalQuestions) * 100) : 0;
+    const passed = pct >= 90;
+
+    document.getElementById('lrQuestionArea').style.display = 'none';
+    document.getElementById('lrRoundComplete').style.display = 'block';
+    document.getElementById('lrNextRoundBtn').onclick = startLrLearning;
+
+    if (!exam) { closeLrRound(); return; }
+
+    if (passed) {
+      exam.masteryPassed = true;
+      if (window._fbReady) updateLrExamInFirebase(exam);
+      saveLrLocal();
+      const points = awardMasteryPoints(exam);
+      const diffLabel = getLrDifficultyLabel(getExamDifficulty(exam));
+      document.getElementById('lrRoundCompleteTitle').textContent = '🏆 마스터 시험 통과!';
+      document.getElementById('lrRoundCompleteMsg').textContent =
+        `${lrRoundScore.correct}/${totalQuestions} 정답 (${pct}%)\n\n` +
+        `🏆 실전 모의고사를 통과했어요! (난이도: ${diffLabel}) +${points}포인트 획득!`;
+      document.getElementById('lrNextRoundBtn').textContent = '🔁 복습하기';
+      document.getElementById('lrNextRoundBtn').style.display = 'inline-block';
+    } else {
+      exam.masteryAttempts = (exam.masteryAttempts || 0) + 1;
+      const attemptsLeft = 4 - exam.masteryAttempts; // 총 4번(첫 시도 포함) 중 남은 횟수
+      if (attemptsLeft <= 0) {
+        exam.masteryExhausted = true;
+      }
+      if (window._fbReady) updateLrExamInFirebase(exam);
+      saveLrLocal();
+
+      document.getElementById('lrRoundCompleteTitle').textContent = timedOut ? '⏰ 시간 종료' : '아쉬워요!';
+      if (exam.masteryExhausted) {
+        document.getElementById('lrRoundCompleteMsg').textContent =
+          `${lrRoundScore.correct}/${totalQuestions} 정답 (${pct}%) — 90점을 넘지 못했어요.\n\n` +
+          `아쉽게도 도전 기회를 다 썼어요. 이번 자료는 특별 점수는 못 받지만, 계속 복습은 할 수 있어요.`;
+        document.getElementById('lrNextRoundBtn').textContent = '복습하기';
+        document.getElementById('lrNextRoundBtn').style.display = 'inline-block';
+      } else {
+        document.getElementById('lrRoundCompleteMsg').textContent =
+          `${lrRoundScore.correct}/${totalQuestions} 정답 (${pct}%) — 90점을 넘지 못했어요.\n\n` +
+          `괜찮아요, 다시 도전할 수 있어요! (남은 기회 ${attemptsLeft}번)`;
+        document.getElementById('lrNextRoundBtn').textContent = `🔁 다시 도전 (${attemptsLeft}번 남음)`;
+        document.getElementById('lrNextRoundBtn').onclick = startLrMasteryExam;
+        document.getElementById('lrNextRoundBtn').style.display = 'inline-block';
+      }
+    }
+
+    renderSpDashboard(selectedLrPreviewStudent.id);
   }
 
   // ===== 틀린 문제 복습 =====
@@ -5725,6 +5995,8 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     if (!confirm('학습을 중단하고 나가시겠어요? 지금까지 푼 내용은 저장되지 않아요.')) return;
     lrPracticeMode = false;
     lrPracticeConcepts = [];
+    lrMasteryMode = false;
+    clearInterval(lrMasteryTimerInterval);
     document.getElementById('lrFocusOverlay').style.display = 'none';
     document.getElementById('lrAiLoading').style.display = 'none';
     document.getElementById('lrQuestionArea').style.display = 'none';
@@ -5769,6 +6041,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     hideAdminApp();
     document.getElementById('spHomeScreen').style.display = 'block';
     document.getElementById('spHomeName').textContent = match.name + '님';
+    document.getElementById('spHomePoints').textContent = `🏅 ${match.lrPoints || 0}포인트`;
     renderSpMaterialList();
     renderSpSubjectTabs(match.id);
     renderSpDashboard(match.id);
@@ -5854,10 +6127,13 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
       const level = exam ? getLrExamLevel(exam) : 1;
       const pct = Math.round((level - 1) / 6 * 100);
       const isCurrent = exam && exam.id === window._spSelectedExamId;
+      const diffLabel = typeof m.difficultyLevel === 'number' ? getLrDifficultyLabel(m.difficultyLevel) : null;
+      const diffBadge = diffLabel ? `<span style="background:#eef0fb; color:#4a5aa8; border-radius:6px; padding:1px 6px; font-size:10px; font-weight:700; margin-left:6px;">${diffLabel}</span>` : '';
+      const masteredBadge = exam && exam.masteryAwarded ? ` <span style="color:#c5a149;">🏆 +${exam.masteryPoints}p</span>` : '';
       return `
       <div style="display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; margin-bottom:6px; background:${isCurrent?'#f0f8f0':'#f8f9fc'}; border:${isCurrent?'1px solid #2f855a':'1px solid transparent'};">
         <div style="flex:1;">
-          <div style="font-weight:600; font-size:14px;">${m.scope}${isCurrent?' <span style="color:#2f855a; font-size:11px;">(현재 학습중)</span>':''}</div>
+          <div style="font-weight:600; font-size:14px;">${m.scope}${diffBadge}${masteredBadge}${isCurrent?' <span style="color:#2f855a; font-size:11px;">(현재 학습중)</span>':''}</div>
           <div style="font-size:12px; color:#888; margin-top:2px;">${exam ? `진행률 ${pct}% (레벨 ${level.toFixed(1)}/7) · 목표 ${exam.targetScore}점` : '아직 시작 전'}</div>
         </div>
         <button class="btn btn-secondary btn-sm" onclick="selectSpMaterialSession('${m.id}')">학습하기</button>
