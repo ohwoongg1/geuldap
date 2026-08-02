@@ -1554,6 +1554,9 @@
     if (document.getElementById('pwInput').value === '0147') {
       document.getElementById('pwScreen').style.display = 'none';
       sessionStorage.setItem('auth','1');
+      // 이 브라우저에 예전에 로그인해둔 학생 세션이 남아있으면, 다음에 새로고침할 때
+      // 관리자 화면 대신 그 학생 화면으로 자동으로 들어가버리는 문제가 있어서 여기서 정리한다.
+      sessionStorage.removeItem('spAuth');
     } else {
       document.getElementById('pwError').classList.add('show');
       document.getElementById('pwInput').value = '';
