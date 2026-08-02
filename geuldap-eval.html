@@ -5355,6 +5355,17 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     return LR_DIFFICULTY_LABELS[Math.round(Math.max(1,Math.min(5,level)))] || '중학교';
   }
 
+  // 시험(자료)의 "양" — 핵심 개념 수 + 묶인 자료 개수로 판단. 양이 적으면 모의고사도 짧게, 점수도 작게.
+  function getExamVolumeInfo(exam) {
+    const mats = (exam.materialIds || []).map(id => window._lrMaterials.find(m=>m.id===id)).filter(Boolean);
+    const totalConcepts = mats.reduce((sum,m) => sum + (m.concepts ? m.concepts.length : 0), 0);
+    const matCount = Math.max(1, mats.length);
+    const volumeScore = totalConcepts + (matCount - 1) * 5; // 여러 자료가 묶여 있으면 그만큼 가산
+    if (volumeScore <= 6) return { tier:'적음', questionCount: 5, volumeMultiplier: 0.6 };
+    if (volumeScore <= 15) return { tier:'보통', questionCount: 8, volumeMultiplier: 1.0 };
+    return { tier:'많음', questionCount: 12, volumeMultiplier: 1.5 };
+  }
+
   // 마스터 달성 시 난이도에 비례해서 포인트를 준다 (인수분해 마스터 ≠ 미적분 마스터)
   // 학생에게 포인트를 실제로 지급하고 화면에 반영하는 공통 함수
   function grantLrPoints(studentId, points) {
@@ -5374,7 +5385,8 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     const currentFloor = Math.min(7, Math.floor(exam.level));
     if (currentFloor <= exam.pointsAwardedForLevel) return 0;
     const difficulty = getExamDifficulty(exam);
-    const perLevel = Math.round(difficulty * 5); // 1(초등저)→5점 ~ 5(고3/수능)→25점, 레벨 하나당
+    const volume = getExamVolumeInfo(exam);
+    const perLevel = Math.round(difficulty * 5 * volume.volumeMultiplier); // 난이도 × 양에 비례
     const levelsGained = currentFloor - exam.pointsAwardedForLevel;
     const totalPoints = perLevel * levelsGained;
     exam.pointsAwardedForLevel = currentFloor;
@@ -5386,7 +5398,8 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
   function awardMasteryPoints(exam) {
     if (exam.masteryAwarded) return 0;
     const difficulty = getExamDifficulty(exam);
-    const points = Math.round(difficulty * 20); // 1(초등저)→20점 ~ 5(고3/수능)→100점
+    const volume = getExamVolumeInfo(exam);
+    const points = Math.round(difficulty * 20 * volume.volumeMultiplier); // 난이도 × 양에 비례
     exam.masteryAwarded = true;
     exam.masteryPoints = points;
     if (window._fbReady) updateLrExamInFirebase(exam);
@@ -5631,7 +5644,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     if (reachedMasteryGate) {
       document.getElementById('lrRoundCompleteTitle').textContent = '🎯 레벨 7 도달!';
       document.getElementById('lrRoundCompleteMsg').textContent =
-        `${lrRoundScore.correct}/${lrRoundScore.total} 정답 (${pct}%)\n\n마스터 특별 점수를 받으려면 실전 모의고사(10문제, 시간제한)에서 90점 이상을 받아야 해요.`;
+        `${lrRoundScore.correct}/${lrRoundScore.total} 정답 (${pct}%)\n\n마스터 특별 점수를 받으려면 실전 모의고사(${getExamVolumeInfo(lrCurrentExam).questionCount}문제, 시간제한)에서 90점 이상을 받아야 해요.`;
       document.getElementById('lrNextRoundBtn').textContent = '🎯 마스터 도전 시험 보기';
       document.getElementById('lrNextRoundBtn').style.display = 'inline-block';
       document.getElementById('lrNextRoundBtn').onclick = startLrMasteryExam;
@@ -5706,6 +5719,8 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
       const allConcepts = [...new Set(mats.flatMap(m=>m.concepts||[]))];
       const isMathSubject = exam.subject === '수학' || exam.subject === '과학';
       const isKoreanSubject = exam.subject === '국어';
+      const volume = getExamVolumeInfo(exam);
+      const qCount = volume.questionCount;
 
       const prompt = `당신은 ${selectedLrPreviewStudent.grade} 학생에게 실전 모의고사를 출제하는 선생님입니다.
 문제 내용에는 학생의 이름을 언급하거나 지어내지 마세요.
@@ -5715,14 +5730,14 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
 ${allConcepts.length ? '\n[핵심 개념]\n' + allConcepts.join(', ') : ''}
 ${extractedTexts ? '\n[자료 원문]\n' + extractedTexts : ''}
 
-이 학생은 이 범위를 충분히 학습해서 레벨 7(만점)에 도달했습니다. 이제 실제 학교 시험처럼 종합적으로 평가하는 **실전 모의고사 10문제**를 내주세요.
+이 학생은 이 범위를 충분히 학습해서 레벨 7(만점)에 도달했습니다. 이제 실제 학교 시험처럼 종합적으로 평가하는 **실전 모의고사 ${qCount}문제**를 내주세요. (이 자료는 다루는 양이 "${volume.tier}"이라 문제 수를 ${qCount}개로 맞췄어요.)
 - 배운 범위 전체를 골고루 다루세요. 한쪽 개념에만 몰리지 마세요.
 - 난이도는 실제 학교 시험 수준으로, 쉬운 문제부터 변별력 있는 어려운 문제까지 섞으세요.
-- 90점 이상(10문제 중 9문제 이상)을 받아야 통과하는 시험이니, 억지로 어렵게 꼬지 말고 정직하게 실력을 평가하는 문제로 내주세요.
+- 90점 이상을 받아야 통과하는 시험이니, 억지로 어렵게 꼬지 말고 정직하게 실력을 평가하는 문제로 내주세요.
 ${isKoreanSubject ? '- 지문이 필요한 문제는 실제 시험처럼 충분히 긴 지문(passage)과 문장 분리(passageSentences), 근거 문장(evidenceIndices)을 포함하세요.' : ''}
 ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내고, type은 대부분 "short"로, answer는 학생이 계산해서 나올 정확한 값으로 적으세요.' : ''}
 
-아래 JSON 배열로만 응답하세요 (문제 정확히 10개):
+아래 JSON 배열로만 응답하세요 (문제 정확히 ${qCount}개):
 [
   {
     "passage": "", "passageSentences": [], "evidenceIndices": [],
@@ -6122,6 +6137,15 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
     const multiMatExams = window._lrExams.filter(e => e.studentId===studentId && e.subject===subject && (!e.materialIds || e.materialIds.length !== 1));
     if (!mats.length && !multiMatExams.length) { listCard.style.display = 'none'; return; }
     listCard.style.display = 'block';
+
+    function masteryStatusBadge(exam, level) {
+      if (!exam) return '';
+      if (exam.masteryAwarded) return ` <span style="color:#c5a149; font-weight:700;">🏆 마스터 +${exam.masteryPoints}p</span>`;
+      if (level >= 7 && exam.masteryExhausted) return ` <span style="color:#e53e3e; font-weight:700;">😔 특별점수 놓침</span>`;
+      if (level >= 7) return ` <span style="color:#fff; background:#c5a149; border-radius:6px; padding:1px 8px; font-size:11px; font-weight:700;">🎯 마스터 도전 가능!</span>`;
+      return '';
+    }
+
     const matRows = mats.map(m => {
       const exam = findMaterialExam(studentId, m.id);
       const level = exam ? getLrExamLevel(exam) : 1;
@@ -6129,7 +6153,7 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
       const isCurrent = exam && exam.id === window._spSelectedExamId;
       const diffLabel = typeof m.difficultyLevel === 'number' ? getLrDifficultyLabel(m.difficultyLevel) : null;
       const diffBadge = diffLabel ? `<span style="background:#eef0fb; color:#4a5aa8; border-radius:6px; padding:1px 6px; font-size:10px; font-weight:700; margin-left:6px;">${diffLabel}</span>` : '';
-      const masteredBadge = exam && exam.masteryAwarded ? ` <span style="color:#c5a149;">🏆 +${exam.masteryPoints}p</span>` : '';
+      const masteredBadge = masteryStatusBadge(exam, level);
       return `
       <div style="display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; margin-bottom:6px; background:${isCurrent?'#f0f8f0':'#f8f9fc'}; border:${isCurrent?'1px solid #2f855a':'1px solid transparent'};">
         <div style="flex:1;">
@@ -6144,10 +6168,11 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
       const pct = Math.round((level - 1) / 6 * 100);
       const isCurrent = e.id === window._spSelectedExamId;
       const matNames = (e.materialIds||[]).map(id => { const m = window._lrMaterials.find(mm=>mm.id===id); return m ? m.scope : null; }).filter(Boolean);
+      const masteredBadge = masteryStatusBadge(e, level);
       return `
       <div style="display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; margin-bottom:6px; background:${isCurrent?'#f0f8f0':'#fff8e6'}; border:${isCurrent?'1px solid #2f855a':'1px solid #e8c96a'};">
         <div style="flex:1;">
-          <div style="font-weight:600; font-size:14px;">📋 ${e.name}${isCurrent?' <span style="color:#2f855a; font-size:11px;">(현재 학습중)</span>':''}</div>
+          <div style="font-weight:600; font-size:14px;">📋 ${e.name}${masteredBadge}${isCurrent?' <span style="color:#2f855a; font-size:11px;">(현재 학습중)</span>':''}</div>
           <div style="font-size:12px; color:#888; margin-top:2px;">진행률 ${pct}% (레벨 ${level.toFixed(1)}/7) · 목표 ${e.targetScore}점${matNames.length ? ' · 범위: ' + matNames.join(', ') : ''}</div>
         </div>
         <button class="btn btn-secondary btn-sm" onclick="selectSpExamDirect('${e.id}')">학습하기</button>
