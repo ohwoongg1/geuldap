@@ -181,6 +181,11 @@
   </div>
   <div style="max-width:640px; margin:0 auto; padding:20px;">
 
+    <div class="card" id="spOverallCoachCard" style="display:none; margin-bottom:20px; background:#fff8e6; border:1px solid #e8c96a;">
+      <div class="card-title">🧭 전체 학습 코치</div>
+      <div id="spOverallCoachText" style="font-size:14px; color:#444; line-height:1.7;"></div>
+    </div>
+
     <div class="card" id="spSubjectTabsCard" style="margin-bottom:20px;">
       <div class="card-title">📚 과목 선택</div>
       <div style="font-size:12px; color:#888; margin-bottom:10px;">과목을 고르면 그 과목 안의 자료별 진행 상황이 보여요.</div>
@@ -232,7 +237,7 @@
       <!-- AI 코치 메시지 -->
       <div style="background:#f0f8f0; border-left:4px solid #2f855a; border-radius:0 8px 8px 0; padding:14px; margin:16px 0;">
         <div style="font-size:13px; font-weight:600; color:#2f855a; margin-bottom:4px;">🤖 AI 코치</div>
-        <div style="font-size:14px; color:#444;" id="lrCoachMsg">학습을 시작하면 진행 상황에 맞춰 코멘트가 나와요.</div>
+        <div style="font-size:14px; color:#444; white-space:pre-line;" id="lrCoachMsg">학습을 시작하면 진행 상황에 맞춰 코멘트가 나와요.</div>
       </div>
 
       <!-- 예상 점수 -->
@@ -4724,9 +4729,12 @@ ${(parsed.concepts || []).join(', ')}
       html += `<div id="${rowId}" style="display:none; margin:0 0 10px 20px;">`;
       exams.forEach(e => {
         const done = e.schedule.filter(sc=>sc.done).length;
+        const remaining = e.schedule.length - done;
         const pct = Math.round(done/7*100);
         const dday = Math.ceil((new Date(e.date) - today)/(1000*60*60*24));
         const predict = Math.min(100, Math.round(e.targetScore * pct/100 * 1.1));
+        const behindPace = remaining > 0 && dday > 0 && dday < remaining;
+        const overdue = remaining > 0 && dday <= 0;
         html += `<div class="lr-dashboard-row" style="background:#fff; border:1px solid #eee;">
           <span style="color:#888; font-size:12px;">↳ ${e.name}</span>
           <span>${e.subject}</span>
@@ -4740,7 +4748,7 @@ ${(parsed.concepts || []).join(', ')}
           </span>
           <span style="font-weight:700;color:${predict>=e.targetScore?'#2f855a':'#c5a149'};">${predict}점</span>
           <span style="font-weight:700;color:${dday<=3?'#e53e3e':dday<=7?'#c5a149':'#555'};">D-${dday}</span>
-          <span></span>
+          <span style="font-size:11px;">${overdue?'<span style="color:#e53e3e; font-weight:700;">⏰ 시험일 지남</span>':behindPace?'<span style="color:#e53e3e; font-weight:700;">⚠️ 진도 부족</span>':''}</span>
         </div>`;
       });
       html += `</div>`;
@@ -4872,8 +4880,26 @@ ${(parsed.concepts || []).join(', ')}
     const scoredRounds = sch.map((s,i)=>({...s, round:i+1})).filter(s=>s.done && typeof s.score === 'number');
     let msg;
 
+    // 시험일 대비 진도 페이스 계산 (남은 회차를 시험 전까지 끝낼 수 있는 속도인지)
+    const today = new Date();
+    const examDate = new Date(exam.date);
+    const daysLeft = Math.ceil((examDate - today) / (1000*60*60*24));
+    const remainingRounds = sch.length - doneRounds.length;
+    let paceMsg = '';
+    if (remainingRounds > 0) {
+      if (daysLeft <= 0) {
+        paceMsg = `⏰ 시험일이 오늘이거나 이미 지났어요. 남은 ${remainingRounds}회차를 최대한 빨리 끝내야 해요!`;
+      } else if (daysLeft < remainingRounds) {
+        paceMsg = `⏰ 시험까지 D-${daysLeft}인데 아직 ${remainingRounds}회차가 남았어요. 하루에 한 번 이상은 해야 시험 전에 끝낼 수 있어요 — 페이스를 올려야 해요!`;
+      } else if (daysLeft <= remainingRounds + 2) {
+        paceMsg = `⏰ 시험까지 D-${daysLeft}, 남은 ${remainingRounds}회차. 지금 속도면 아슬아슬하게 맞출 수 있어요. 미루지 말고 꾸준히 이어가요.`;
+      } else {
+        paceMsg = `⏰ 시험까지 D-${daysLeft}, 남은 ${remainingRounds}회차. 여유 있게 마칠 수 있는 속도예요.`;
+      }
+    }
+
     if(doneRounds.length === 0) {
-      msg = '아직 학습을 시작하지 않았어요. 1회차부터 차근차근 시작해봐요!';
+      msg = (paceMsg ? paceMsg + ' ' : '') + '아직 학습을 시작하지 않았어요. 1회차부터 차근차근 시작해봐요!';
     } else if(doneRounds.length >= sch.length) {
       if(scoredRounds.length) {
         const avg = Math.round(scoredRounds.reduce((a,s)=>a+s.score,0) / scoredRounds.length);
@@ -4904,6 +4930,7 @@ ${(parsed.concepts || []).join(', ')}
       } else {
         msg = '학습을 진행 중이에요. 꾸준히 이어가 봐요!';
       }
+      if (paceMsg) msg = paceMsg + '\n' + msg;
     }
 
     const el = document.getElementById('lrCoachMsg');
@@ -5698,7 +5725,47 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     renderSpDashboard(match.id);
   }
   // ===== 과목 탭 → 그 과목의 자료별 진행 목록 =====
+  function renderSpOverallCoach(studentId) {
+    const card = document.getElementById('spOverallCoachCard');
+    if (!card) return;
+    const exams = window._lrExams.filter(e => e.studentId === studentId);
+    if (exams.length < 2) { card.style.display = 'none'; return; }
+
+    const today = new Date();
+    const infos = exams.map(e => {
+      const done = e.schedule.filter(s=>s.done).length;
+      const remaining = e.schedule.length - done;
+      const dday = Math.ceil((new Date(e.date) - today) / (1000*60*60*24));
+      return { exam: e, done, remaining, dday };
+    }).filter(i => i.remaining > 0);
+
+    card.style.display = 'block';
+    if (!infos.length) {
+      document.getElementById('spOverallCoachText').textContent = `진행 중인 자료 ${exams.length}개를 모두 끝냈어요! 정말 잘하고 있어요 🎉`;
+      return;
+    }
+
+    // 급한 순으로 정렬: 시험일 지났거나(더 급함) D-day 대비 남은 회차 여유가 적을수록 급함
+    infos.sort((a,b) => (a.dday - a.remaining) - (b.dday - b.remaining));
+    const most = infos[0];
+    const name = `${most.exam.subject} · ${most.exam.name}`;
+
+    let msg = `지금 ${exams.length}개 자료를 진행 중이에요. `;
+    if (most.dday <= 0) {
+      msg += `"${name}"이(가) 시험일이 지났는데 아직 ${most.remaining}회차가 남아서 제일 급해요!`;
+    } else if (most.dday < most.remaining) {
+      msg += `"${name}"이(가) D-${most.dday}인데 ${most.remaining}회차나 남아서 제일 급해요. 이것부터 먼저 챙겨보세요.`;
+    } else {
+      msg += `그중 "${name}"이(가) D-${most.dday}로 가장 임박해서 우선순위로 두면 좋겠어요.`;
+    }
+    if (infos.length > 1) {
+      msg += ` 나머지 ${infos.length - 1}개는 아직 여유 있어요.`;
+    }
+    document.getElementById('spOverallCoachText').textContent = msg;
+  }
+
   function renderSpSubjectTabs(studentId) {
+    renderSpOverallCoach(studentId);
     const subjects = getStudentSubjects(studentId);
     const tabsDiv = document.getElementById('spSubjectTabs');
     if (!subjects.length) {
