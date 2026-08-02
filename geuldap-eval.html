@@ -5748,7 +5748,8 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     // 급한 순으로 정렬: 시험일 지났거나(더 급함) D-day 대비 남은 회차 여유가 적을수록 급함
     infos.sort((a,b) => (a.dday - a.remaining) - (b.dday - b.remaining));
     const most = infos[0];
-    const name = `${most.exam.subject} · ${most.exam.name}`;
+    const matNames = (most.exam.materialIds||[]).map(id => { const m = window._lrMaterials.find(mm=>mm.id===id); return m ? m.scope : null; }).filter(Boolean);
+    const name = `${most.exam.subject} · ${most.exam.name}` + (matNames.length && matNames.join(',') !== most.exam.name ? ` (범위: ${matNames.join(', ')})` : '');
 
     let msg = `지금 ${exams.length}개 자료를 진행 중이에요. `;
     if (most.dday <= 0) {
@@ -5795,9 +5796,11 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     const listCard = document.getElementById('spSessionListCard');
     const body = document.getElementById('spSessionListBody');
     const mats = window._lrMaterials.filter(m=>m.studentId===studentId && m.subject===subject && m.status==='extracted');
-    if (!mats.length) { listCard.style.display = 'none'; return; }
+    // 선생님이 "시험 설정"에서 여러 자료를 묶어 만든 정식 시험(자료 1개짜리 자동세션이 아닌 것)도 같이 보여준다
+    const multiMatExams = window._lrExams.filter(e => e.studentId===studentId && e.subject===subject && (!e.materialIds || e.materialIds.length !== 1));
+    if (!mats.length && !multiMatExams.length) { listCard.style.display = 'none'; return; }
     listCard.style.display = 'block';
-    body.innerHTML = mats.map(m => {
+    const matRows = mats.map(m => {
       const exam = findMaterialExam(studentId, m.id);
       const done = exam ? exam.schedule.filter(s=>s.done).length : 0;
       const pct = Math.round(done/7*100);
@@ -5810,7 +5813,32 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
         </div>
         <button class="btn btn-secondary btn-sm" onclick="selectSpMaterialSession('${m.id}')">학습하기</button>
       </div>`;
-    }).join('');
+    });
+    const examRows = multiMatExams.map(e => {
+      const done = e.schedule.filter(s=>s.done).length;
+      const pct = Math.round(done/7*100);
+      const isCurrent = e.id === window._spSelectedExamId;
+      const matNames = (e.materialIds||[]).map(id => { const m = window._lrMaterials.find(mm=>mm.id===id); return m ? m.scope : null; }).filter(Boolean);
+      return `
+      <div style="display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; margin-bottom:6px; background:${isCurrent?'#f0f8f0':'#fff8e6'}; border:${isCurrent?'1px solid #2f855a':'1px solid #e8c96a'};">
+        <div style="flex:1;">
+          <div style="font-weight:600; font-size:14px;">📋 ${e.name}${isCurrent?' <span style="color:#2f855a; font-size:11px;">(현재 학습중)</span>':''}</div>
+          <div style="font-size:12px; color:#888; margin-top:2px;">진행률 ${pct}% (${done}/7회차) · 목표 ${e.targetScore}점${matNames.length ? ' · 범위: ' + matNames.join(', ') : ''}</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="selectSpExamDirect('${e.id}')">학습하기</button>
+      </div>`;
+    });
+    body.innerHTML = examRows.join('') + matRows.join('');
+  }
+
+  function selectSpExamDirect(examId) {
+    const exam = window._lrExams.find(e => e.id === examId);
+    if (!exam) return;
+    window._spSelectedExamId = exam.id;
+    window._spSelectedSubject = exam.subject;
+    renderSpSessionList(window._spStudent.id, exam.subject);
+    renderSpDashboard(window._spStudent.id);
+    document.getElementById('spQuizArea').scrollIntoView({ behavior:'smooth', block:'start' });
   }
 
   function selectSpMaterialSession(materialId) {
