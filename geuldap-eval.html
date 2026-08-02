@@ -291,8 +291,16 @@
           <div id="lrQChoices"></div>
           <div class="form-group" id="lrQTextInputWrap" style="display:none; margin-top:10px;">
             <textarea id="lrQTextInput" placeholder="답을 입력하세요" style="min-height:60px;"></textarea>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="openLrDrawModal()" style="margin-top:8px;">✏️ 풀이 과정 그리기</button>
+            <div id="lrDrawPreview" style="margin-top:8px;"></div>
           </div>
           <button class="btn btn-primary" onclick="submitLrAnswer()" style="margin-top:12px;" id="lrSubmitBtn">제출</button>
+        </div>
+
+        <!-- 풀이 과정 첨삭 -->
+        <div id="lrDrawFeedbackPanel" style="display:none; margin-top:14px; background:#fdf6ff; border-left:4px solid #9f7aea; border-radius:0 8px 8px 0; padding:14px;">
+          <div style="font-size:13px; font-weight:700; color:#805ad5; margin-bottom:6px;">📝 풀이 과정 첨삭</div>
+          <div id="lrDrawFeedbackText" style="font-size:14px; color:#444; line-height:1.7;"></div>
         </div>
 
         <!-- 피드백 영역 -->
@@ -439,6 +447,27 @@
 
 <!-- AI 분석 재시도용 숨김 파일 입력 (관리자·학생 공용) -->
 <input type="file" id="lrRetryFileInput" accept="image/*,.pdf,.txt" multiple style="display:none;" onchange="handleLrRetryFiles(this)">
+
+<!-- 풀이 과정 그림판 -->
+<div class="modal-bg" id="lrDrawModal">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-title">✏️ 풀이 과정 쓰기</div>
+    <div style="font-size:12px; color:#888; margin-bottom:8px;">손가락이나 스타일러스로 직접 풀어보세요.</div>
+    <div style="border:2px solid #e0e0e0; border-radius:8px; overflow:hidden;">
+      <canvas id="lrDrawCanvas" width="600" height="420" style="width:100%; height:auto; display:block; background:#fff; touch-action:none;"></canvas>
+    </div>
+    <div style="display:flex; gap:8px; margin-top:10px;">
+      <button type="button" class="btn btn-primary btn-sm" id="lrPenBtn" onclick="setLrDrawMode('pen')">✏️ 펜</button>
+      <button type="button" class="btn btn-secondary btn-sm" id="lrEraserBtn" onclick="setLrDrawMode('eraser')">🧹 지우개</button>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="clearLrDraw()">전체 지우기</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeLrDrawModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveLrDraw()">완료</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- 헤더 -->
 <div class="header">
@@ -4967,6 +4996,9 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     document.getElementById('lrQPhase').textContent = `${info.label} · ${info.phase} 단계`;
     lrSelectedEvidence = [];
     document.getElementById('lrEvidenceStep').style.display = 'none';
+    lrDrawingDataUrl = null;
+    document.getElementById('lrDrawPreview').innerHTML = '';
+    document.getElementById('lrDrawFeedbackPanel').style.display = 'none';
     if(q.passageSentences && q.passageSentences.length) {
       document.getElementById('lrQPassage').innerHTML = q.passageSentences.map((s,i) =>
         `<span class="lr-evidence-sentence" data-idx="${i}" onclick="toggleEvidenceSentence(${i})">${s}</span> `
@@ -4997,6 +5029,117 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
       document.getElementById('lrQChoices').innerHTML = '';
       document.getElementById('lrQTextInputWrap').style.display='block';
       document.getElementById('lrQTextInput').value = '';
+    }
+  }
+
+  // 단답형 채점: 숫자/수식 답은 정확히 일치해야 정답(부분 포함 금지 — "2"인데 "12"라고 써도 오답 처리),
+  // 용어·설명형 답은 기존처럼 부분 포함도 허용한다. 정답에 "x=2 또는 x=3"처럼 여러 개가 있을 수도 있다.
+  // ===== 풀이 과정 그림판 =====
+  let lrDrawMode = 'pen';
+  let lrDrawing = false;
+  let lrDrawCtx = null;
+  let lrDrawingDataUrl = null;
+  let lrLastX = 0, lrLastY = 0;
+  let lrDrawListenersBound = false;
+
+  function initLrDrawCanvas() {
+    const canvas = document.getElementById('lrDrawCanvas');
+    if (!canvas) return;
+    lrDrawCtx = canvas.getContext('2d');
+    if (!lrDrawingDataUrl) {
+      lrDrawCtx.fillStyle = '#fff';
+      lrDrawCtx.fillRect(0,0,canvas.width,canvas.height);
+    }
+    lrDrawCtx.lineCap = 'round';
+    lrDrawCtx.lineJoin = 'round';
+    if (!lrDrawListenersBound) {
+      canvas.addEventListener('mousedown', lrDrawStart);
+      canvas.addEventListener('mousemove', lrDrawMove);
+      canvas.addEventListener('mouseup', lrDrawEnd);
+      canvas.addEventListener('mouseleave', lrDrawEnd);
+      canvas.addEventListener('touchstart', lrDrawStart, {passive:false});
+      canvas.addEventListener('touchmove', lrDrawMove, {passive:false});
+      canvas.addEventListener('touchend', lrDrawEnd);
+      lrDrawListenersBound = true;
+    }
+  }
+
+  function getLrCanvasPos(canvas, evt) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const point = evt.touches && evt.touches.length ? evt.touches[0] : evt;
+    return { x: (point.clientX - rect.left) * scaleX, y: (point.clientY - rect.top) * scaleY };
+  }
+
+  function lrDrawStart(evt) {
+    evt.preventDefault();
+    const canvas = document.getElementById('lrDrawCanvas');
+    const pos = getLrCanvasPos(canvas, evt);
+    lrDrawing = true;
+    lrLastX = pos.x; lrLastY = pos.y;
+  }
+  function lrDrawMove(evt) {
+    if (!lrDrawing) return;
+    evt.preventDefault();
+    const canvas = document.getElementById('lrDrawCanvas');
+    const pos = getLrCanvasPos(canvas, evt);
+    lrDrawCtx.strokeStyle = lrDrawMode === 'eraser' ? '#fff' : '#1a1a2e';
+    lrDrawCtx.lineWidth = lrDrawMode === 'eraser' ? 26 : 3;
+    lrDrawCtx.beginPath();
+    lrDrawCtx.moveTo(lrLastX, lrLastY);
+    lrDrawCtx.lineTo(pos.x, pos.y);
+    lrDrawCtx.stroke();
+    lrLastX = pos.x; lrLastY = pos.y;
+  }
+  function lrDrawEnd() { lrDrawing = false; }
+
+  function setLrDrawMode(mode) {
+    lrDrawMode = mode;
+    document.getElementById('lrPenBtn').className = mode==='pen' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+    document.getElementById('lrEraserBtn').className = mode==='eraser' ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+  }
+
+  function clearLrDraw() {
+    const canvas = document.getElementById('lrDrawCanvas');
+    lrDrawCtx.fillStyle = '#fff';
+    lrDrawCtx.fillRect(0,0,canvas.width,canvas.height);
+  }
+
+  function openLrDrawModal() {
+    document.getElementById('lrDrawModal').classList.add('open');
+    setTimeout(initLrDrawCanvas, 50);
+  }
+  function closeLrDrawModal() {
+    document.getElementById('lrDrawModal').classList.remove('open');
+  }
+  function saveLrDraw() {
+    const canvas = document.getElementById('lrDrawCanvas');
+    lrDrawingDataUrl = canvas.toDataURL('image/png');
+    document.getElementById('lrDrawPreview').innerHTML = `<div style="display:flex; align-items:center; gap:8px;"><img src="${lrDrawingDataUrl}" style="width:80px; height:auto; border:1px solid #ddd; border-radius:6px;"><span style="font-size:12px; color:#2f855a;">✅ 풀이 과정 저장됨 (수정하려면 다시 눌러주세요)</span></div>`;
+    closeLrDrawModal();
+  }
+
+  async function reviewLrDrawing(q, isCorrect) {
+    try {
+      const base64 = lrDrawingDataUrl.split(',')[1];
+      const prompt = `당신은 친절한 수학 선생님입니다. 학생이 태블릿에 직접 손으로 쓴 풀이 과정 사진입니다.
+
+문제: ${q.question}
+정답: ${q.answer}
+모범 풀이: ${q.explanation || ''}
+학생의 최종 답: ${isCorrect ? '정답' : '오답'}
+
+첨부된 이미지 속 학생의 손글씨 풀이 과정을 보고 다음을 알려주세요:
+1. 어느 단계까지 맞게 풀었는지
+2. 실수했다면 정확히 어느 부분에서 어떤 실수를 했는지 (계산 실수인지, 개념을 잘못 적용했는지 등)
+3. 짧은 격려의 말 한마디
+
+3~4문장으로 짧고 친절하게, 학생에게 직접 말하듯이 답변하세요. 수식은 LaTeX 문법 쓰지 말고 일반 텍스트(×, ÷, ^, 3/4 분수 표기)로 쓰세요.`;
+      const result = await callGeminiWithImages(prompt, [{ data: base64, mediaType: 'image/png' }]);
+      document.getElementById('lrDrawFeedbackText').textContent = result.trim();
+    } catch(e) {
+      document.getElementById('lrDrawFeedbackText').textContent = '풀이 과정을 분석하지 못했어요. (' + e.message + ')';
     }
   }
 
@@ -5036,6 +5179,12 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
       : isLrShortAnswerCorrect(userAnswer, q.answer);
 
     document.getElementById('lrFeedback').style.display='block';
+
+    if (lrDrawingDataUrl) {
+      document.getElementById('lrDrawFeedbackPanel').style.display = 'block';
+      document.getElementById('lrDrawFeedbackText').textContent = '풀이 과정을 살펴보는 중...';
+      reviewLrDrawing(q, isCorrect);
+    }
 
     if(isCorrect) {
       lrRoundScore.correct++;
