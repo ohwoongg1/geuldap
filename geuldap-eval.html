@@ -194,7 +194,7 @@
 
     <div class="card" id="spSessionListCard" style="display:none; margin-bottom:20px;">
       <div class="card-title">📖 자료별 진행 상황</div>
-      <div style="font-size:12px; color:#888; margin-bottom:10px;">자료마다 회차가 따로 진행돼요. 원하는 자료를 눌러서 이어가세요.</div>
+      <div style="font-size:12px; color:#888; margin-bottom:10px;">자료마다 회차가 따로 진행돼요. 원하는 자료를 눌러서 이어가세요. 🏆 마스터를 완료한 자료는 목록 맨 아래에 따로 모아서 보여줘요.</div>
       <div id="spSessionListBody"></div>
     </div>
 
@@ -204,6 +204,7 @@
       <div style="background:#f0f8f0; border-radius:12px; padding:20px; text-align:center; margin-bottom:16px;">
         <div style="font-size:18px; font-weight:700; color:#2f855a;" id="lrPreviewStudentName">학생 이름</div>
         <div style="font-size:13px; color:#888; margin-top:4px;" id="lrPreviewExamInfo">시험 정보</div>
+        <div id="lrMasteryTopBadge" style="display:none; margin-top:8px; font-size:13px; font-weight:700; color:#c5a149; background:#fff8e6; border:1px solid #e8c96a; border-radius:20px; padding:4px 14px;">🏆 이 자료는 마스터를 완료했어요</div>
       </div>
 
       <!-- 스테이지 맵 -->
@@ -962,6 +963,7 @@
             <input type="checkbox" id="lrMatSelectAll" onchange="toggleAllLrMaterials(this.checked)" checked> 전체 선택
           </label>
         </div>
+        <div style="font-size:12px; color:#888; margin-bottom:6px;">여기엔 올린 자료가 전부 보여요. 이 중 "✅ AI 분석 완료"만 학생 화면 "자료별 진행 상황"에 나타나요 — "📎 업로드만"(분석 실패/미완료)은 재시도해야 학생 화면에 뜹니다. 그래서 두 목록의 개수가 다를 수 있어요.</div>
         <div id="lrMaterialListBody"></div>
       </div>
     </div>
@@ -4543,7 +4545,7 @@ ${(parsed.concepts || []).join(', ')}
       renderLrStudents();
       renderLrMaterialList();
       if (material.status === 'extracted') {
-        alert('✅ 자료 저장 완료! (' + subject + ' · ' + scope + ')\n\nAI가 추출한 핵심 개념: ' + material.concepts.join(', '));
+        alert('✅ 자료 저장 완료! (' + subject + ' · ' + scope + ')\n\nAI가 추출한 핵심 개념: ' + material.concepts.join(', ') + '\n\n👉 학생 화면 "자료별 진행 상황"에 이 자료가 새 학습 항목으로 바로 추가됩니다. 별도의 "시험 설정"을 만들지 않아도, 이 자료 하나만으로 학생이 바로 학습을 시작할 수 있어요.');
       } else {
         alert('⚠️ 자료는 저장했지만 AI 분석에 실패했어요.\n"등록된 자료 목록"에서 재시도 버튼을 눌러보세요.');
       }
@@ -4911,6 +4913,12 @@ ${(parsed.concepts || []).join(', ')}
     awardLevelUpPoints(exam); // 레벨이 올라있는데 아직 정산 안 된 포인트가 있으면 여기서도 놓치지 않게 확인
     const earlyEligible = level < 7 && predict >= exam.targetScore;
     const continueLink = document.getElementById('lrContinuePracticeLink');
+    const topBadge = document.getElementById('lrMasteryTopBadge');
+    const materialsWrapper = document.getElementById('lrPreviewMaterials');
+    if (topBadge) topBadge.style.display = exam.masteryPassed ? 'inline-block' : 'none';
+    // 마스터를 이미 완료한 자료는 "학습할 자료 선택" 체크박스가 더 이상 의미가 없으니 숨겨서
+    // "전체 선택 목록 바로 밑에 마스터완료 버튼"처럼 보이는 헷갈림을 없앤다.
+    if (materialsWrapper) materialsWrapper.style.display = exam.masteryPassed ? 'none' : 'block';
     if (exam.masteryPassed) {
       document.getElementById('lrStartBtn').textContent = '🏆 마스터 완료! (복습하기)';
       document.getElementById('lrStartBtn').onclick = startLrLearning;
@@ -5802,6 +5810,13 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     } else {
       document.getElementById('lrStartBtn').textContent = `🚀 학습 시작 (현재 레벨 ${level.toFixed(1)}/7)`;
       document.getElementById('lrStartBtn').onclick = startLrLearning;
+    }
+    // 방금 끝낸 회차/마스터 시험 결과가 위쪽 "자료별 진행 상황" 목록에도 바로 반영되도록 새로고침
+    // (예전엔 여기서 목록을 다시 안 그려서, 방금 마스터를 통과했는데도 목록에는 "마스터 도전 가능"이라고
+    //  낡은 상태가 그대로 남아있는 버그가 있었음)
+    if (lrCurrentExam && window._spStudent) {
+      renderSpSessionList(lrCurrentExam.studentId, lrCurrentExam.subject);
+      renderSpOverallCoach(window._spStudent.id);
     }
   }
 
