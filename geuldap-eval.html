@@ -4095,6 +4095,11 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
       await window._updateByFieldId('geuldap_lr_materials', material.id, material);
     } catch(e) { console.log('학습기 자료 업데이트:', e); }
   }
+  async function updateLrWrongInFirebase(wrongItem) {
+    try {
+      await window._updateByFieldId('geuldap_lr_wrong', wrongItem.id, wrongItem);
+    } catch(e) { console.log('오답노트 업데이트:', e); }
+  }
   function saveLrLocal() {
     localStorage.setItem('glrm', JSON.stringify(window._lrMaterials));
     localStorage.setItem('glre', JSON.stringify(window._lrExams));
@@ -5167,14 +5172,29 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     } else {
       document.getElementById('spContentBody').innerHTML = `
         <button class="btn btn-primary" onclick="spRetryWrongOnly()" style="width:100%; margin-bottom:14px;">🔁 틀린 문제만 다시 풀기 (${list.length}개)</button>
+        <div style="font-size:12px; color:#888; margin-bottom:10px;">이제 확실히 아는 문제는 옆의 "완전히 알아요"를 눌러서 목록에서 뺄 수 있어요.</div>
         ${list.map(w => `
         <div style="background:#fff5f5; border-left:3px solid #e53e3e; border-radius:6px; padding:10px 14px; margin-bottom:8px;">
-          <div style="font-weight:600; font-size:13px;">${w.question}</div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+            <div style="font-weight:600; font-size:13px; flex:1;">${w.question}</div>
+            <button class="btn btn-secondary btn-sm" onclick="spMarkWrongResolved('${w.id}')" style="white-space:nowrap; padding:3px 8px; font-size:11px;">✅ 완전히 알아요</button>
+          </div>
           <div style="font-size:12px; color:#888; margin-top:4px;">내 답: ${w.userAnswer} → 정답: <span style="color:#2f855a;">${w.answer}</span></div>
           ${w.concept ? `<div style="font-size:11px; color:#aaa; margin-top:2px;">개념: ${w.concept}</div>` : ''}
         </div>`).join('')}`;
     }
     document.getElementById('spContentModal').classList.add('open');
+  }
+
+  function spMarkWrongResolved(wrongId) {
+    const w = window._lrWrong.find(x => x.id === wrongId);
+    if (!w) return;
+    w.resolved = true;
+    saveLrLocal();
+    if (window._fbReady) updateLrWrongInFirebase(w);
+    spOpenWrongNotebook(); // 목록 다시 그리기
+    const sid = window._spStudent ? window._spStudent.id : (selectedLrPreviewStudent ? selectedLrPreviewStudent.id : null);
+    if (sid) renderSpWeakTypes(sid);
   }
 
   async function spRetryWrongOnly() {
