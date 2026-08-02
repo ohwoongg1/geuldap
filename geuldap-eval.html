@@ -5957,9 +5957,12 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
 
     if (passed) {
       exam.masteryPassed = true;
-      if (window._fbReady) updateLrExamInFirebase(exam);
-      saveLrLocal();
+      // masteryAwarded/masteryPoints를 먼저 세팅한 뒤 한 번만 서버에 저장한다.
+      // (예전엔 masteryPassed만 먼저 저장하고 나서 awardMasteryPoints가 masteryAwarded를 또 따로 저장했는데,
+      //  두 번의 저장 요청이 서버에 도착하는 순서가 뒤바뀌면 나중에 도착한 쪽이 이겨서 masteryAwarded가
+      //  통째로 사라지는 경우가 있었음 — "목록엔 마스터 도전 가능인데 상세화면엔 마스터 완료"로 보이던 원인)
       const points = awardMasteryPoints(exam);
+      saveLrLocal();
       const diffLabel = getLrDifficultyLabel(getExamDifficulty(exam));
       document.getElementById('lrRoundCompleteTitle').textContent = '🏆 마스터 시험 통과!';
       document.getElementById('lrRoundCompleteMsg').textContent =
@@ -6308,6 +6311,12 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
 
     function masteryStatusBadge(exam, level, pct) {
       if (!exam) return '';
+      // 예전 버그로 masteryPassed는 저장됐는데 masteryAwarded가 저장 안 된 채로 남아있는 자료를
+      // 여기서 만날 때마다 바로 잡아준다(점수도 놓쳤으면 이때 지급됨).
+      if (exam.masteryPassed && !exam.masteryAwarded) {
+        awardMasteryPoints(exam);
+        saveLrLocal();
+      }
       const predict = Math.min(100, Math.round(exam.targetScore * pct/100 * 1.1));
       const eligible = level >= 7 || (level < 7 && predict >= exam.targetScore);
       if (exam.masteryAwarded) return ` <span style="color:#c5a149; font-weight:700;">🏆 마스터 +${exam.masteryPoints}p</span>`;
