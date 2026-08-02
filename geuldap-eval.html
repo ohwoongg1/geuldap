@@ -3937,6 +3937,8 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
 1. 본문 내용 전체를 가능한 정확하게 텍스트로 옮겨주세요.
 2. 핵심 개념/용어를 목록으로 정리해주세요.
 3. 문제가 있다면 문제와 보기도 옮겨주세요.
+
+주의: 페이지 번호, 머리말/꼬리말, 출판사 로고 문구, 손글씨 낙서, 형광펜 표시 설명, 사진에 우연히 같이 찍힌 다른 페이지·다른 단원 내용처럼 본문과 무관한 것은 절대 포함하지 마세요. 글자가 흐릿하거나 확신이 안 서는 부분은 억지로 추측해서 채우지 말고 자연스럽게 이어지도록 옮기세요.
 수식은 LaTeX 문법 대신 일반 텍스트(×, ÷, ^, 위첨자, 3/4 분수 표기)로 옮겨주세요.
 
 아래 JSON 형식으로만 응답하세요:
@@ -3958,7 +3960,42 @@ ${txtContent ? '\n[텍스트 파일 내용]\n' + txtContent.slice(0, 5000) : ''}
     } else {
       rawText = await callGemini(extractPrompt);
     }
-    const parsed = JSON.parse(rawText.replace(/```json|```/g,'').trim());
+    let parsed = JSON.parse(rawText.replace(/```json|```/g,'').trim());
+
+    // ===== 2차 검토: 방금 추출한 결과를 AI가 다시 한번 스스로 검토해서 잡음을 걸러낸다 =====
+    try {
+      const reviewPrompt = `당신은 꼼꼼한 검수자입니다. 아래는 ${subject} 과목(${scope}) 자료에서 방금 추출한 내용입니다. 사진에서 텍스트를 뽑아내는 과정이라 실수가 섞였을 수 있으니, 다시 한번 검토해서 정리해주세요.
+
+[추출된 내용]
+${(parsed.fullText || '').slice(0, 8000)}
+
+[추출된 핵심 개념]
+${(parsed.concepts || []).join(', ')}
+
+검토 기준:
+1. 본문과 무관한 내용(페이지 번호, 머리말/꼬리말, 다른 단원 내용, 출판사 정보, 낙서, 반복되는 이상한 기호 등)이 섞여 있으면 제거하세요.
+2. 문장이 어색하게 끊기거나 글자가 깨진 것처럼 보이는 부분은 자연스럽게 다듬으세요 (단, 실제 내용을 지어내지는 마세요 — 애매하면 그 부분만 자연스럽게 생략).
+3. 핵심 개념 목록도 본문 내용과 실제로 맞는지 확인하고, 안 맞는 게 있으면 빼주세요.
+4. 문제될 게 없으면 그대로 두세요. 과도하게 다시 쓰지 말고 최소한으로 정리만 하세요.
+
+정리된 결과를 아래 JSON으로만 응답하세요:
+{
+  "fullText": "정리된 전체 텍스트",
+  "concepts": ["정리된 핵심 개념들"],
+  "summary": "이 자료의 내용을 3줄로 요약"
+}`;
+      const reviewRaw = await callGemini(reviewPrompt);
+      const reviewed = JSON.parse(reviewRaw.replace(/```json|```/g,'').trim());
+      parsed = {
+        ...parsed,
+        fullText: reviewed.fullText || parsed.fullText,
+        concepts: reviewed.concepts || parsed.concepts,
+        summary: reviewed.summary || parsed.summary
+      };
+    } catch(e) {
+      console.log('2차 검토 실패(1차 추출 결과 그대로 사용):', e);
+    }
+
     return {
       imageCount: images.length,
       extractedContent: (parsed.fullText || '').slice(0, 8000),
