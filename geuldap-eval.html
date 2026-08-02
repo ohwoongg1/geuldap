@@ -267,7 +267,7 @@
           </div>
           <div id="lrPreviewMatList" style="font-size:13px;"></div>
         </div>
-        <button class="btn btn-primary" onclick="startLrLearning()" id="lrStartBtn" style="width:100%; padding:16px; font-size:16px;">🚀 학습 시작 (현재 회차)</button>
+        <button class="btn btn-primary" onclick="startLrLearning()" id="lrStartBtn" style="width:100%; padding:16px; font-size:16px;">🚀 학습 시작</button>
       </div>
     </div>
 
@@ -286,9 +286,15 @@
 
       <!-- 문제 영역 -->
       <div id="lrQuestionArea" style="display:none; margin-top:20px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
           <span style="font-size:14px; font-weight:700; color:#0d1b4b;" id="lrQProgress">문제 1/5</span>
           <span style="font-size:12px; color:#888;" id="lrQPhase">이해 단계</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+          <div style="flex:1; height:10px; background:#e0e0e0; border-radius:5px; overflow:hidden;">
+            <div id="lrLiveLevelBar" style="height:100%; width:0%; background:linear-gradient(90deg,#c5a149,#e8c96a); border-radius:5px; transition:width 0.4s ease;"></div>
+          </div>
+          <span id="lrLiveLevelText" style="font-size:12px; font-weight:700; color:#c5a149; white-space:nowrap;">레벨 1.0/7</span>
         </div>
         <div class="card" style="border-left:4px solid #c5a149;">
           <div id="lrQPassage" style="display:none; background:#f8f9fc; border-radius:8px; padding:14px 16px; margin-bottom:14px; font-size:14px; line-height:1.9; color:#333; white-space:pre-wrap;"></div>
@@ -4787,9 +4793,10 @@ ${(parsed.concepts || []).join(', ')}
     document.getElementById('lrPreviewStudentName').textContent = selectedLrPreviewStudent.name;
     document.getElementById('lrPreviewExamInfo').textContent = (exam.name && exam.name !== exam.subject ? exam.name + ' · ' : '') + exam.subject + ' · ' + exam.date;
     document.getElementById('lrTargetDisplay').textContent = exam.targetScore;
+    const level = getLrExamLevel(exam);
     const done = exam.schedule.filter(s=>s.done).length;
-    const pct = Math.round(done/7*100);
-    document.getElementById('lrProgressPercent').textContent = pct + '%';
+    const pct = Math.round((level - 1) / 6 * 100);
+    document.getElementById('lrProgressPercent').textContent = pct + '% (레벨 ' + level.toFixed(1) + '/7)';
     document.getElementById('lrProgressBar').style.width = pct + '%';
     const predict = Math.min(100, Math.round(exam.targetScore * pct/100 * 1.1));
     document.getElementById('lrPredictDisplay').textContent = predict;
@@ -4797,25 +4804,25 @@ ${(parsed.concepts || []).join(', ')}
     const examDate = new Date(exam.date);
     const dday = Math.ceil((examDate-today)/(1000*60*60*24));
     document.getElementById('lrDdayDisplay').textContent = dday>0?'D-'+dday:'D-day!';
-    // 스테이지 맵 업데이트
+    // 스테이지 맵 업데이트 (현재 레벨이 몇 단계에 있는지)
+    const curStage = Math.min(6, Math.floor(level) - 1); // 0-based index
     const stages = document.querySelectorAll('#lrStageMap .lr-stage');
-    const currentRound = done + 1;
     stages.forEach((st,i) => {
-      st.className = 'lr-stage ' + (i<done?'lr-stage-done': i===done?'lr-stage-current':'lr-stage-locked');
+      st.className = 'lr-stage ' + (i<curStage?'lr-stage-done': i===curStage?'lr-stage-current':'lr-stage-locked');
     });
     let lineIdx = 0;
     document.querySelectorAll('#lrStageMap > *').forEach(el => {
       if(el.classList.contains('lr-stage-line') || el.classList.contains('lr-stage-line-locked')) {
-        el.className = lineIdx < done ? 'lr-stage-line' : 'lr-stage-line-locked';
+        el.className = lineIdx < curStage ? 'lr-stage-line' : 'lr-stage-line-locked';
         lineIdx++;
       }
     });
     renderLrCoachMsg(exam);
     renderLrPreviewMaterials(exam);
-    if (done >= 7) {
-      document.getElementById('lrStartBtn').textContent = '🎉 모든 회차 완료! (복습하기)';
+    if (level >= 7) {
+      document.getElementById('lrStartBtn').textContent = '🏆 마스터! (복습하기)';
     } else {
-      document.getElementById('lrStartBtn').textContent = `🚀 ${done+1}회차 학습 시작`;
+      document.getElementById('lrStartBtn').textContent = `🚀 학습 시작 (현재 레벨 ${level.toFixed(1)}/7)`;
     }
     renderSpWeakTypes(id);
     if (window._spStudent) renderSpSubjectTabs(id);
@@ -4949,6 +4956,7 @@ ${(parsed.concepts || []).join(', ')}
   let lrRoundScore = { correct:0, total:0 };
   let lrCheckAnswer = '';
   let lrPracticeMode = false; // true면 오답 재도전/취약유형 집중학습 세션 — 실제 7회차 스케줄을 건드리지 않음
+  let lrLevelBeforeSet = 1; // 이번 5문제 세트를 시작하기 전의 레벨 (세트 완료 화면에서 변화량 표시용)
   let lrPracticeConcepts = []; // 취약유형 집중학습 세션에서 다룬 개념들 (완료 시 오답노트 resolved 처리용)
 
   const LR_PHASE_INFO = {
@@ -4972,7 +4980,9 @@ ${(parsed.concepts || []).join(', ')}
     lrPracticeConcepts = [];
     lrCurrentExam = getSelectedOrActiveLrExam(selectedLrPreviewStudent.id);
     if(!lrCurrentExam) { alert('설정된 시험이 없습니다.'); return; }
-    lrCurrentRound = getNextLrRound(lrCurrentExam);
+    const curLevel = getLrExamLevel(lrCurrentExam);
+    lrLevelBeforeSet = curLevel;
+    lrCurrentRound = Math.max(1, Math.min(7, Math.round(curLevel)));
     const info = LR_PHASE_INFO[lrCurrentRound];
 
     document.getElementById('lrFocusOverlay').style.display='block';
@@ -5007,7 +5017,7 @@ ${(parsed.concepts || []).join(', ')}
 문제 내용에는 학생의 이름을 언급하거나 지어내지 마세요.
 수식이 필요하면 LaTeX 문법($, \\times, \\frac 등)을 절대 쓰지 말고, 일반 텍스트(×, ÷, ^, 위첨자, 3/4 같은 분수 표기)로만 쓰세요.
 
-이 학생은 "${lrCurrentExam.name}" 시험을 준비 중이며, 7회 반복학습의 ${lrCurrentRound}회차(${info.label})를 하고 있습니다.
+이 학생은 "${lrCurrentExam.name}" 시험을 준비 중이며, 현재 레벨은 7단계 중 ${curLevel.toFixed(1)}이에요. 게임처럼 맞히면 레벨이 조금씩 올라가고 틀리면 더 크게 내려가는 방식이라, 지금 레벨(${lrCurrentRound}단계 근처)에 맞는 난이도로 문제를 내야 합니다.
 
 [학습 자료 범위]
 ${matInfo}
@@ -5017,14 +5027,15 @@ ${allQuestions.length ? '\n[교재/문제집에 있는 문제들 — 유사한 �
 ${pastQuestions.length ? '\n[중요 — 이미 이전 회차에서 낸 문제들입니다. 절대 그대로/비슷하게 반복하지 마세요. 같은 개념이라도 완전히 다른 질문 방식, 다른 지문 부분, 다른 예시로 새롭게 만드세요]\n' + pastQuestions.map(q=>'- '+q).join('\n') : ''}
 
 [중요 — 지문 포함 문제]
-국어(문학/비문학) 과목이거나 내용 일치, 주제 파악, 시점, 인물의 심리, 글의 구조 등 지문을 읽어야 풀 수 있는 문제 유형이면, 반드시 위 [교재에서 추출한 실제 내용]에서 실제 지문(문단 전체 또는 문제 풀이에 필요한 만큼)을 발췌해서 "passage" 필드에 넣으세요. 지문 없이 <보기>만 한두 줄 요약해서 묻지 마세요 — 학생이 직접 읽고 판단할 수 있는 분량의 지문을 줘야 합니다. 지문이 필요 없는 단순 개념/용어 문제라면 passage는 빈 문자열로 두세요.
+국어(문학/비문학) 과목이거나 내용 일치, 주제 파악, 시점, 인물의 심리, 글의 구조 등 **진짜로 지문을 읽어야만 풀리는 문제**일 때만 위 [교재에서 추출한 실제 내용]에서 실제 지문(문단 전체 또는 문제 풀이에 필요한 만큼)을 발췌해서 "passage" 필드에 넣으세요. 어휘 뜻, 맞춤법, 간단한 개념 확인처럼 지문이 굳이 없어도 풀리는 문제라면 passage는 비워두세요 — 5문제 중 지문이 꼭 필요한 문제는 2~3개 정도면 충분하고, 나머지는 지문 없이 내도 됩니다. 지문을 넣을 땐 <보기>만 한두 줄 요약하지 말고, 학생이 직접 읽고 판단할 수 있는 분량을 줘야 합니다.
 매 회차 지문은 자료 전체 중 이전 회차와는 다른 문단·다른 부분에서 발췌하세요. 자료가 짧아서 겹칠 수밖에 없다면, 최소한 묻는 관점(주제/세부정보/추론/어휘 등)을 다르게 하세요.
 ${isKoreanSubject ? `
-[국어 지문 문제 — 반드시 지킬 것]
+[국어 지문 문제 — 지문을 넣기로 한 문제에서만 지킬 것]
 - 지문은 충분히 길게 주세요 (최소 5문장 이상, 200자 이상). 한두 문장짜리 짧은 지문으로 묻지 마세요.
 - 오답 선택지들도 지문의 서로 다른 부분에 근거해서 만드세요 — 정답과 오답이 전부 같은 문장 근처에서만 나오면 안 됩니다. 학생이 지문 전체를 꼼꼼히 읽어야 정답과 오답을 구별할 수 있게 하세요.
 - "passageSentences" 필드에 지문을 문장 단위로 쪼개서 배열로 넣으세요 (passage와 내용은 같아야 함, 순서대로).
 - "evidenceIndices" 필드에 정답의 직접적인 근거가 되는 문장의 인덱스(passageSentences 배열 기준 0부터 시작)를 배열로 넣으세요. 보통 1~2개면 충분합니다.
+- passage가 없는 문제는 passageSentences, evidenceIndices 모두 빈 배열 []로 두세요. **모든 문제에 근거 찾기를 시킬 필요는 없습니다.**
 ` : ''}
 ${isMathSubject ? `
 [중요 — 수학/과학 문제는 실제로 계산해서 풀어야 합니다]
@@ -5039,7 +5050,7 @@ ${isMathSubject ? `
 - 단계: ${info.phase} (${info.desc})
 - 난이도: ${info.difficulty}
 - 문제 유형: ${info.qType}
-- 7회 반복학습의 핵심은 "같은 문제를 7번 반복"하는 게 아니라, 매 회차 쉬운 것부터 시작해서 회차가 올라갈수록 확실하게 더 어려워지는 것입니다. ${lrCurrentRound}회차는 1회차보다 ${lrCurrentRound}배 정도 더 도전적이어야 합니다 — 문장 길이, 어휘 난이도, 요구되는 사고 단계(단순 확인 → 이해 → 암기 → 적용 → 종합)를 회차마다 확실히 올리세요.
+- 게임처럼 맞히면 레벨이 올라가고 틀리면 레벨이 내려가는 방식입니다. 지금 레벨(${lrCurrentRound}단계 근처)에 맞는 난이도로 5문제를 내되, 살짝 쉬운 것부터 살짝 어려운 것까지 자연스럽게 섞어서 학생의 현재 실력을 정확히 가늠할 수 있게 하세요.
 ${lrCurrentRound <= 3 ? '- 이해 단계이므로 쉽고 기본적인 문제를 내세요. 학생이 내용을 "아, 이런 내용이구나" 하고 파악할 수 있는 수준.' : ''}
 ${lrCurrentRound >= 4 && lrCurrentRound <= 5 ? '- 암기 단계이므로 핵심 용어, 개념, 정의를 정확히 기억하는지 확인하는 문제를 내세요.' : ''}
 ${lrCurrentRound >= 6 ? '- 응용 단계이므로 실전과 비슷한 난이도로, 배운 개념을 새로운 상황에 적용하는 문제를 내세요. 실제 시험처럼 지문 기반 문제를 적극 포함하세요.' : ''}
@@ -5090,11 +5101,21 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
   }
 
   let lrSelectedEvidence = [];
+  function updateLrLiveLevelDisplay(exam) {
+    const level = getLrExamLevel(exam);
+    const pct = Math.round((level - 1) / 6 * 100);
+    const bar = document.getElementById('lrLiveLevelBar');
+    const text = document.getElementById('lrLiveLevelText');
+    if (bar) bar.style.width = pct + '%';
+    if (text) text.textContent = `레벨 ${level.toFixed(1)}/7`;
+  }
+
   function showLrQuestion() {
     const q = lrCurrentQuestions[lrCurrentQIndex];
     const info = LR_PHASE_INFO[lrCurrentRound];
     document.getElementById('lrQProgress').textContent = `문제 ${lrCurrentQIndex+1}/${lrCurrentQuestions.length}`;
     document.getElementById('lrQPhase').textContent = `${info.label} · ${info.phase} 단계`;
+    if (lrCurrentExam) updateLrLiveLevelDisplay(lrCurrentExam);
     lrSelectedEvidence = [];
     document.getElementById('lrEvidenceStep').style.display = 'none';
     lrDrawingDataUrl = null;
@@ -5262,6 +5283,31 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     return false;
   }
 
+  // ===== 게임형 레벨 시스템 (1.0~7.0) =====
+  // 회차(1~7) 틀은 그대로 두되(대시보드·선생님 화면 호환), 안에서는 연속적인 레벨로 움직인다.
+  // 맞히면 조금씩 올라가고, 틀리면 더 크게 내려가서 확실히 이해할 때까지 못 넘어가게 한다.
+  function getLrExamLevel(exam) {
+    if (typeof exam.level === 'number') return exam.level;
+    // 예전 방식(회차 완료 체크) 데이터는 완료된 회차 수 기준으로 초기 레벨을 잡아준다
+    const done = (exam.schedule || []).filter(s=>s.done).length;
+    exam.level = Math.min(7, 1 + done);
+    return exam.level;
+  }
+
+  function syncLrScheduleFromLevel(exam) {
+    const completedStages = Math.max(0, Math.floor(exam.level) - 1);
+    (exam.schedule || []).forEach((s, i) => { s.done = i < completedStages; });
+  }
+
+  function updateLrLevel(exam, isCorrect) {
+    const before = getLrExamLevel(exam);
+    let after = before + (isCorrect ? 0.15 : -0.35);
+    after = Math.max(1, Math.min(7, after));
+    exam.level = Math.round(after * 100) / 100;
+    syncLrScheduleFromLevel(exam);
+    return { before, after: exam.level };
+  }
+
   async function submitLrAnswer() {
     const q = lrCurrentQuestions[lrCurrentQIndex];
     let userAnswer = '';
@@ -5278,6 +5324,13 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     const isCorrect = q.type==='choice'
       ? userAnswer === q.answer
       : isLrShortAnswerCorrect(userAnswer, q.answer);
+
+    if (!lrPracticeMode && lrCurrentExam) {
+      updateLrLevel(lrCurrentExam, isCorrect);
+      if (window._fbReady) updateLrExamInFirebase(lrCurrentExam);
+      saveLrLocal();
+      updateLrLiveLevelDisplay(lrCurrentExam);
+    }
 
     document.getElementById('lrFeedback').style.display='block';
 
@@ -5434,7 +5487,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     const pct = Math.round(lrRoundScore.correct / lrRoundScore.total * 100);
 
     if (lrPracticeMode) {
-      // 오답 재도전 / 취약유형 집중학습 — 실제 7회차 스케줄은 건드리지 않는다
+      // 오답 재도전 / 취약유형 집중학습 — 레벨에 영향 없는 별도 연습
       document.getElementById('lrQuestionArea').style.display='none';
       document.getElementById('lrRoundComplete').style.display='block';
       document.getElementById('lrRoundCompleteTitle').textContent = '연습 완료!';
@@ -5443,7 +5496,6 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
         (pct >= 60 ? '🎉 많이 좋아졌어요! 계속 이 페이스로 가봐요.' : '💪 아직 헷갈리는 부분이 있어요. 개념카드로 한 번 더 확인해볼까요?');
       document.getElementById('lrNextRoundBtn').style.display = 'none';
 
-      // 60점 이상이면 이번에 다룬 개념들을 오답노트에서 해결됨 처리
       if (pct >= 60) {
         const targetConcepts = lrPracticeConcepts.length ? lrPracticeConcepts : (window._spWrongRetryIds ? null : []);
         if (window._spWrongRetryIds && window._spWrongRetryIds.length) {
@@ -5460,47 +5512,41 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
       return;
     }
 
-    const info = LR_PHASE_INFO[lrCurrentRound];
-    let skippedNext = false;
-    let willRetry = false;
+    // 레벨은 문제마다 이미 실시간으로 갱신됐다 — 여기선 이번 세트에서 레벨이 어떻게 움직였는지 보여주기만 한다
+    const levelNow = lrCurrentExam ? getLrExamLevel(lrCurrentExam) : lrLevelBeforeSet;
+    const levelDelta = Math.round((levelNow - lrLevelBeforeSet) * 100) / 100;
+    const mastered = levelNow >= 7 && pct >= 80;
 
-    if(lrCurrentExam && lrCurrentExam.schedule[lrCurrentRound-1]) {
-      if(pct >= 60) {
-        lrCurrentExam.schedule[lrCurrentRound-1].done = true;
-        lrCurrentExam.schedule[lrCurrentRound-1].score = pct;
-
-        // 90점 이상 & 다음 회차가 같은 단계(이해/암기/응용)면 건너뛰기
-        const nextRound = lrCurrentRound + 1;
-        const nextInfo = LR_PHASE_INFO[nextRound];
-        if(pct >= 90 && nextInfo && nextInfo.phase === info.phase && lrCurrentExam.schedule[nextRound-1] && !lrCurrentExam.schedule[nextRound-1].done) {
-          lrCurrentExam.schedule[nextRound-1].done = true;
-          lrCurrentExam.schedule[nextRound-1].score = null;
-          lrCurrentExam.schedule[nextRound-1].skipped = true;
-          skippedNext = true;
-        }
-      } else {
-        // 60점 미만이면 이 회차를 완료 처리하지 않음 → 다음에 같은 회차 재도전
-        lrCurrentExam.schedule[lrCurrentRound-1].score = pct;
-        lrCurrentExam.schedule[lrCurrentRound-1].done = false;
-        willRetry = true;
-      }
-      updateLrExamInFirebase(lrCurrentExam);
+    // 새로 완료된 단계에는 이번 세트 점수를 기록해둔다 (코치 메시지·선생님 화면 호환용)
+    if (lrCurrentExam) {
+      lrCurrentExam.schedule.forEach(s => { if (s.done && (s.score === null || s.score === undefined)) s.score = pct; });
+      if (window._fbReady) updateLrExamInFirebase(lrCurrentExam);
       saveLrLocal();
     }
 
     document.getElementById('lrQuestionArea').style.display='none';
     document.getElementById('lrRoundComplete').style.display='block';
-    document.getElementById('lrRoundCompleteTitle').textContent = `${lrCurrentRound}회차 완료! ${info.phase} 단계`;
+
+    if (mastered) {
+      document.getElementById('lrRoundCompleteTitle').textContent = '🏆 마스터 달성!';
+    } else {
+      document.getElementById('lrRoundCompleteTitle').textContent = `레벨 ${lrLevelBeforeSet.toFixed(1)} → ${levelNow.toFixed(1)}`;
+    }
 
     let msg = `${lrRoundScore.correct}/${lrRoundScore.total} 정답 (${pct}%)`;
-    if(willRetry) msg += '\n💪 아직 조금 부족해요. 이 회차를 한 번 더 연습해볼까요?';
-    else if(skippedNext) msg += '\n🌟🌟 완벽해요! 다음 회차는 건너뛰고 그다음 단계로 갈게요.';
-    else if(pct >= 80) msg += '\n🌟 훌륭해요! 다음 단계로 넘어갈 준비가 됐어요.';
-    else msg += '\n👍 잘하고 있어요. 다음 회차로 넘어갈게요.';
+    if (mastered) {
+      msg += '\n🏆 이 자료를 완전히 마스터했어요! 정말 잘했어요.';
+    } else if (levelDelta > 0.1) {
+      msg += `\n🌟 레벨이 ${levelDelta.toFixed(1)} 올랐어요! 이 페이스 좋아요.`;
+    } else if (levelDelta < -0.1) {
+      msg += `\n💪 레벨이 조금 내려갔어요. 방금 튼 부분을 한 번 더 다지고 갈게요.`;
+    } else {
+      msg += `\n👍 비슷한 레벨을 유지하고 있어요. 계속 이어가요.`;
+    }
     document.getElementById('lrRoundCompleteMsg').textContent = msg;
 
-    document.getElementById('lrNextRoundBtn').textContent = willRetry ? '🔁 이 회차 다시 도전' : '다음 회차 시작 →';
-    document.getElementById('lrNextRoundBtn').style.display = (lrCurrentRound < 7 || willRetry) ? 'inline-block' : 'none';
+    document.getElementById('lrNextRoundBtn').textContent = mastered ? '🔁 복습하기' : '계속하기 →';
+    document.getElementById('lrNextRoundBtn').style.display = 'inline-block';
 
     renderSpDashboard(selectedLrPreviewStudent.id);
   }
@@ -5511,12 +5557,11 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     document.getElementById('lrFocusOverlay').style.display='none';
     document.getElementById('lrRoundComplete').style.display='none';
     document.getElementById('lrStartBtn').style.display='block';
-    const doneCount = lrCurrentExam ? lrCurrentExam.schedule.filter(s=>s.done).length : 0;
-    if (doneCount >= 7) {
-      document.getElementById('lrStartBtn').textContent = '🎉 모든 회차 완료! (복습하기)';
+    const level = lrCurrentExam ? getLrExamLevel(lrCurrentExam) : 1;
+    if (level >= 7) {
+      document.getElementById('lrStartBtn').textContent = '🏆 마스터! (복습하기)';
     } else {
-      const nextRoundNum = doneCount + 1;
-      document.getElementById('lrStartBtn').textContent = `🚀 ${nextRoundNum}회차 학습 시작`;
+      document.getElementById('lrStartBtn').textContent = `🚀 학습 시작 (현재 레벨 ${level.toFixed(1)}/7)`;
     }
   }
 
@@ -5806,28 +5851,28 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     listCard.style.display = 'block';
     const matRows = mats.map(m => {
       const exam = findMaterialExam(studentId, m.id);
-      const done = exam ? exam.schedule.filter(s=>s.done).length : 0;
-      const pct = Math.round(done/7*100);
+      const level = exam ? getLrExamLevel(exam) : 1;
+      const pct = Math.round((level - 1) / 6 * 100);
       const isCurrent = exam && exam.id === window._spSelectedExamId;
       return `
       <div style="display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; margin-bottom:6px; background:${isCurrent?'#f0f8f0':'#f8f9fc'}; border:${isCurrent?'1px solid #2f855a':'1px solid transparent'};">
         <div style="flex:1;">
           <div style="font-weight:600; font-size:14px;">${m.scope}${isCurrent?' <span style="color:#2f855a; font-size:11px;">(현재 학습중)</span>':''}</div>
-          <div style="font-size:12px; color:#888; margin-top:2px;">${exam ? `진행률 ${pct}% (${done}/7회차) · 목표 ${exam.targetScore}점` : '아직 시작 전'}</div>
+          <div style="font-size:12px; color:#888; margin-top:2px;">${exam ? `진행률 ${pct}% (레벨 ${level.toFixed(1)}/7) · 목표 ${exam.targetScore}점` : '아직 시작 전'}</div>
         </div>
         <button class="btn btn-secondary btn-sm" onclick="selectSpMaterialSession('${m.id}')">학습하기</button>
       </div>`;
     });
     const examRows = multiMatExams.map(e => {
-      const done = e.schedule.filter(s=>s.done).length;
-      const pct = Math.round(done/7*100);
+      const level = getLrExamLevel(e);
+      const pct = Math.round((level - 1) / 6 * 100);
       const isCurrent = e.id === window._spSelectedExamId;
       const matNames = (e.materialIds||[]).map(id => { const m = window._lrMaterials.find(mm=>mm.id===id); return m ? m.scope : null; }).filter(Boolean);
       return `
       <div style="display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; margin-bottom:6px; background:${isCurrent?'#f0f8f0':'#fff8e6'}; border:${isCurrent?'1px solid #2f855a':'1px solid #e8c96a'};">
         <div style="flex:1;">
           <div style="font-weight:600; font-size:14px;">📋 ${e.name}${isCurrent?' <span style="color:#2f855a; font-size:11px;">(현재 학습중)</span>':''}</div>
-          <div style="font-size:12px; color:#888; margin-top:2px;">진행률 ${pct}% (${done}/7회차) · 목표 ${e.targetScore}점${matNames.length ? ' · 범위: ' + matNames.join(', ') : ''}</div>
+          <div style="font-size:12px; color:#888; margin-top:2px;">진행률 ${pct}% (레벨 ${level.toFixed(1)}/7) · 목표 ${e.targetScore}점${matNames.length ? ' · 범위: ' + matNames.join(', ') : ''}</div>
         </div>
         <button class="btn btn-secondary btn-sm" onclick="selectSpExamDirect('${e.id}')">학습하기</button>
       </div>`;
