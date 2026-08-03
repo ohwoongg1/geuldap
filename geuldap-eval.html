@@ -3049,15 +3049,15 @@ ${BLOG_DELIM_GUIDE}`;
   // 이 HTML을 그대로 화면 미리보기에도 쓰고, 복사할 때도 서식이 붙은 채로 붙여넣기 되게 한다.
   function buildBlogHtml(d) {
     const sectionsHtml = (d.sections || []).map(s => `
-      <p style="font-size:17px; font-weight:700; color:#1a6b3f; margin:26px 0 10px 0; line-height:1.5;">📌 ${escapeHtml(s.heading)}</p>
-      <p style="font-size:15.5px; line-height:1.9; margin:0 0 4px 0; color:#333;">${escapeHtml(s.body).replace(/\n\n?/g,'</p><p style="font-size:15.5px; line-height:1.9; margin:12px 0 4px 0; color:#333;">')}</p>`
+      <p style="font-size:17px; font-weight:700; margin:26px 0 10px 0; line-height:1.5;">📌 ${escapeHtml(s.heading)}</p>
+      <p style="font-size:15.5px; line-height:1.9; margin:0 0 4px 0;">${escapeHtml(s.body).replace(/\n\n?/g,'</p><p style="font-size:15.5px; line-height:1.9; margin:12px 0 4px 0;">')}</p>`
     ).join('');
     return `<div>
-      <p style="font-size:21px; font-weight:800; margin:0 0 18px 0; line-height:1.4; color:#111;">${escapeHtml(d.title)}</p>
-      <p style="font-size:15.5px; line-height:1.9; margin:0 0 10px 0; color:#333;">${escapeHtml(d.intro||'').replace(/\n\n?/g,'</p><p style="font-size:15.5px; line-height:1.9; margin:0 0 10px 0; color:#333;">')}</p>
+      <p style="font-size:21px; font-weight:800; margin:0 0 18px 0; line-height:1.4;">${escapeHtml(d.title)}</p>
+      <p style="font-size:15.5px; line-height:1.9; margin:0 0 10px 0;">${escapeHtml(d.intro||'').replace(/\n\n?/g,'</p><p style="font-size:15.5px; line-height:1.9; margin:0 0 10px 0;">')}</p>
       ${sectionsHtml}
-      <p style="font-size:15.5px; line-height:1.9; margin:26px 0 20px 0; color:#333;">${escapeHtml(d.closing||'')}</p>
-      <p style="font-size:14px; color:#4a5aa8; margin:0;">${(d.hashtags||[]).join(' ')}</p>
+      <p style="font-size:15.5px; line-height:1.9; margin:26px 0 20px 0;">${escapeHtml(d.closing||'')}</p>
+      <p style="font-size:14px; margin:0;">${(d.hashtags||[]).join(' ')}</p>
     </div>`;
   }
   function buildBlogPlainText(d) {
