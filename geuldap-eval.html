@@ -2618,7 +2618,7 @@
     if (a.name) {
       infoEl.innerHTML = `<b>${a.name}</b> · ${a.address || '(주소 미입력)'} · ${a.phone || '(전화번호 미입력)'}`;
     } else {
-      infoEl.innerHTML = `⚠️ 아직 "🏫 학원 정보 설정"(학생 관리 탭)에 학원명·주소·전화번호가 입력돼있지 않아요. 먼저 그쪽부터 채워주세요.`;
+      infoEl.innerHTML = `⚠️ 아직 "🏫 학원 정보 설정"(수납 관리 탭 상단)에 학원명·주소·전화번호가 입력돼있지 않아요. 먼저 그쪽부터 채워주세요.`;
     }
     const blog = a.blog || {};
     document.getElementById('blogSubjectType').value = blog.subjectType || '국어논술';
@@ -2687,7 +2687,7 @@
   }
   async function saveBlogSettings() {
     if (!window._academySettings || !window._academySettings.name) {
-      alert('먼저 "🏫 학원 정보 설정"(학생 관리 탭)에서 학원명·주소·전화번호부터 입력해주세요.');
+      alert('먼저 "🏫 학원 정보 설정"(수납 관리 탭 상단)에서 학원명·주소·전화번호부터 입력해주세요.');
       return;
     }
     const prevBlog = window._academySettings.blog || {};
