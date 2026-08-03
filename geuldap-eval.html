@@ -2715,8 +2715,7 @@
 아래 JSON 형식으로만 응답하세요:
 {"suggestions":[{"name":"개념 이름(있으면 유명 학자명)","reason":"이 학원과 어울리는 이유 한 줄"}]}`;
       const rawText = await callGemini(prompt);
-      const cleaned = rawText.replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(cleaned);
+      const parsed = extractJsonObject(rawText);
       renderBlogRefSuggestions(parsed.suggestions || []);
     } catch (e) {
       console.error('참고자료 추천 오류:', e);
@@ -2858,6 +2857,18 @@
     return ctx;
   }
 
+  // AI가 JSON 앞뒤에 안내 문장을 살짝 덧붙이는 경우가 있어서, 그냥 trim만으로는 파싱이 깨질 수 있다.
+  // 코드블록 표시를 지운 뒤, 첫 '{'부터 마지막 '}'까지만 잘라내서 파싱한다.
+  function extractJsonObject(rawText) {
+    const cleaned = rawText.replace(/```json|```/g, '').trim();
+    const start = cleaned.indexOf('{');
+    const end = cleaned.lastIndexOf('}');
+    if (start === -1 || end === -1 || end < start) {
+      throw new Error('AI 응답에서 JSON을 찾지 못했어요. 응답: ' + cleaned.slice(0, 200));
+    }
+    return JSON.parse(cleaned.slice(start, end + 1));
+  }
+
   const BLOG_ANGLE_HINTS = [
     '학부모가 실제로 궁금해할 법한 질문에 답하는 형식으로',
     '아이가 흔히 겪는 어려움 하나를 콕 짚어서 그것을 중심으로',
@@ -2909,7 +2920,7 @@ ${student ? buildBlogStudentContext(student) : ''}
 오늘 쓰고 싶은 주제·이야기: ${topic || '(비워둠 - 학원 정보를 참고해서 알아서 주제를 골라줘)'}${angleHint ? `\n이번엔 이런 느낌으로 써줘: ${angleHint}` : ''}
 톤: ${tone} | 길이: ${length} (위 [분량] 기준 그대로 지킬 것)
 
-아래 JSON 형식으로만 응답하세요(코드블록 없이 JSON만, sections는 ${spec.sections}):
+아래 JSON 형식으로만 응답하세요. 그 어떤 설명, 인사말, 코드블록 표시도 앞뒤에 절대 붙이지 마세요 — 응답 전체가 순수한 JSON 객체 하나여야 합니다(sections는 ${spec.sections}):
 {"title":"블로그 제목(마크다운 기호 없이)","intro":"도입부 2문단(줄바꿈은 \\n\\n으로 문단 구분, 상황 공감 1문단 + 이 글에서 다룰 내용 예고 1문단)","sections":[{"heading":"소제목(짧게, 마크다운 기호 없이)","body":"이 소제목의 본문 ${spec.paraPerSection}(줄바꿈은 \\n\\n으로 문단 구분)"}],"closing":"마무리 1~2문단(따뜻한 초대 문구 포함)","hashtags":["#태그1","#태그2"]}`;
   }
 
@@ -2951,8 +2962,7 @@ ${student ? buildBlogStudentContext(student) : ''}
       const prompt = buildBlogPrompt(typeInfo, student, topic, checkedRefs, tone, length, blog, a, recentTitles, angleHint);
       const rawText = await callClaude(prompt);
       await bumpBlogMonthlyUsage(thisMonth, usage.count); // API 호출 자체가 비용이 드므로 파싱 성공 여부와 무관하게 여기서 카운트
-      const cleaned = rawText.replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(cleaned);
+      const parsed = extractJsonObject(rawText);
       window._lastBlogDraft = parsed;
       window._blogSessionTitles.push(parsed.title);
 
