@@ -1672,7 +1672,7 @@
 
 <script>
   // ===== 버전 정보 (콘솔에서 확인: APP_VERSION 또는 페이지 로드시 자동 출력) =====
-  const APP_VERSION = 'v2.0';
+  const APP_VERSION = 'v2.1';
   const APP_VERSION_LOG = [
     'v1.0 — 탭 구조 + UI 껍데기',
     'v1.1 — AI 문제 생성 + 개념 사다리',
@@ -1684,7 +1684,8 @@
     'v1.7 — [중요] 학습기 자료/시험 Firebase 저장 코드가 잘못된 변수 참조로 항상 실패하던 버그 수정 (그동안 로컬 기기에만 저장되고 클라우드 동기화가 안 되고 있었음)',
     'v1.8 — 블로그 자동 생성 기능 추가 (Claude Sonnet 5, 구분자 기반 출력, 월 30편 제한), 글자색 없앰, 학생 세션 익명 로그인 초기화 버그 수정',
     'v1.9 — 블로그 글 제목·소제목 굵게 표시도 없앰 (일반 굵기로 통일)',
-    'v2.0 — 출석부에 학생별 정규 수업 예정 시간(예: 예정 16:30~17:30) 표시 추가, 실제 등원/하원 알림 시각과 헷갈리지 않도록 "실제" 라벨 붙임'
+    'v2.0 — 출석부에 학생별 정규 수업 예정 시간(예: 예정 16:30~17:30) 표시 추가, 실제 등원/하원 알림 시각과 헷갈리지 않도록 "실제" 라벨 붙임',
+    'v2.1 — 출석부 목록을 정규 수업 예정 시각 순서로 정렬(시간 없는 추가 등원 학생은 맨 뒤)'
   ];
   console.log(`%c글답 학습기 ${APP_VERSION}`, 'font-weight:bold; font-size:14px; color:#0d1b4b;');
   console.log(APP_VERSION_LOG.join('\n'));
@@ -1784,16 +1785,24 @@
       const ex = existingMap[s.id];
       const entry = studentScheduleEntries(s).find(e => e.day === wk);
       const timeRange = entry && entry.time ? `${entry.time}~${addMinutesToTime(entry.time, entry.duration)}` : '';
-      rows.push({ studentId: s.id, studentName: s.name, grade: s.grade, scheduled: true, timeRange, present: ex ? ex.present : true, checkInTime: ex?ex.checkInTime:null, checkOutTime: ex?ex.checkOutTime:null });
+      rows.push({ studentId: s.id, studentName: s.name, grade: s.grade, scheduled: true, timeRange, startTime: entry ? entry.time : '', present: ex ? ex.present : true, checkInTime: ex?ex.checkInTime:null, checkOutTime: ex?ex.checkOutTime:null });
       seen.add(s.id);
     });
     // 예정에는 없지만 이 날짜에 이미 저장된 기록(예: 추가 등원)이 있는 학생도 이어서 보여준다.
     existing.forEach(a => {
       if (!seen.has(a.studentId)) {
         const s = _students.find(x=>x.id===a.studentId);
-        rows.push({ studentId: a.studentId, studentName: a.studentName, grade: s?s.grade:(a.grade||''), scheduled: false, present: a.present, checkInTime: a.checkInTime||null, checkOutTime: a.checkOutTime||null });
+        rows.push({ studentId: a.studentId, studentName: a.studentName, grade: s?s.grade:(a.grade||''), scheduled: false, timeRange: '', startTime: '', present: a.present, checkInTime: a.checkInTime||null, checkOutTime: a.checkOutTime||null });
         seen.add(a.studentId);
       }
+    });
+
+    // 시간표 순서대로 보이도록 예정 시각 기준 정렬(시각 없는 추가 등원 학생은 맨 뒤로)
+    rows.sort((a, b) => {
+      if (!a.startTime && !b.startTime) return 0;
+      if (!a.startTime) return 1;
+      if (!b.startTime) return -1;
+      return a.startTime.localeCompare(b.startTime);
     });
 
     attRows = rows;
