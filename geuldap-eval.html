@@ -1056,7 +1056,7 @@
   <div class="lr-sub active" id="blog-settings">
     <div class="card">
       <div class="card-title">⚙️ 블로그용 학원 정보</div>
-      <div style="font-size:12px; color:#888; margin-bottom:14px;">학원명·주소·전화번호·등록번호는 "🏫 학원 정보 설정"에서 입력하신 걸 그대로 씁니다(다시 입력 안 해도 돼요). 여기서는 블로그 글에만 쓰이는 항목을 채워주세요. 한 번만 입력해두면 계속 재사용되고, 나중에 다른 학원에서 쓸 때도 이 항목들만 새로 채우면 됩니다.</div>
+      <div style="font-size:12px; color:#888; margin-bottom:14px;">학원명·주소·전화번호·등록번호는 "수납 관리" 탭 상단의 "🏫 학원 정보 설정"에서 입력하신 걸 그대로 씁니다(다시 입력 안 해도 돼요). 여기서는 블로그 글에만 쓰이는 항목을 채워주세요. 한 번만 입력해두면 계속 재사용되고, 나중에 다른 학원에서 쓸 때도 이 항목들만 새로 채우면 됩니다.</div>
 
       <div id="blogAcademyBasicInfo" style="background:#f8f9fc; border-radius:8px; padding:12px 14px; margin-bottom:16px; font-size:13px; color:#555;"></div>
 
@@ -2769,11 +2769,62 @@
         <input type="checkbox" class="blogGenRefCheck" value="${i}"> ${r}
       </label>`).join('');
   }
-  function generateBlogDraft() {
+  function buildBlogStudentContext(student) {
+    if (!student) return '(해당 없음)';
+    const recs = _records.filter(r=>r.studentId===student.id).slice(-2);
+    const reads = window._readings.filter(r=>r.studentId===student.id).slice(-5);
+    let ctx = `학생: ${student.name} (${student.grade||''})\n`;
+    if (recs.length) {
+      ctx += '최근 글쓰기 기록:\n' + recs.map(r =>
+        `- [${r.date||''}] "${r.title||r.topic||'(제목 없음)'}" (${r.genre||r.type||''}) · 총평: ${r.summary||''} · 잘된 점: ${(r.strengths||[]).join(', ')}`
+      ).join('\n') + '\n';
+    }
+    if (reads.length) {
+      ctx += '최근 독서 기록: ' + reads.map(r => `${r.topic||''}(${r.genre||''})`).join(', ') + '\n';
+    }
+    if (!recs.length && !reads.length) ctx += '(아직 이 학생의 글쓰기·독서 기록이 없습니다)';
+    return ctx;
+  }
+
+  function buildBlogPrompt(typeInfo, student, topic, checkedRefs, tone, length, blog, a, recentTitles) {
+    const refBlock = checkedRefs.length
+      ? checkedRefs.map(r => `- ${r}`).join('\n')
+      : '(선택된 참고자료 없음)';
+    return `당신은 학원 블로그 마케팅 전문 작가입니다.
+
+[학원 정보]
+학원명: ${a.name || ''} | 주소: ${a.address || ''} | 과목: ${blog.subjectType || ''} | 대상학년: ${blog.targetGrade || ''}
+이 학원의 차별점 목록(이번 글 내용과 자연스럽게 연결되는 것만 1~2개만 골라 녹여 쓸 것, 억지로 다 넣지 말 것): ${(blog.differentiators||[]).join(', ') || '(없음)'}
+
+[절대 규칙]
+- 학생 실명은 절대 쓰지 않는다. "${student ? student.grade : ''} 학생"처럼 학년으로만 표기한다.
+- 학생을 특정할 수 있는 정보(학교명, 동네 상세, 형제자매 관계 등)는 넣지 않는다.
+- 지역 키워드(${blog.localKeyword || ''})를 본문에 1~2회 자연스럽게 포함한다.
+- 네이버 블로그 형식: 소제목 2~4개, 문단은 3~4줄 이내로 짧게.
+- [참고자료] 목록에 있는 자료만 "~라는 개념/연구가 있다" 수준으로 언급 가능. 구체적 수치·통계·직접 인용문은 만들어내지 않는다. 목록이 비어있으면 어떤 학자·연구·기관·통계도 인용하지 않고 일반적인 서술로만 쓴다.
+- 해시태그는 5~8개: 브랜드형(학원명·지역+과목 조합) 2개, 검색형(학부모가 검색할 법한 조합) 2~3개, 주제형(이번 글 내용) 2~3개를 섞는다.
+
+[참고자료]
+${refBlock}
+
+[중복 방지] 최근에 이미 쓴 주제와 겹치지 않게, 다른 각도로 쓴다: ${recentTitles.length ? recentTitles.join(', ') : '(아직 없음)'}
+
+[이번 글 정보]
+블로그 유형: ${typeInfo.label}
+${student ? buildBlogStudentContext(student) : ''}
+오늘 쓰고 싶은 주제·이야기: ${topic || '(비워둠 - 학원 정보를 참고해서 알아서 주제를 골라줘)'}
+톤: ${tone} | 길이: ${length}
+
+아래 JSON 형식으로만 응답하세요(코드블록 없이 JSON만):
+{"title":"블로그 제목","body":"블로그 본문 전체(소제목 포함, 줄바꿈은 \\n으로)","hashtags":["#태그1","#태그2"]}`;
+  }
+
+  async function generateBlogDraft() {
     if (!selectedBlogType) { alert('먼저 블로그 유형을 선택해주세요.'); return; }
     const typeInfo = BLOG_TYPES.find(t=>t.id===selectedBlogType);
     if (typeInfo.needsStudent && !selectedBlogGenStudentId) { alert('학생 사례형은 학생을 먼저 선택해주세요.'); return; }
     const a = window._academySettings || {};
+    if (!a.name) { alert('먼저 "🏫 학원 정보 설정"(수납 관리 탭 상단)에서 학원명·주소·전화번호부터 입력해주세요.'); return; }
     const blog = a.blog || {};
     const student = selectedBlogGenStudentId ? _students.find(s=>s.id===selectedBlogGenStudentId) : null;
     const checkedRefs = [...document.querySelectorAll('.blogGenRefCheck:checked')].map(c => (blog.references||[])[+c.value]);
@@ -2782,28 +2833,80 @@
     const length = document.getElementById('blogGenLength').value;
     const recentTitles = (blog.recentPosts || []).slice(-8).map(p => p.title);
 
-    const request = {
-      학원정보: {
-        학원명: a.name || '(미입력)',
-        주소: a.address || '(미입력)',
-        과목유형: blog.subjectType || '(미입력)',
-        대상학년: blog.targetGrade || '(미입력)',
-        지역키워드: blog.localKeyword || '(미입력)',
-        차별점: blog.differentiators || []
-      },
-      블로그유형: typeInfo.label,
-      학생: student ? `${student.name} (${student.grade||''})` : '(해당 없음)',
-      학생자료: student ? '이 학생의 최근 글·평가·독서기록을 함께 전달 (다음 단계에서 자동 첨부)' : '(해당 없음)',
-      오늘의주제: topic || '(비워둠 — AI가 알아서 고름)',
-      선택한참고자료: checkedRefs.length ? checkedRefs : '(선택 안 함 — 통계·연구 인용 없이 작성)',
-      톤: tone,
-      길이: length,
-      최근작성주제_중복방지용: recentTitles.length ? recentTitles : '(아직 없음)'
-    };
-    window._lastBlogGenRequest = request;
-    document.getElementById('blogGenPreviewBody').textContent = JSON.stringify(request, null, 2);
-    document.getElementById('blogGenPreviewCard').style.display = 'block';
-    document.getElementById('blogGenPreviewCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const genBtn = document.querySelector('#blog-generate .btn-primary');
+    const prevBtnText = genBtn.textContent;
+    genBtn.disabled = true;
+    genBtn.textContent = '⏳ 블로그 작성 중... (10~20초 정도 걸려요)';
+    document.getElementById('blogGenPreviewCard').style.display = 'none';
+
+    try {
+      const prompt = buildBlogPrompt(typeInfo, student, topic, checkedRefs, tone, length, blog, a, recentTitles);
+      const rawText = await callGemini(prompt);
+      const cleaned = rawText.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(cleaned);
+      window._lastBlogDraft = parsed;
+
+      genBtn.textContent = '🎨 어울리는 이미지 만드는 중...';
+      let imageResult = null;
+      try {
+        const imgPrompt = `네이버 블로그 삽화. 주제: ${parsed.title}. 분위기: ${tone}, 책·노트·연필·창가 햇살처럼 학원/공부 분위기의 소품과 배경 중심.`;
+        imageResult = await callGeminiImage(imgPrompt);
+      } catch (imgErr) {
+        console.log('이미지 생성 실패(글은 정상 생성됨):', imgErr);
+      }
+
+      renderBlogGenResult(parsed, imageResult);
+    } catch (e) {
+      console.error('블로그 생성 오류:', e);
+      alert('⚠️ 블로그 생성에 실패했습니다: ' + e.message);
+    } finally {
+      genBtn.disabled = false;
+      genBtn.textContent = prevBtnText;
+    }
+  }
+
+  function renderBlogGenResult(parsed, imageResult) {
+    const card = document.getElementById('blogGenPreviewCard');
+    const imageHtml = imageResult
+      ? `<img src="data:${imageResult.mimeType};base64,${imageResult.imageBase64}" style="max-width:100%; border-radius:10px; margin-bottom:14px;">
+         <a class="btn btn-secondary btn-sm" download="blog-image.png" href="data:${imageResult.mimeType};base64,${imageResult.imageBase64}" style="display:inline-block; margin-bottom:14px;">🖼️ 이미지 다운로드</a>`
+      : `<div style="font-size:12px; color:#aaa; margin-bottom:14px;">(이미지 생성에 실패했어요. 재생성을 눌러 다시 시도할 수 있어요)</div>`;
+    const bodyText = `${parsed.title}\n\n${parsed.body}\n\n${(parsed.hashtags||[]).join(' ')}`;
+    card.innerHTML = `
+      <div class="card-title">📋 블로그 초안</div>
+      ${imageHtml}
+      <div style="font-weight:700; font-size:16px; margin-bottom:10px;">${parsed.title}</div>
+      <div style="white-space:pre-wrap; font-size:14px; line-height:1.7; margin-bottom:12px;">${parsed.body}</div>
+      <div style="color:#4a5aa8; font-size:13px; margin-bottom:16px;">${(parsed.hashtags||[]).join(' ')}</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn btn-secondary btn-sm" onclick="copyBlogDraftText()">📋 전체 복사</button>
+        <button class="btn btn-secondary btn-sm" onclick="generateBlogDraft()">🔁 다시 만들기</button>
+        <button class="btn btn-primary btn-sm" onclick="saveBlogRecentPost()">💾 이 글 저장 (중복 방지용)</button>
+      </div>`;
+    window._lastBlogDraftText = bodyText;
+    card.style.display = 'block';
+    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function copyBlogDraftText() {
+    if (!window._lastBlogDraftText) return;
+    navigator.clipboard.writeText(window._lastBlogDraftText)
+      .then(() => alert('복사했어요! 네이버 블로그에 붙여넣기 하세요.'))
+      .catch(() => alert('복사에 실패했어요. 직접 드래그해서 복사해주세요.'));
+  }
+
+  async function saveBlogRecentPost() {
+    if (!window._lastBlogDraft || !window._academySettings) return;
+    const prevBlog = window._academySettings.blog || {};
+    const recentPosts = [...(prevBlog.recentPosts || []), { title: window._lastBlogDraft.title, date: todayLocalDateStr() }].slice(-20);
+    const data = { ...window._academySettings, blog: { ...prevBlog, recentPosts } };
+    window._academySettings = data;
+    localStorage.setItem('gas', JSON.stringify(data));
+    if (window._fbReady) {
+      try { await window._setDoc(window._doc(window._db, 'geuldap_settings', 'academy'), data); }
+      catch(e) { console.error('블로그 글 저장 오류', e); alert('⚠️ 서버 저장 실패: ' + e.message); return; }
+    }
+    alert('저장했어요. 다음 블로그를 만들 때 이 주제와 안 겹치게 참고할게요.');
   }
 
   // ===== 납입증명서 발급 =====
@@ -3551,6 +3654,7 @@ ${a.name}`;
   const EVAL_FUNCTION_URL = 'https://asia-northeast3-starspoon-120d7.cloudfunctions.net/evaluateWriting';
   const GEMINI_FUNCTION_URL = 'https://asia-northeast3-starspoon-120d7.cloudfunctions.net/evaluateWithGemini';
   const GEMINI_QUIZ_FUNCTION_URL = 'https://asia-northeast3-starspoon-120d7.cloudfunctions.net/evaluateQuizWithGemini';
+  const GEMINI_BLOG_IMAGE_URL = 'https://asia-northeast3-starspoon-120d7.cloudfunctions.net/generateBlogImage';
 
   async function callGemini(prompt) {
     const res = await fetch(GEMINI_FUNCTION_URL, {
@@ -3577,6 +3681,20 @@ ${a.name}`;
       throw new Error(data.error || `서버 오류 (status ${res.status})`);
     }
     return data.text;
+  }
+
+  // 블로그용 추천 이미지 생성 (base64 이미지를 돌려받음)
+  async function callGeminiImage(prompt) {
+    const res = await fetch(GEMINI_BLOG_IMAGE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error || !data.imageBase64) {
+      throw new Error(data.error || `이미지 생성 서버 오류 (status ${res.status})`);
+    }
+    return data;
   }
 
   async function evaluateWriting() {
