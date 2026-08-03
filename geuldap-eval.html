@@ -3048,15 +3048,29 @@ ${BLOG_DELIM_GUIDE}`;
   // 파워블로그 느낌으로 보이도록 실제 서식(굵은 소제목 + 여백)을 입힌 HTML을 만든다.
   // 이 HTML을 그대로 화면 미리보기에도 쓰고, 복사할 때도 서식이 붙은 채로 붙여넣기 되게 한다.
   function buildBlogHtml(d) {
+    // 네이버 에디터가 margin·line-height 같은 인라인 스타일은 걸러내는 것으로 보여서,
+    // 스타일이 아니라 "진짜 빈 줄"(빈 <p>)을 실제로 끼워 넣어 여백을 만든다.
+    // 이건 스타일 값이 아니라 실제 내용(빈 문단)이라 걸러질 가능성이 훨씬 낮다.
+    const SPACER = '<p><br></p>';
+    const pStyle = 'font-size:15.5px; line-height:1.9; margin:0; color:#333;';
+    const splitParas = (text, extraStyle) => escapeHtml(text || '')
+      .split(/\n\n+/)
+      .map(p => `<p style="${extraStyle || pStyle}">${p.replace(/\n/g, '<br>')}</p>`)
+      .join(SPACER);
     const sectionsHtml = (d.sections || []).map(s => `
-      <p style="font-size:17px; font-weight:700; color:#1a6b3f; margin:26px 0 10px 0; line-height:1.5;">📌 ${escapeHtml(s.heading)}</p>
-      <p style="font-size:15.5px; line-height:1.9; margin:0 0 4px 0; color:#333;">${escapeHtml(s.body).replace(/\n\n?/g,'</p><p style="font-size:15.5px; line-height:1.9; margin:12px 0 4px 0; color:#333;">')}</p>`
+      ${SPACER}
+      <p style="font-size:17px; font-weight:700; color:#1a6b3f; margin:0; line-height:1.5;">📌 <strong>${escapeHtml(s.heading)}</strong></p>
+      ${SPACER}
+      ${splitParas(s.body)}`
     ).join('');
     return `<div>
-      <p style="font-size:21px; font-weight:800; margin:0 0 18px 0; line-height:1.4; color:#111;">${escapeHtml(d.title)}</p>
-      <p style="font-size:15.5px; line-height:1.9; margin:0 0 10px 0; color:#333;">${escapeHtml(d.intro||'').replace(/\n\n?/g,'</p><p style="font-size:15.5px; line-height:1.9; margin:0 0 10px 0; color:#333;">')}</p>
+      <p style="font-size:21px; font-weight:800; margin:0; line-height:1.4; color:#111;"><strong>${escapeHtml(d.title)}</strong></p>
+      ${SPACER}
+      ${splitParas(d.intro)}
       ${sectionsHtml}
-      <p style="font-size:15.5px; line-height:1.9; margin:26px 0 20px 0; color:#333;">${escapeHtml(d.closing||'')}</p>
+      ${SPACER}
+      ${splitParas(d.closing)}
+      ${SPACER}
       <p style="font-size:14px; color:#4a5aa8; margin:0;">${(d.hashtags||[]).join(' ')}</p>
     </div>`;
   }
