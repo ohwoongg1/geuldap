@@ -1152,6 +1152,7 @@
       </div>
     </div>
 
+    <div id="blogUsageLabel" style="text-align:center; font-size:12px; color:#888; margin-bottom:8px;"></div>
     <button class="btn btn-primary" style="width:100%; padding:14px; font-size:15px;" onclick="generateBlogDraft()">✍️ 블로그 생성</button>
 
     <div class="card" id="blogGenPreviewCard" style="display:none; margin-top:20px;">
@@ -2799,6 +2800,7 @@
     renderBlogGenStudentGrid();
     renderBlogGenRefChecks();
     document.getElementById('blogGenStudentCard').style.display = 'none';
+    renderBlogUsageLabel();
   }
   function renderBlogTypeGrid() {
     document.getElementById('blogTypeGrid').innerHTML = BLOG_TYPES.map(t => `
@@ -2896,6 +2898,14 @@ ${student ? buildBlogStudentContext(student) : ''}
     const a = window._academySettings || {};
     if (!a.name) { alert('먼저 "🏫 학원 정보 설정"(수납 관리 탭 상단)에서 학원명·주소·전화번호부터 입력해주세요.'); return; }
     const blog = a.blog || {};
+
+    const thisMonth = todayLocalDateStr().slice(0,7);
+    const usage = (blog.usage && blog.usage.month === thisMonth) ? blog.usage : { month: thisMonth, count: 0 };
+    if (usage.count >= BLOG_MONTHLY_LIMIT) {
+      alert(`이번 달 블로그 생성 한도(${BLOG_MONTHLY_LIMIT}편)를 다 쓰셨어요. 다음 달에 다시 이용하실 수 있어요.`);
+      return;
+    }
+
     const student = selectedBlogGenStudentId ? _students.find(s=>s.id===selectedBlogGenStudentId) : null;
     const checkedRefs = [...document.querySelectorAll('.blogGenRefCheck:checked')].map(c => (blog.references||[])[+c.value]);
     const topic = document.getElementById('blogTopicInput').value.trim();
@@ -2911,23 +2921,13 @@ ${student ? buildBlogStudentContext(student) : ''}
 
     try {
       const prompt = buildBlogPrompt(typeInfo, student, topic, checkedRefs, tone, length, blog, a, recentTitles);
-      const rawText = await callGemini(prompt);
+      const rawText = await callClaude(prompt);
+      await bumpBlogMonthlyUsage(thisMonth, usage.count); // API 호출 자체가 비용이 드므로 파싱 성공 여부와 무관하게 여기서 카운트
       const cleaned = rawText.replace(/```json|```/g, '').trim();
       const parsed = JSON.parse(cleaned);
       window._lastBlogDraft = parsed;
 
-      genBtn.textContent = '🎨 어울리는 이미지 만드는 중...';
-      let imageResult = null;
-      let imageErrorMsg = null;
-      try {
-        const imgPrompt = `네이버 블로그 삽화. 주제: ${parsed.title}. 분위기: ${tone}, 책·노트·연필·창가 햇살처럼 학원/공부 분위기의 소품과 배경 중심.`;
-        imageResult = await callGeminiImage(imgPrompt);
-      } catch (imgErr) {
-        imageErrorMsg = imgErr.message;
-        console.log('이미지 생성 실패(글은 정상 생성됨):', imgErr);
-      }
-
-      renderBlogGenResult(parsed, imageResult, imageErrorMsg);
+      renderBlogGenResult(parsed);
     } catch (e) {
       console.error('블로그 생성 오류:', e);
       alert('⚠️ 블로그 생성에 실패했습니다: ' + e.message);
@@ -2935,6 +2935,29 @@ ${student ? buildBlogStudentContext(student) : ''}
       genBtn.disabled = false;
       genBtn.textContent = prevBtnText;
     }
+  }
+
+  const BLOG_MONTHLY_LIMIT = 30;
+  // 생성(재생성 포함) 성공할 때마다 이번 달 사용 횟수를 1 늘려서 저장한다.
+  async function bumpBlogMonthlyUsage(month, prevCount) {
+    if (!window._academySettings) return;
+    const prevBlog = window._academySettings.blog || {};
+    const data = { ...window._academySettings, blog: { ...prevBlog, usage: { month, count: prevCount + 1 } } };
+    window._academySettings = data;
+    localStorage.setItem('gas', JSON.stringify(data));
+    if (window._fbReady) {
+      try { await window._setDoc(window._doc(window._db, 'geuldap_settings', 'academy'), data); }
+      catch(e) { console.error('블로그 사용량 저장 오류', e); }
+    }
+    renderBlogUsageLabel();
+  }
+  function renderBlogUsageLabel() {
+    const el = document.getElementById('blogUsageLabel');
+    if (!el) return;
+    const blog = (window._academySettings && window._academySettings.blog) || {};
+    const thisMonth = todayLocalDateStr().slice(0,7);
+    const count = (blog.usage && blog.usage.month === thisMonth) ? blog.usage.count : 0;
+    el.textContent = `이번 달 블로그 생성: ${count}/${BLOG_MONTHLY_LIMIT}편`;
   }
 
   // 파워블로그 느낌으로 보이도록 실제 서식(굵은 소제목 + 여백)을 입힌 HTML을 만든다.
@@ -2960,17 +2983,12 @@ ${student ? buildBlogStudentContext(student) : ''}
     return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  function renderBlogGenResult(parsed, imageResult, imageErrorMsg) {
+  function renderBlogGenResult(parsed) {
     const card = document.getElementById('blogGenPreviewCard');
-    const imageHtml = imageResult
-      ? `<img src="data:${imageResult.mimeType};base64,${imageResult.imageBase64}" style="max-width:100%; border-radius:10px; margin-bottom:14px;">
-         <a class="btn btn-secondary btn-sm" download="blog-image.png" href="data:${imageResult.mimeType};base64,${imageResult.imageBase64}" style="display:inline-block; margin-bottom:14px;">🖼️ 이미지 다운로드</a>`
-      : `<div style="font-size:12px; color:#c0392b; margin-bottom:14px;">⚠️ 이미지 생성 실패: ${escapeHtml(imageErrorMsg || '알 수 없는 오류')} (재생성을 눌러 다시 시도할 수 있어요)</div>`;
     window._lastBlogDraftHtml = buildBlogHtml(parsed);
     window._lastBlogDraftText = buildBlogPlainText(parsed);
     card.innerHTML = `
       <div class="card-title">📋 블로그 초안</div>
-      ${imageHtml}
       <div style="border:1px solid #eee; border-radius:10px; padding:20px; margin-bottom:16px; background:#fff;">${window._lastBlogDraftHtml}</div>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn btn-secondary btn-sm" onclick="copyBlogDraftText()">📋 서식 그대로 복사</button>
@@ -3765,10 +3783,24 @@ ${a.name}`;
   const EVAL_FUNCTION_URL = 'https://asia-northeast3-starspoon-120d7.cloudfunctions.net/evaluateWriting';
   const GEMINI_FUNCTION_URL = 'https://asia-northeast3-starspoon-120d7.cloudfunctions.net/evaluateWithGemini';
   const GEMINI_QUIZ_FUNCTION_URL = 'https://asia-northeast3-starspoon-120d7.cloudfunctions.net/evaluateQuizWithGemini';
-  const GEMINI_BLOG_IMAGE_URL = 'https://asia-northeast3-starspoon-120d7.cloudfunctions.net/generateBlogImage';
 
   async function callGemini(prompt) {
     const res = await fetch(GEMINI_FUNCTION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error || !data.text) {
+      throw new Error(data.error || `서버 오류 (status ${res.status})`);
+    }
+    return data.text;
+  }
+
+  // Claude Sonnet 5 호출 (품질/문체가 중요한 글에 사용 - 블로그 글쓰기 등).
+  // evaluateWriting 함수를 이미지 없이 텍스트만으로 재사용한다(서버 추가 수정 없이 그대로 동작).
+  async function callClaude(prompt) {
+    const res = await fetch(EVAL_FUNCTION_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt })
@@ -3792,20 +3824,6 @@ ${a.name}`;
       throw new Error(data.error || `서버 오류 (status ${res.status})`);
     }
     return data.text;
-  }
-
-  // 블로그용 추천 이미지 생성 (base64 이미지를 돌려받음)
-  async function callGeminiImage(prompt) {
-    const res = await fetch(GEMINI_BLOG_IMAGE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt })
-    });
-    const data = await res.json();
-    if (!res.ok || data.error || !data.imageBase64) {
-      throw new Error(data.error || `이미지 생성 서버 오류 (status ${res.status})`);
-    }
-    return data;
   }
 
   async function evaluateWriting() {
