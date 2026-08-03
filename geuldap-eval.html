@@ -2857,6 +2857,36 @@
     return ctx;
   }
 
+  // AI가 문자열 값 안에 \n(이스케이프) 대신 진짜 줄바꿈 문자를 그대로 넣는 경우가 있는데,
+  // 이건 JSON 표준 위반이라 JSON.parse가 "Bad control character" 에러를 낸다.
+  // 문자열( "..." ) 안에 있을 때만 줄바꿈/탭 같은 제어문자를 이스케이프 형태로 바꿔준다.
+  function sanitizeJsonControlChars(str) {
+    let result = '';
+    let inString = false;
+    let escaped = false;
+    for (let i = 0; i < str.length; i++) {
+      const ch = str[i];
+      if (inString) {
+        if (escaped) { result += ch; escaped = false; continue; }
+        if (ch === '\\') { result += ch; escaped = true; continue; }
+        if (ch === '"') { inString = false; result += ch; continue; }
+        const code = str.charCodeAt(i);
+        if (code < 0x20) {
+          if (ch === '\n') result += '\\n';
+          else if (ch === '\r') result += '\\r';
+          else if (ch === '\t') result += '\\t';
+          // 그 외 제어문자는 그냥 버린다(눈에 안 보이는 문자라 내용 손실 없음)
+          continue;
+        }
+        result += ch;
+      } else {
+        if (ch === '"') { inString = true; }
+        result += ch;
+      }
+    }
+    return result;
+  }
+
   // AI가 JSON 앞뒤에 안내 문장을 살짝 덧붙이는 경우가 있어서, 그냥 trim만으로는 파싱이 깨질 수 있다.
   // 코드블록 표시를 지운 뒤, 첫 '{'부터 마지막 '}'까지만 잘라내서 파싱한다.
   function extractJsonObject(rawText) {
@@ -2866,7 +2896,8 @@
     if (start === -1 || end === -1 || end < start) {
       throw new Error('AI 응답에서 JSON을 찾지 못했어요. 응답: ' + cleaned.slice(0, 200));
     }
-    return JSON.parse(cleaned.slice(start, end + 1));
+    const jsonSlice = sanitizeJsonControlChars(cleaned.slice(start, end + 1));
+    return JSON.parse(jsonSlice);
   }
 
   const BLOG_ANGLE_HINTS = [
