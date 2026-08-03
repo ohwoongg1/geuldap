@@ -1048,12 +1048,12 @@
 
   <!-- 블로그 하위 탭 -->
   <div style="display:flex; gap:4px; margin-bottom:20px; flex-wrap:wrap;" id="blogSubTabs">
-    <button class="btn btn-primary btn-sm" onclick="switchBlogSub('blog-settings')" id="blogTab-blog-settings">⚙️ 학원 정보 설정</button>
-    <button class="btn btn-secondary btn-sm" onclick="switchBlogSub('blog-generate')" id="blogTab-blog-generate">✍️ 블로그 만들기</button>
+    <button class="btn btn-secondary btn-sm" onclick="switchBlogSub('blog-settings')" id="blogTab-blog-settings">⚙️ 학원 정보 설정</button>
+    <button class="btn btn-primary btn-sm" onclick="switchBlogSub('blog-generate')" id="blogTab-blog-generate">✍️ 블로그 만들기</button>
   </div>
 
   <!-- 하위1: 학원 정보 설정 (블로그용) -->
-  <div class="lr-sub active" id="blog-settings">
+  <div class="lr-sub" id="blog-settings">
     <div class="card">
       <div class="card-title">⚙️ 블로그용 학원 정보</div>
       <div style="font-size:12px; color:#888; margin-bottom:14px;">학원명·주소·전화번호·등록번호는 "수납 관리" 탭 상단의 "🏫 학원 정보 설정"에서 입력하신 걸 그대로 씁니다(다시 입력 안 해도 돼요). 여기서는 블로그 글에만 쓰이는 항목을 채워주세요. 한 번만 입력해두면 계속 재사용되고, 나중에 다른 학원에서 쓸 때도 이 항목들만 새로 채우면 됩니다.</div>
@@ -1108,7 +1108,7 @@
   </div>
 
   <!-- 하위2: 블로그 만들기 -->
-  <div class="lr-sub" id="blog-generate">
+  <div class="lr-sub active" id="blog-generate">
     <div class="card">
       <div class="card-title">① 블로그 유형 선택</div>
       <div id="blogTypeGrid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:10px; margin-top:6px;"></div>
@@ -1145,8 +1145,8 @@
           <label>길이</label>
           <select id="blogGenLength">
             <option value="짧게">짧게</option>
-            <option value="보통" selected>보통</option>
-            <option value="길게">길게</option>
+            <option value="보통">보통</option>
+            <option value="길게" selected>길게</option>
           </select>
         </div>
       </div>
@@ -2614,6 +2614,7 @@
     document.querySelectorAll('#blogSubTabs button').forEach(b => { b.className = 'btn btn-secondary btn-sm'; });
     document.getElementById('blogTab-'+subId).className = 'btn btn-primary btn-sm';
     if (subId==='blog-generate') renderBlogGenerate();
+    if (subId==='blog-settings') renderBlogTab();
   }
   function renderBlogTab() {
     const a = window._academySettings || {};
@@ -2857,21 +2858,42 @@
     return ctx;
   }
 
-  function buildBlogPrompt(typeInfo, student, topic, checkedRefs, tone, length, blog, a, recentTitles) {
+  const BLOG_ANGLE_HINTS = [
+    '학부모가 실제로 궁금해할 법한 질문에 답하는 형식으로',
+    '아이가 흔히 겪는 어려움 하나를 콕 짚어서 그것을 중심으로',
+    '학원의 하루 수업 장면을 짧게 스케치하듯 보여주면서',
+    '학년이 올라가면서 달라지는 점을 비교하는 방식으로',
+    '계절이나 시기 얘기는 최소화하고, 국어 실력 자체의 원리를 설명하는 데 집중해서',
+    '학부모의 흔한 오해 하나를 짚고 바로잡아주는 방식으로'
+  ];
+
+  const BLOG_LENGTH_SPECS = {
+    '짧게': { sections: '2~3개', paraPerSection: '1~2문단', total: '800~1100자' },
+    '보통': { sections: '3~4개', paraPerSection: '2문단', total: '1500~2000자' },
+    '길게': { sections: '4~5개', paraPerSection: '2~3문단', total: '2400~3000자' }
+  };
+
+  function buildBlogPrompt(typeInfo, student, topic, checkedRefs, tone, length, blog, a, recentTitles, angleHint) {
     const refBlock = checkedRefs.length
       ? checkedRefs.map(r => `- ${r}`).join('\n')
       : '(선택된 참고자료 없음)';
+    const spec = BLOG_LENGTH_SPECS[length] || BLOG_LENGTH_SPECS['보통'];
     return `당신은 네이버 파워블로그를 운영하는 학원 블로그 마케팅 전문 작가입니다.
 
 [학원 정보]
 학원명: ${a.name || ''} | 주소: ${a.address || ''} | 과목: ${blog.subjectType || ''} | 대상학년: ${blog.targetGrade || ''}
 이 학원의 차별점 목록(이번 글 내용과 자연스럽게 연결되는 것만 1~2개만 골라 녹여 쓸 것, 억지로 다 넣지 말 것): ${(blog.differentiators||[]).join(', ') || '(없음)'}
 
+[분량 — 반드시 지킬 것]
+- 전체 글자 수(공백 포함) 목표: ${spec.total}. 이보다 짧으면 안 된다.
+- 소제목(sections) 개수: ${spec.sections}
+- 소제목마다 본문 문단 수: ${spec.paraPerSection} (각 문단은 3~5줄)
+- 짧게 요약하듯 쓰지 말고, 구체적인 예시·장면·설명을 충분히 붙여서 읽을거리가 있게 풍성하게 쓴다. 뻔한 말을 반복해서 분량을 채우지 말고, 매 문단마다 새로운 내용(구체적 사례, 이유, 방법 등)이 있어야 한다.
+
 [절대 규칙]
 - 학생 실명은 절대 쓰지 않는다. "${student ? student.grade : ''} 학생"처럼 학년으로만 표기한다.
 - 학생을 특정할 수 있는 정보(학교명, 동네 상세, 형제자매 관계 등)는 넣지 않는다.
 - 지역 키워드(${blog.localKeyword || ''})를 본문에 1~2회 자연스럽게 포함한다.
-- 문단은 3~4줄 이내로 짧게 끊는다(파워블로그 특유의 술술 읽히는 리듬).
 - 텍스트 안에 마크다운 기호(#, *, -, 1. 같은 것)는 절대 쓰지 않는다. 소제목은 아래 JSON의 sections 항목으로만 표현한다.
 - [참고자료] 목록에 있는 자료만 "~라는 개념/연구가 있다" 수준으로 언급 가능. 구체적 수치·통계·직접 인용문은 만들어내지 않는다. 목록이 비어있으면 어떤 학자·연구·기관·통계도 인용하지 않고 일반적인 서술로만 쓴다.
 - 해시태그는 5~8개: 브랜드형(학원명·지역+과목 조합) 2개, 검색형(학부모가 검색할 법한 조합) 2~3개, 주제형(이번 글 내용) 2~3개를 섞는다.
@@ -2879,16 +2901,16 @@
 [참고자료]
 ${refBlock}
 
-[중복 방지] 최근에 이미 쓴 주제와 겹치지 않게, 다른 각도로 쓴다: ${recentTitles.length ? recentTitles.join(', ') : '(아직 없음)'}
+[중복 방지] 최근에 이미 쓴 주제와 절대 겹치지 않게, 확실히 다른 각도·다른 소재로 쓴다(제목도 뻔하게 비슷해지지 않도록): ${recentTitles.length ? recentTitles.join(', ') : '(아직 없음)'}
 
 [이번 글 정보]
 블로그 유형: ${typeInfo.label}
 ${student ? buildBlogStudentContext(student) : ''}
-오늘 쓰고 싶은 주제·이야기: ${topic || '(비워둠 - 학원 정보를 참고해서 알아서 주제를 골라줘)'}
-톤: ${tone} | 길이: ${length}
+오늘 쓰고 싶은 주제·이야기: ${topic || '(비워둠 - 학원 정보를 참고해서 알아서 주제를 골라줘)'}${angleHint ? `\n이번엔 이런 느낌으로 써줘: ${angleHint}` : ''}
+톤: ${tone} | 길이: ${length} (위 [분량] 기준 그대로 지킬 것)
 
-아래 JSON 형식으로만 응답하세요(코드블록 없이 JSON만, sections는 2~4개):
-{"title":"블로그 제목(마크다운 기호 없이)","intro":"도입부 1~2문단(줄바꿈은 \\n\\n으로 문단 구분)","sections":[{"heading":"소제목(짧게, 마크다운 기호 없이)","body":"이 소제목의 본문 1~2문단"}],"closing":"마무리 1문단(따뜻한 초대 문구 포함)","hashtags":["#태그1","#태그2"]}`;
+아래 JSON 형식으로만 응답하세요(코드블록 없이 JSON만, sections는 ${spec.sections}):
+{"title":"블로그 제목(마크다운 기호 없이)","intro":"도입부 2문단(줄바꿈은 \\n\\n으로 문단 구분, 상황 공감 1문단 + 이 글에서 다룰 내용 예고 1문단)","sections":[{"heading":"소제목(짧게, 마크다운 기호 없이)","body":"이 소제목의 본문 ${spec.paraPerSection}(줄바꿈은 \\n\\n으로 문단 구분)"}],"closing":"마무리 1~2문단(따뜻한 초대 문구 포함)","hashtags":["#태그1","#태그2"]}`;
   }
 
   async function generateBlogDraft() {
@@ -2911,7 +2933,13 @@ ${student ? buildBlogStudentContext(student) : ''}
     const topic = document.getElementById('blogTopicInput').value.trim();
     const tone = document.getElementById('blogGenTone').value;
     const length = document.getElementById('blogGenLength').value;
-    const recentTitles = (blog.recentPosts || []).slice(-8).map(p => p.title);
+    // 저장(💾)을 안 눌러도 "다시 만들기"를 반복할 때 같은 주제가 계속 나오지 않도록,
+    // 아직 저장 안 한 이번 세션의 제목들도 같이 중복 방지 목록에 넣는다.
+    window._blogSessionTitles = window._blogSessionTitles || [];
+    const recentTitles = [...(blog.recentPosts || []).map(p => p.title), ...window._blogSessionTitles].slice(-12);
+    // 주제를 안 정해주면 AI가 매번 "지금 계절의 가장 뻔한 주제"로만 쏠리기 쉬워서,
+    // 그럴 때는 이번 글에서 써볼 관점을 랜덤으로 하나 골라 힌트로 준다.
+    const angleHint = topic ? null : BLOG_ANGLE_HINTS[Math.floor(Math.random() * BLOG_ANGLE_HINTS.length)];
 
     const genBtn = document.querySelector('#blog-generate .btn-primary');
     const prevBtnText = genBtn.textContent;
@@ -2920,12 +2948,13 @@ ${student ? buildBlogStudentContext(student) : ''}
     document.getElementById('blogGenPreviewCard').style.display = 'none';
 
     try {
-      const prompt = buildBlogPrompt(typeInfo, student, topic, checkedRefs, tone, length, blog, a, recentTitles);
+      const prompt = buildBlogPrompt(typeInfo, student, topic, checkedRefs, tone, length, blog, a, recentTitles, angleHint);
       const rawText = await callClaude(prompt);
       await bumpBlogMonthlyUsage(thisMonth, usage.count); // API 호출 자체가 비용이 드므로 파싱 성공 여부와 무관하게 여기서 카운트
       const cleaned = rawText.replace(/```json|```/g, '').trim();
       const parsed = JSON.parse(cleaned);
       window._lastBlogDraft = parsed;
+      window._blogSessionTitles.push(parsed.title);
 
       renderBlogGenResult(parsed);
     } catch (e) {
@@ -3262,7 +3291,7 @@ ${a.name}`;
     if (tab==='timetable') renderTimetable();
     if (tab==='payments') { const m = document.getElementById('payMonth'); if (!m.value) m.value = todayLocalDateStr().slice(0,7); loadPayments(m.value); }
     if (tab==='learner') renderLearnerTab();
-    if (tab==='blog') renderBlogTab();
+    if (tab==='blog') renderBlogGenerate();
   }
 
   // ===== 렌더링 =====
