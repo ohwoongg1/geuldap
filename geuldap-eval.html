@@ -2989,7 +2989,7 @@ ${student ? buildBlogStudentContext(student) : ''}
     window._lastBlogDraftText = buildBlogPlainText(parsed);
     card.innerHTML = `
       <div class="card-title">📋 블로그 초안</div>
-      <div style="border:1px solid #eee; border-radius:10px; padding:20px; margin-bottom:16px; background:#fff;">${window._lastBlogDraftHtml}</div>
+      <div style="border:1px solid #eee; border-radius:10px; padding:28px; margin-bottom:16px; background:#fff; max-width:640px; margin-left:auto; margin-right:auto;">${window._lastBlogDraftHtml}</div>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         <button class="btn btn-secondary btn-sm" onclick="copyBlogDraftText()">📋 서식 그대로 복사</button>
         <button class="btn btn-secondary btn-sm" onclick="generateBlogDraft()">🔁 다시 만들기</button>
