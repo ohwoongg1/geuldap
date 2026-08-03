@@ -1672,7 +1672,7 @@
 
 <script>
   // ===== 버전 정보 (콘솔에서 확인: APP_VERSION 또는 페이지 로드시 자동 출력) =====
-  const APP_VERSION = 'v1.9';
+  const APP_VERSION = 'v2.0';
   const APP_VERSION_LOG = [
     'v1.0 — 탭 구조 + UI 껍데기',
     'v1.1 — AI 문제 생성 + 개념 사다리',
@@ -1683,7 +1683,8 @@
     'v1.6 — AI 코치 코멘트를 실제 회차별 점수 기반으로 동적 생성 (기존엔 고정 문구였음)',
     'v1.7 — [중요] 학습기 자료/시험 Firebase 저장 코드가 잘못된 변수 참조로 항상 실패하던 버그 수정 (그동안 로컬 기기에만 저장되고 클라우드 동기화가 안 되고 있었음)',
     'v1.8 — 블로그 자동 생성 기능 추가 (Claude Sonnet 5, 구분자 기반 출력, 월 30편 제한), 글자색 없앰, 학생 세션 익명 로그인 초기화 버그 수정',
-    'v1.9 — 블로그 글 제목·소제목 굵게 표시도 없앰 (일반 굵기로 통일)'
+    'v1.9 — 블로그 글 제목·소제목 굵게 표시도 없앰 (일반 굵기로 통일)',
+    'v2.0 — 출석부에 학생별 정규 수업 예정 시간(예: 예정 16:30~17:30) 표시 추가, 실제 등원/하원 알림 시각과 헷갈리지 않도록 "실제" 라벨 붙임'
   ];
   console.log(`%c글답 학습기 ${APP_VERSION}`, 'font-weight:bold; font-size:14px; color:#0d1b4b;');
   console.log(APP_VERSION_LOG.join('\n'));
@@ -1781,7 +1782,9 @@
 
     scheduled.forEach(s => {
       const ex = existingMap[s.id];
-      rows.push({ studentId: s.id, studentName: s.name, grade: s.grade, scheduled: true, present: ex ? ex.present : true, checkInTime: ex?ex.checkInTime:null, checkOutTime: ex?ex.checkOutTime:null });
+      const entry = studentScheduleEntries(s).find(e => e.day === wk);
+      const timeRange = entry && entry.time ? `${entry.time}~${addMinutesToTime(entry.time, entry.duration)}` : '';
+      rows.push({ studentId: s.id, studentName: s.name, grade: s.grade, scheduled: true, timeRange, present: ex ? ex.present : true, checkInTime: ex?ex.checkInTime:null, checkOutTime: ex?ex.checkOutTime:null });
       seen.add(s.id);
     });
     // 예정에는 없지만 이 날짜에 이미 저장된 기록(예: 추가 등원)이 있는 학생도 이어서 보여준다.
@@ -1807,7 +1810,7 @@
           <div style="display:flex; align-items:center; gap:10px;">
             <label style="display:flex; align-items:center; gap:8px; flex:1; cursor:pointer; font-weight:400;">
               <input type="checkbox" ${r.present?'checked':''} onchange="toggleAttendancePresent(${i}, this.checked)">
-              <span style="${r.present?'':'color:#bbb; text-decoration:line-through;'}">${r.studentName} · ${r.grade}</span>
+              <span style="${r.present?'':'color:#bbb; text-decoration:line-through;'}">${r.studentName} · ${r.grade}${r.timeRange ? ` <span style="color:#999; font-weight:400;">(예정 ${r.timeRange})</span>` : ''}</span>
             </label>
             ${r.scheduled ? '<span style="font-size:11px; color:#4a7c59; background:#eaf3ec; padding:2px 6px; border-radius:6px;">정규</span>' : '<span style="font-size:11px; color:#a66; background:#fbeaea; padding:2px 6px; border-radius:6px;">추가</span>'}
             ${!r.scheduled ? `<button class="thumb-remove" style="position:static;" onclick="removeAttendanceRow(${i})">✕</button>` : ''}
@@ -1815,8 +1818,8 @@
           <div style="display:flex; align-items:center; gap:6px; margin:6px 0 0 32px; flex-wrap:wrap;">
             <button class="btn btn-secondary btn-sm" onclick="markCheckInOut(${i}, 'in')">🚪 등원 알림</button>
             <button class="btn btn-secondary btn-sm" onclick="markCheckInOut(${i}, 'out')">🏠 하원 알림</button>
-            ${r.checkInTime ? `<span style="font-size:12px; color:#888;">등원 ${r.checkInTime}</span>` : ''}
-            ${r.checkOutTime ? `<span style="font-size:12px; color:#888;">하원 ${r.checkOutTime}</span>` : ''}
+            ${r.checkInTime ? `<span style="font-size:12px; color:#888;">실제 등원 ${r.checkInTime}</span>` : ''}
+            ${r.checkOutTime ? `<span style="font-size:12px; color:#888;">실제 하원 ${r.checkOutTime}</span>` : ''}
           </div>
         </div>
       `).join('');
