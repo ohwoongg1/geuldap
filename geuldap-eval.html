@@ -1636,25 +1636,31 @@
     if (idx > -1) localArr[idx] = doc; else localArr.push(doc);
   }
   try {
-    const ss = await getDocs(collection(db, 'geuldap_students'));
+    // 예전엔 이 9개 컬렉션을 하나씩 순서대로 await(직렬)로 불러와서, 느린 모바일 네트워크에서는
+    // 전체 로딩이 꽤 오래 걸렸다. 그 사이에 학생이 로그인해버리면, 아직 안 불러와진 컬렉션
+    // (특히 순서상 뒤쪽인 geuldap_lr_materials)은 "자료 없음"으로 잘못 보이는 문제가 있었다.
+    // 서로 독립적인 컬렉션들이라 병렬로 한 번에 불러오도록 바꿔서 전체 로딩 시간을 크게 줄인다.
+    const [ss, rs, qs, as_, ls_, ps_, rd_, lrm_, lre_, lrw_] = await Promise.all([
+      getDocs(collection(db, 'geuldap_students')),
+      getDocs(collection(db, 'geuldap_records')),
+      getDocs(collection(db, 'geuldap_quizzes')),
+      getDocs(collection(db, 'geuldap_attendance')),
+      getDocs(collection(db, 'geuldap_leads')),
+      getDocs(collection(db, 'geuldap_payments')),
+      getDocs(collection(db, 'geuldap_readings')),
+      getDocs(collection(db, 'geuldap_lr_materials')),
+      getDocs(collection(db, 'geuldap_lr_exams')),
+      getDocs(collection(db, 'geuldap_lr_wrong')),
+    ]);
     ss.forEach(d => mergeFromServer(window._students, d.data()));
-    const rs = await getDocs(collection(db, 'geuldap_records'));
     rs.forEach(d => mergeFromServer(window._records, d.data()));
-    const qs = await getDocs(collection(db, 'geuldap_quizzes'));
     qs.forEach(d => mergeFromServer(window._quizzes, d.data()));
-    const as_ = await getDocs(collection(db, 'geuldap_attendance'));
     as_.forEach(d => mergeFromServer(window._attendance, d.data()));
-    const ls_ = await getDocs(collection(db, 'geuldap_leads'));
     ls_.forEach(d => mergeFromServer(window._leads, d.data()));
-    const ps_ = await getDocs(collection(db, 'geuldap_payments'));
     ps_.forEach(d => mergeFromServer(window._payments, d.data()));
-    const rd_ = await getDocs(collection(db, 'geuldap_readings'));
     rd_.forEach(d => mergeFromServer(window._readings, d.data()));
-    const lrm_ = await getDocs(collection(db, 'geuldap_lr_materials'));
     lrm_.forEach(d => mergeFromServer(window._lrMaterials, d.data()));
-    const lre_ = await getDocs(collection(db, 'geuldap_lr_exams'));
     lre_.forEach(d => mergeFromServer(window._lrExams, d.data()));
-    const lrw_ = await getDocs(collection(db, 'geuldap_lr_wrong'));
     lrw_.forEach(d => mergeFromServer(window._lrWrong, d.data()));
     try {
       const asDoc = await getDoc(doc(db, 'geuldap_settings', 'academy'));
@@ -1679,7 +1685,7 @@
 
 <script>
   // ===== 버전 정보 (콘솔에서 확인: APP_VERSION 또는 페이지 로드시 자동 출력) =====
-  const APP_VERSION = 'v3.3';
+  const APP_VERSION = 'v3.4';
   const APP_VERSION_LOG = [
     'v1.0 — 탭 구조 + UI 껍데기',
     'v1.1 — AI 문제 생성 + 개념 사다리',
@@ -1696,7 +1702,8 @@
     'v3.0 — 블로그 생성 기능 전면 단순화: JSON/구분자 파싱, 서식 있는 HTML 붙여넣기 시도(색깔·굵게·여백)를 전부 버리고, AI가 제목+📌소제목+번호매기기+구분선을 텍스트 안에 직접 넣은 완성된 글을 통째로 반환 → 그대로 화면에 보여주고 그대로 복사(순수 텍스트). 파싱 실패·붙여넣기 서식 문제가 구조적으로 없어짐. 글 품질도 실제 파워블로그 참고 예시 수준으로 프롬프트 강화(감정적 도입부, 번호매기기, 구분선, 직접 초대 CTA)',
     'v3.1 — 학습기 자료를 한 번 올려서 여러 학생에게 배정 가능하도록 변경(자료마다 studentIds 목록, 학생별 진행률은 독립적으로 유지). 자료 업로드는 선생님(관리자 화면)만 가능하도록 학생 포털의 "나만의 학습 만들기" 자가 업로드 기능 제거. 학생이 배정 해제해도 다른 학생이 함께 쓰는 자료면 삭제되지 않고 본인 접근만 빠지도록 수정',
     'v3.2 — 학생 관리 화면을 초등학생/중학생으로 나눠서 표시(학년 앞글자 "초등"/"중학교" 기준)',
-    'v3.3 — 블로그 생성 화면에 "이번 글의 대상 학년"(초등/중등/전체) 선택 추가 — 블로그가 계속 초등 위주로만 쓰이는 걸 막기 위해, 학생 사례형이 아닌 글은 매번 대상을 직접 고르게 함(중등 선택 시 초등 예시·표현 안 섞이도록 프롬프트에 명시)'
+    'v3.3 — 블로그 생성 화면에 "이번 글의 대상 학년"(초등/중등/전체) 선택 추가 — 블로그가 계속 초등 위주로만 쓰이는 걸 막기 위해, 학생 사례형이 아닌 글은 매번 대상을 직접 고르게 함(중등 선택 시 초등 예시·표현 안 섞이도록 프롬프트에 명시)',
+    'v3.4 — [중요] 모바일(특히 느린 네트워크)에서 학생 로그인 시 자료가 안 보이던 버그 수정: 로그인 시 9개 Firestore 컬렉션을 하나씩 순서대로(직렬) 불러오던 걸 한번에(병렬) 불러오도록 바꿔 전체 로딩 시간을 크게 줄이고, 데이터 로딩이 채 안 끝난 상태에서 학생이 로그인 시도하면 "데이터를 불러오는 중" 안내와 함께 막도록 이중 안전장치 추가'
   ];
   console.log(`%c글답 학습기 ${APP_VERSION}`, 'font-weight:bold; font-size:14px; color:#0d1b4b;');
   console.log(APP_VERSION_LOG.join('\n'));
@@ -6899,8 +6906,14 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
   function studentPortalLogin() {
     const name = document.getElementById('spNameInput').value.trim();
     const code = document.getElementById('spCodeInput').value.trim();
+    if (!window._fbReady) {
+      document.getElementById('spError').textContent = '데이터를 아직 불러오는 중이에요. 2~3초 후 다시 눌러주세요.';
+      document.getElementById('spError').classList.add('show');
+      return;
+    }
     const match = _students.find(s => s.name === name && s.accessCode === code);
     if (!match) {
+      document.getElementById('spError').textContent = '이름 또는 코드가 일치하지 않아요.';
       document.getElementById('spError').classList.add('show');
       return;
     }
