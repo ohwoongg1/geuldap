@@ -211,19 +211,13 @@
 
       <!-- 스테이지 맵 -->
       <div style="display:flex; justify-content:space-between; align-items:center; margin:20px 0; padding:0 10px;" id="lrStageMap">
-        <div class="lr-stage lr-stage-done">1<br><span>훑어읽기</span></div>
+        <div class="lr-stage lr-stage-done">1<br><span>이해</span></div>
         <div class="lr-stage-line"></div>
-        <div class="lr-stage lr-stage-done">2<br><span>구조파악</span></div>
-        <div class="lr-stage-line"></div>
-        <div class="lr-stage lr-stage-current">3<br><span>핵심정리</span></div>
+        <div class="lr-stage lr-stage-current">2<br><span>암기</span></div>
         <div class="lr-stage-line lr-stage-line-locked"></div>
-        <div class="lr-stage lr-stage-locked">4<br><span>핵심암기</span></div>
+        <div class="lr-stage lr-stage-locked">3<br><span>실전문제</span></div>
         <div class="lr-stage-line lr-stage-line-locked"></div>
-        <div class="lr-stage lr-stage-locked">5<br><span>테스트</span></div>
-        <div class="lr-stage-line lr-stage-line-locked"></div>
-        <div class="lr-stage lr-stage-locked">6<br><span>실전문제</span></div>
-        <div class="lr-stage-line lr-stage-line-locked"></div>
-        <div class="lr-stage lr-stage-locked">7<br><span>모의시험</span></div>
+        <div class="lr-stage lr-stage-locked">4<br><span>모의고사</span></div>
       </div>
 
       <!-- 달성률 바 -->
@@ -303,7 +297,7 @@
           <div style="flex:1; height:10px; background:#e0e0e0; border-radius:5px; overflow:hidden;">
             <div id="lrLiveLevelBar" style="height:100%; width:0%; background:linear-gradient(90deg,#c5a149,#e8c96a); border-radius:5px; transition:width 0.4s ease;"></div>
           </div>
-          <span id="lrLiveLevelText" style="font-size:12px; font-weight:700; color:#c5a149; white-space:nowrap;">레벨 1.0/7</span>
+          <span id="lrLiveLevelText" style="font-size:12px; font-weight:700; color:#c5a149; white-space:nowrap;">레벨 1.0/4</span>
         </div>
         <div class="card" style="border-left:4px solid #c5a149;">
           <div id="lrQPassage" style="display:none; background:#f8f9fc; border-radius:8px; padding:14px 16px; margin-bottom:14px; font-size:14px; line-height:1.9; color:#333; white-space:pre-wrap;"></div>
@@ -446,7 +440,7 @@
         <input type="number" id="spTopicTarget" value="90" min="1" max="100">
       </div>
       <div class="form-group full">
-        <label>목표일 (이 날까지 7회 반복학습을 마쳐요)</label>
+        <label>목표일 (이 날까지 4회 반복학습을 마쳐요)</label>
         <input type="date" id="spTopicDate">
       </div>
     </div>
@@ -891,8 +885,8 @@
   <!-- ========== 학습기 탭 ========== -->
   <div class="page" id="page-learner">
     <div class="card" style="background: linear-gradient(135deg, #0d4b2e, #1a6b3f); color: #fff; border-radius: 14px; padding: 24px; margin-bottom: 20px;">
-      <div style="font-family:'Noto Serif KR',serif; font-size: 22px; font-weight: 700; color: #8de8a0;">📚 7회 반복학습기</div>
-      <div style="font-size: 13px; color: rgba(255,255,255,0.7); margin-top: 6px;">이해 → 암기 → 응용 | 시험 범위를 올리면 AI가 7회 반복 학습 스케줄을 자동 생성합니다</div>
+      <div style="font-family:'Noto Serif KR',serif; font-size: 22px; font-weight: 700; color: #8de8a0;">📚 4회 반복학습기</div>
+      <div style="font-size: 13px; color: rgba(255,255,255,0.7); margin-top: 6px;">이해 → 암기 → 응용 | 시험 범위를 올리면 AI가 4회 반복 학습 스케줄을 자동 생성합니다</div>
     </div>
 
     <!-- 학습기 하위 탭 -->
@@ -1014,7 +1008,7 @@
           </div>
         </div>
         <div style="display:flex; gap:8px; margin-top:16px;">
-          <button class="btn btn-primary" onclick="saveLrExam()">🚀 7회 반복 스케줄 생성</button>
+          <button class="btn btn-primary" onclick="saveLrExam()">🚀 4회 반복 스케줄 생성</button>
         </div>
       </div>
       <div class="card" id="lrExamList" style="display:none;">
@@ -1027,7 +1021,7 @@
     <div class="lr-sub" id="lr-dashboard">
       <div class="card">
         <div class="card-title">📊 전체 학생 학습 현황</div>
-        <div style="font-size:13px; color:#888; margin-bottom:14px;">각 학생의 7회 반복 진행률과 예상 점수를 한눈에 확인하세요.</div>
+        <div style="font-size:13px; color:#888; margin-bottom:14px;">각 학생의 4회 반복 진행률과 예상 점수를 한눈에 확인하세요.</div>
         <div id="lrDashboardBody">
           <div class="empty"><div class="empty-icon">📊</div><div>시험 설정 후 학습이 시작되면<br>여기에 현황이 표시됩니다</div></div>
         </div>
@@ -1701,7 +1695,7 @@
 
 <script>
   // ===== 버전 정보 (콘솔에서 확인: APP_VERSION 또는 페이지 로드시 자동 출력) =====
-  const APP_VERSION = 'v4.2';
+  const APP_VERSION = 'v5.2';
   const APP_VERSION_LOG = [
     'v1.0 — 탭 구조 + UI 껍데기',
     'v1.1 — AI 문제 생성 + 개념 사다리',
@@ -1727,7 +1721,11 @@
     'v3.9 — 모바일(좁은 화면)에서 화면 상단에 "PC 이용을 권장합니다" 안내 배너 추가(닫기 가능)',
     'v4.0 — "저장 실패" 경고가 매번(재현성 있게) 뜬다는 걸 확인함 → 경고 문구에 실제 Firebase 에러 코드·메시지를 그대로 표시하도록 개선(예: permission-denied, unavailable 등) — 이제 정확히 어떤 이유로 실패하는지 알림창 문구만으로 바로 알 수 있음',
     'v4.1 — [진짜 원인 해결] Firestore 보안 규칙에 geuldap_lr_materials, geuldap_lr_exams 컬렉션이 아예 빠져있어서 permission-denied가 나던 것이었음(사용자가 Firebase 콘솔 규칙을 확인해줘서 확정) — 규칙에 두 컬렉션 추가로 해결. 저장 성공 시에도 "✅ 저장 완료" 토스트 알림이 잠깐 떴다 사라지도록 추가(예전엔 성공 시 아무 표시도 없어서 "저장됐다"는 확신을 갖기 어려웠음)',
-    'v4.2 — 진짜 원인이 해결됐으므로 "모바일에서는 PC 이용을 권장합니다" 안내 배너 제거'
+    'v4.2 — 진짜 원인이 해결됐으므로 "모바일에서는 PC 이용을 권장합니다" 안내 배너 제거',
+    'v4.3 — 학습 문제 생성이 가끔 오류로 실패한다는 신고 → 문제 생성 응답에서 JSON 배열을 앞뒤 잡텍스트 있어도 안전하게 추출하도록 개선 + 파싱/생성 실패 시 한 번 조용히 자동 재시도 후에도 안 되면 그때 알림(회차 문제 생성, 마스터 시험 문제 생성 둘 다 적용)',
+    'v5.0 — [대규모 개편] 학습 회차를 7회에서 4회로 축소(1:이해=훑어읽기·구조파악, 2:암기=핵심정리·암기, 3:응용=실전문제, 4:응용=실전 모의고사). 4회차(모의고사)에서 90점 이상이면 기존과 동일하게 마스터 도전 가능. 스테이지맵도 4단계로 축소. 문제 수는 각 회차 5→10문제, 마스터 모의고사도 자료 분량별 10~18문제로 상향(기존 5~12). 지문 근거문장 지목 문제(밑줄 긋기형)는 각 회차 최대 2문제로 제한. 레벨 표시(X.X/7 → X.X/4), 시험 설정 탭의 수동 스케줄 생성기도 함께 4회로 축소.',
+    'v5.1 — 4회차(실전 모의고사)에서 이미 90점 이상 받았는데 별도 "마스터 도전 시험"을 또 봐야 하는 중복 문제 수정 — 이제 4회차 자체에서 90점 이상이면 그 자리에서 바로 마스터 달성(추가 시험 없음). 4회차에서 90점을 못 넘었거나, 1~3회차에서 예상점수로 조기 자격을 얻은 경우에만 기존처럼 별도 마스터 도전 시험을 보게 됨',
+    'v5.2 — [기존 진행 데이터 호환성] 7회 체계였을 때 이미 레벨 4를 넘겨(예: 레벨 5~7) 진행 중이던 학생 자료가 "레벨 6.5/4"처럼 범위를 벗어나 보이던 문제 수정 — 예전에 저장된 레벨 값도 새 최대치 4로 자동 보정해서 표시(이미 그만큼 실력을 증명했으니 새 기준으로도 최고 단계로 인정됨, 진행 기록 자체는 안 지워짐)'
   ];
   console.log(`%c글답 학습기 ${APP_VERSION}`, 'font-weight:bold; font-size:14px; color:#0d1b4b;');
   console.log(APP_VERSION_LOG.join('\n'));
@@ -5470,21 +5468,21 @@ ${(parsed.concepts || []).join(', ')}
     saveLrLocal();
     renderLrExamStudents();
     renderLrExamList();
-    alert('✅ 7회 반복 스케줄이 생성되었습니다!\n' + exam.schedule.map((s,i)=>`${i+1}회차: ${s.label} (${s.date})`).join('\n'));
+    alert('✅ 4회 반복 스케줄이 생성되었습니다!\n' + exam.schedule.map((s,i)=>`${i+1}회차: ${s.label} (${s.date})`).join('\n'));
   }
 
   function generateRepeatSchedule(daysLeft) {
     const schedule = [];
-    const labels = ['훑어읽기(이해1)', '구조파악(이해2)', '핵심정리(이해3)', '핵심암기(암기1)', '빈칸테스트(암기2)', '실전문제(응용1)', '모의시험(응용2)'];
-    const ratios = [0, 0.1, 0.2, 0.35, 0.5, 0.7, 0.9];
-    for(let i=0; i<7; i++) {
+    const labels = ['훑어읽기·구조파악(이해)', '핵심정리·암기(암기)', '실전문제(응용1)', '실전 모의고사(응용2)'];
+    const ratios = [0, 0.25, 0.55, 0.85];
+    for(let i=0; i<4; i++) {
       const d = new Date();
       d.setDate(d.getDate() + Math.round(ratios[i] * daysLeft));
       schedule.push({
         round: i+1,
         label: labels[i],
         date: d.toISOString().slice(0,10),
-        phase: i<3 ? 'understand' : i<5 ? 'memorize' : 'apply',
+        phase: i<1 ? 'understand' : i<2 ? 'memorize' : 'apply',
         done: false
       });
     }
@@ -5506,7 +5504,7 @@ ${(parsed.concepts || []).join(', ')}
           <div style="margin-top:6px; height:6px; background:#e0e0e0; border-radius:3px; width:200px;">
             <div style="height:100%; width:${pct}%; background:linear-gradient(90deg,#2f855a,#68d391); border-radius:3px;"></div>
           </div>
-          <div style="font-size:11px; color:#2f855a; margin-top:3px;">${done}/7회 완료 (${pct}%)</div>
+          <div style="font-size:11px; color:#2f855a; margin-top:3px;">${done}/4회 완료 (${pct}%)</div>
         </div>
         <button class="btn btn-danger btn-sm" onclick="deleteLrExam('${e.id}')">삭제</button>
       </div>`;
@@ -5656,7 +5654,7 @@ ${(parsed.concepts || []).join(', ')}
     const level = getLrExamLevel(exam);
     const done = exam.schedule.filter(s=>s.done).length;
     const pct = Math.round((level - 1) / 6 * 100);
-    document.getElementById('lrProgressPercent').textContent = pct + '% (레벨 ' + level.toFixed(1) + '/7)';
+    document.getElementById('lrProgressPercent').textContent = pct + '% (레벨 ' + level.toFixed(1) + '/4)';
     document.getElementById('lrProgressBar').style.width = pct + '%';
     const predict = Math.min(100, Math.round(exam.targetScore * pct/100 * 1.1));
     document.getElementById('lrPredictDisplay').textContent = predict;
@@ -5665,7 +5663,7 @@ ${(parsed.concepts || []).join(', ')}
     const dday = Math.ceil((examDate-today)/(1000*60*60*24));
     document.getElementById('lrDdayDisplay').textContent = dday>0?'D-'+dday:'D-day!';
     // 스테이지 맵 업데이트 (현재 레벨이 몇 단계에 있는지)
-    const curStage = level >= 7 ? 7 : Math.min(6, Math.floor(level) - 1); // 0-based index (7이면 범위 밖 → 전부 done 처리됨)
+    const curStage = level >= 4 ? 4 : Math.min(3, Math.floor(level) - 1); // 0-based index (4면 범위 밖 → 전부 done 처리됨)
     const stages = document.querySelectorAll('#lrStageMap .lr-stage');
     stages.forEach((st,i) => {
       st.className = 'lr-stage ' + (i<curStage?'lr-stage-done': i===curStage?'lr-stage-current':'lr-stage-locked');
@@ -5680,7 +5678,7 @@ ${(parsed.concepts || []).join(', ')}
     renderLrCoachMsg(exam);
     renderLrPreviewMaterials(exam);
     awardLevelUpPoints(exam); // 레벨이 올라있는데 아직 정산 안 된 포인트가 있으면 여기서도 놓치지 않게 확인
-    const earlyEligible = level < 7 && predict >= exam.targetScore;
+    const earlyEligible = level < 4 && predict >= exam.targetScore;
     const continueLink = document.getElementById('lrContinuePracticeLink');
     const topBadge = document.getElementById('lrMasteryTopBadge');
     const materialsWrapper = document.getElementById('lrPreviewMaterials');
@@ -5692,11 +5690,11 @@ ${(parsed.concepts || []).join(', ')}
       document.getElementById('lrStartBtn').textContent = '🏆 마스터 완료! (복습하기)';
       document.getElementById('lrStartBtn').onclick = startLrLearning;
       continueLink.style.display = 'none';
-    } else if ((level >= 7 || earlyEligible) && exam.masteryExhausted) {
+    } else if ((level >= 4 || earlyEligible) && exam.masteryExhausted) {
       document.getElementById('lrStartBtn').textContent = '특별점수는 놓쳤어요 (복습하기)';
       document.getElementById('lrStartBtn').onclick = startLrLearning;
       continueLink.style.display = 'none';
-    } else if (level >= 7) {
+    } else if (level >= 4) {
       document.getElementById('lrStartBtn').textContent = '🎯 마스터 도전 시험 보기';
       document.getElementById('lrStartBtn').onclick = startLrMasteryExam;
       continueLink.style.display = 'none';
@@ -5705,7 +5703,7 @@ ${(parsed.concepts || []).join(', ')}
       document.getElementById('lrStartBtn').onclick = startLrMasteryExam;
       continueLink.style.display = 'block';
     } else {
-      document.getElementById('lrStartBtn').textContent = `🚀 학습 시작 (현재 레벨 ${level.toFixed(1)}/7)`;
+      document.getElementById('lrStartBtn').textContent = `🚀 학습 시작 (현재 레벨 ${level.toFixed(1)}/4)`;
       document.getElementById('lrStartBtn').onclick = startLrLearning;
       continueLink.style.display = 'none';
     }
@@ -5851,15 +5849,15 @@ ${(parsed.concepts || []).join(', ')}
     if(el) el.textContent = msg;
   }
 
-  // ===== 학습기 AI 엔진 (7회 반복 + 개념 사다리) =====
+  // ===== 학습기 AI 엔진 (4회 반복 + 개념 사다리) =====
   let lrCurrentQuestions = [];
   let lrCurrentQIndex = 0;
   let lrCurrentRound = 1;
   let lrCurrentExam = null;
   let lrRoundScore = { correct:0, total:0 };
   let lrCheckAnswer = '';
-  let lrPracticeMode = false; // true면 오답 재도전/취약유형 집중학습 세션 — 실제 7회차 스케줄을 건드리지 않음
-  let lrLevelBeforeSet = 1; // 이번 5문제 세트를 시작하기 전의 레벨 (세트 완료 화면에서 변화량 표시용)
+  let lrPracticeMode = false; // true면 오답 재도전/취약유형 집중학습 세션 — 실제 회차 스케줄을 건드리지 않음
+  let lrLevelBeforeSet = 1; // 이번 10문제 세트를 시작하기 전의 레벨 (세트 완료 화면에서 변화량 표시용)
   let lrMasteryMode = false; // true면 마스터 도전 시험(10문제, 시간제한, 채점은 끝나고 한번에) 진행 중
   let lrMasteryAnswers = [];
   let lrMasteryTimerInterval = null;
@@ -5867,18 +5865,15 @@ ${(parsed.concepts || []).join(', ')}
   let lrPracticeConcepts = []; // 취약유형 집중학습 세션에서 다룬 개념들 (완료 시 오답노트 resolved 처리용)
 
   const LR_PHASE_INFO = {
-    1: { phase:'이해', label:'1회차: 훑어읽기', desc:'전체 내용을 가볍게 파악하는 단계', qType:'핵심 내용 파악, OX 판단, 주제 찾기', difficulty:'매우 쉬움 (7단계 중 1단계) — 자료를 처음 접한다는 가정으로, 정답이 눈에 잘 보이는 기본적인 질문' },
-    2: { phase:'이해', label:'2회차: 구조 파악', desc:'글의 구조와 흐름을 이해하는 단계', qType:'문단 순서, 원인-결과, 중심 문장 찾기', difficulty:'쉬움 (7단계 중 2단계) — 1회차보다 조금 더 세부적인 이해를 요구' },
-    3: { phase:'이해', label:'3회차: 핵심 정리', desc:'핵심 개념을 정리하는 단계', qType:'개념 설명, 용어 정의, 요약', difficulty:'쉬움~보통 (7단계 중 3단계) — 개념 간 관계를 정리해서 물어봄' },
-    4: { phase:'암기', label:'4회차: 핵심 암기', desc:'핵심 내용을 기억하는 단계', qType:'빈칸 채우기, 핵심어 매칭, 정의 쓰기', difficulty:'보통 (7단계 중 4단계) — 자료를 안 보고도 떠올릴 수 있어야 하는 수준' },
-    5: { phase:'암기', label:'5회차: 빈칸 테스트', desc:'정확히 기억하는지 확인하는 단계', qType:'빈칸 완성, 단답형, OX 퀴즈', difficulty:'보통~어려움 (7단계 중 5단계) — 비슷한 개념끼리 헷갈리게 만드는 함정 포함' },
-    6: { phase:'응용', label:'6회차: 실전 문제', desc:'배운 것을 적용하는 단계', qType:'실전 유형 문제, 보기 분석, 적용', difficulty:'어려움 (7단계 중 6단계) — 배운 개념을 새로운 상황·예시에 적용해야 풀리는 문제' },
-    7: { phase:'응용', label:'7회차: 모의시험', desc:'실전처럼 풀어보는 단계', qType:'실전 난이도 종합 문제, 서술형', difficulty:'가장 어려움 (7단계 중 7단계) — 실제 시험 수준의 종합 문제, 여러 개념을 엮어서 묻기' }
+    1: { phase:'이해', label:'1회차: 훑어읽기·구조파악', desc:'전체 내용과 글의 흐름을 가볍게 파악하는 단계', qType:'핵심 내용 파악, OX 판단, 주제 찾기, 문단 순서, 원인-결과', difficulty:'쉬움 (4단계 중 1단계) — 자료를 처음 접한다는 가정으로, 정답이 눈에 잘 보이는 기본적인 질문' },
+    2: { phase:'암기', label:'2회차: 핵심정리·암기', desc:'핵심 개념을 정리하고 기억하는 단계', qType:'개념 설명, 용어 정의, 빈칸 채우기, 핵심어 매칭', difficulty:'보통 (4단계 중 2단계) — 자료를 안 보고도 핵심을 떠올릴 수 있어야 하는 수준' },
+    3: { phase:'응용', label:'3회차: 실전문제', desc:'배운 것을 새로운 상황에 적용하는 단계', qType:'실전 유형 문제, 보기 분석, 적용, 단답형', difficulty:'어려움 (4단계 중 3단계) — 배운 개념을 새로운 상황·예시에 적용해야 풀리는 문제' },
+    4: { phase:'응용', label:'4회차: 실전 모의고사', desc:'실제 시험처럼 종합적으로 풀어보는 단계 (90점 이상이면 마스터 도전 가능)', qType:'실전 난이도 종합 문제, 서술형', difficulty:'가장 어려움 (4단계 중 4단계) — 실제 시험 수준의 종합 문제, 여러 개념을 엮어서 묻기' }
   };
 
   function getNextLrRound(exam) {
     const done = exam.schedule.filter(s=>s.done).length;
-    return Math.min(done + 1, 7);
+    return Math.min(done + 1, 4);
   }
 
   async function startLrLearning() {
@@ -5889,7 +5884,7 @@ ${(parsed.concepts || []).join(', ')}
     if(!lrCurrentExam) { alert('설정된 시험이 없습니다.'); return; }
     const curLevel = getLrExamLevel(lrCurrentExam);
     lrLevelBeforeSet = curLevel;
-    lrCurrentRound = Math.max(1, Math.min(7, Math.round(curLevel)));
+    lrCurrentRound = Math.max(1, Math.min(4, Math.round(curLevel)));
     const info = LR_PHASE_INFO[lrCurrentRound];
 
     document.getElementById('lrFocusOverlay').style.display='block';
@@ -5924,7 +5919,7 @@ ${(parsed.concepts || []).join(', ')}
 문제 내용에는 학생의 이름을 언급하거나 지어내지 마세요.
 수식이 필요하면 LaTeX 문법($, \\times, \\frac 등)을 절대 쓰지 말고, 일반 텍스트(×, ÷, ^, 위첨자, 3/4 같은 분수 표기)로만 쓰세요.
 
-이 학생은 "${lrCurrentExam.name}" 시험을 준비 중이며, 현재 레벨은 7단계 중 ${curLevel.toFixed(1)}이에요. 게임처럼 맞히면 레벨이 조금씩 올라가고 틀리면 더 크게 내려가는 방식이라, 지금 레벨(${lrCurrentRound}단계 근처)에 맞는 난이도로 문제를 내야 합니다.
+이 학생은 "${lrCurrentExam.name}" 시험을 준비 중이며, 현재 레벨은 4단계 중 ${curLevel.toFixed(1)}이에요. 게임처럼 맞히면 레벨이 조금씩 올라가고 틀리면 더 크게 내려가는 방식이라, 지금 레벨(${lrCurrentRound}단계 근처)에 맞는 난이도로 문제를 내야 합니다.
 
 [학습 자료 범위]
 ${matInfo}
@@ -5934,7 +5929,7 @@ ${allQuestions.length ? '\n[교재/문제집에 있는 문제들 — 유사한 �
 ${pastQuestions.length ? '\n[중요 — 이미 이전 회차에서 낸 문제들입니다. 절대 그대로/비슷하게 반복하지 마세요. 같은 개념이라도 완전히 다른 질문 방식, 다른 지문 부분, 다른 예시로 새롭게 만드세요]\n' + pastQuestions.map(q=>'- '+q).join('\n') : ''}
 
 [중요 — 지문 포함 문제]
-국어(문학/비문학) 과목이거나 내용 일치, 주제 파악, 시점, 인물의 심리, 글의 구조 등 **진짜로 지문을 읽어야만 풀리는 문제**일 때만 위 [교재에서 추출한 실제 내용]에서 실제 지문(문단 전체 또는 문제 풀이에 필요한 만큼)을 발췌해서 "passage" 필드에 넣으세요. 어휘 뜻, 맞춤법, 간단한 개념 확인처럼 지문이 굳이 없어도 풀리는 문제라면 passage는 비워두세요 — 5문제 중 지문이 꼭 필요한 문제는 2~3개 정도면 충분하고, 나머지는 지문 없이 내도 됩니다. 지문을 넣을 땐 <보기>만 한두 줄 요약하지 말고, 학생이 직접 읽고 판단할 수 있는 분량을 줘야 합니다.
+국어(문학/비문학) 과목이거나 내용 일치, 주제 파악, 시점, 인물의 심리, 글의 구조 등 **진짜로 지문을 읽어야만 풀리는 문제**일 때만 위 [교재에서 추출한 실제 내용]에서 실제 지문(문단 전체 또는 문제 풀이에 필요한 만큼)을 발췌해서 "passage" 필드에 넣으세요. 어휘 뜻, 맞춤법, 간단한 개념 확인처럼 지문이 굳이 없어도 풀리는 문제라면 passage는 비워두세요 — 10문제 중 지문이 꼭 필요한 문제는 2개로 제한하고, 나머지는 지문 없이 내주세요. 지문을 넣을 땐 <보기>만 한두 줄 요약하지 말고, 학생이 직접 읽고 판단할 수 있는 분량을 줘야 합니다.
 매 회차 지문은 자료 전체 중 이전 회차와는 다른 문단·다른 부분에서 발췌하세요. 자료가 짧아서 겹칠 수밖에 없다면, 최소한 묻는 관점(주제/세부정보/추론/어휘 등)을 다르게 하세요.
 ${isKoreanSubject ? `
 [국어 지문 문제 — 지문을 넣기로 한 문제에서만 지킬 것]
@@ -5958,12 +5953,13 @@ ${isMathSubject ? `
 - 단계: ${info.phase} (${info.desc})
 - 난이도: ${info.difficulty}
 - 문제 유형: ${info.qType}
-- 게임처럼 맞히면 레벨이 올라가고 틀리면 레벨이 내려가는 방식입니다. 지금 레벨(${lrCurrentRound}단계 근처)에 맞는 난이도로 5문제를 내되, 살짝 쉬운 것부터 살짝 어려운 것까지 자연스럽게 섞어서 학생의 현재 실력을 정확히 가늠할 수 있게 하세요.
-${lrCurrentRound <= 3 ? '- 이해 단계이므로 쉽고 기본적인 문제를 내세요. 학생이 내용을 "아, 이런 내용이구나" 하고 파악할 수 있는 수준.' : ''}
-${lrCurrentRound >= 4 && lrCurrentRound <= 5 ? '- 암기 단계이므로 핵심 용어, 개념, 정의를 정확히 기억하는지 확인하는 문제를 내세요.' : ''}
-${lrCurrentRound >= 6 ? '- 응용 단계이므로 실전과 비슷한 난이도로, 배운 개념을 새로운 상황에 적용하는 문제를 내세요. 실제 시험처럼 지문 기반 문제를 적극 포함하세요.' : ''}
+- 게임처럼 맞히면 레벨이 올라가고 틀리면 레벨이 내려가는 방식입니다. 지금 레벨(${lrCurrentRound}단계 근처)에 맞는 난이도로 10문제를 내되, 살짝 쉬운 것부터 살짝 어려운 것까지 자연스럽게 섞어서 학생의 현재 실력을 정확히 가늠할 수 있게 하세요.
+${lrCurrentRound === 1 ? '- 이해 단계이므로 쉽고 기본적인 문제를 내세요. 학생이 내용을 "아, 이런 내용이구나" 하고 파악할 수 있는 수준.' : ''}
+${lrCurrentRound === 2 ? '- 암기 단계이므로 핵심 용어, 개념, 정의를 정확히 기억하는지 확인하는 문제를 내세요.' : ''}
+${lrCurrentRound >= 3 ? '- 응용 단계이므로 실전과 비슷한 난이도로, 배운 개념을 새로운 상황에 적용하는 문제를 내세요. 실제 시험처럼 지문 기반 문제를 적극 포함하세요.' : ''}
+- 지문에서 근거 문장을 짚어내야 하는 문제(passageSentences·evidenceIndices를 채우는 문제)는 이번 10문제 중 **최대 2문제까지만** 내세요. 나머지 문제는 evidenceIndices를 빈 배열 []로 두세요.
 
-문제를 5개 만들어주세요. 아래 JSON 배열로만 응답하세요:
+문제를 10개 만들어주세요. 아래 JSON 배열로만 응답하세요:
 [
   {
     "passage": "문제 풀이에 필요한 지문 발췌 (필요 없으면 빈 문자열)",
@@ -5977,16 +5973,29 @@ ${lrCurrentRound >= 6 ? '- 응용 단계이므로 실전과 비슷한 난이도�
     "explanation": "정답 해설 1-2문장"
   }
 ]
-passageSentences와 evidenceIndices는 지문이 있는 문제에서만 채우고, 지문이 없는 문제는 빈 배열 []로 두세요.
+passageSentences와 evidenceIndices는 근거 문장 지목 문제(최대 2개)에서만 채우고, 나머지 문제는 빈 배열 []로 두세요.
 
 type은 "choice"(4지선다) 또는 "short"(단답형)으로 섞어주세요.
-${lrCurrentRound <= 3 ? 'choice 위주로 내세요.' : ''}
-${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
+${lrCurrentRound === 1 ? 'choice 위주로 내세요.' : ''}
+${lrCurrentRound >= 3 ? 'short를 4개 이상 포함하세요.' : ''}
 단답형(short)일 때는 choices를 빈 배열 []로 두세요.`;
 
-      const rawText = await callGemini(prompt);
-      const text = rawText.replace(/```json|```/g,'').trim();
-      lrCurrentQuestions = JSON.parse(text);
+      let rawText, text;
+      try {
+        rawText = await callGemini(prompt);
+        text = rawText.replace(/```json|```/g,'').trim();
+        const start = text.indexOf('['); const end = text.lastIndexOf(']');
+        if (start !== -1 && end !== -1 && end > start) text = text.slice(start, end + 1);
+        lrCurrentQuestions = JSON.parse(text);
+      } catch (parseErr) {
+        // 가끔 AI 응답이 살짝 어긋나거나 서버가 붐빌 때가 있어서, 한 번 더 조용히 재시도해본다.
+        console.log('문제 생성 1차 실패, 재시도:', parseErr);
+        rawText = await callGemini(prompt);
+        text = rawText.replace(/```json|```/g,'').trim();
+        const start = text.indexOf('['); const end = text.lastIndexOf(']');
+        if (start !== -1 && end !== -1 && end > start) text = text.slice(start, end + 1);
+        lrCurrentQuestions = JSON.parse(text);
+      }
       lrCurrentQIndex = 0;
       lrRoundScore = { correct:0, total:lrCurrentQuestions.length };
 
@@ -6015,7 +6024,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     const bar = document.getElementById('lrLiveLevelBar');
     const text = document.getElementById('lrLiveLevelText');
     if (bar) bar.style.width = pct + '%';
-    if (text) text.textContent = `레벨 ${level.toFixed(1)}/7`;
+    if (text) text.textContent = `레벨 ${level.toFixed(1)}/4`;
   }
 
   function showLrQuestion() {
@@ -6196,26 +6205,26 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     return false;
   }
 
-  // ===== 게임형 레벨 시스템 (1.0~7.0) =====
+  // ===== 게임형 레벨 시스템 (1.0~4.0) =====
   // 회차(1~7) 틀은 그대로 두되(대시보드·선생님 화면 호환), 안에서는 연속적인 레벨로 움직인다.
   // 맞히면 조금씩 올라가고, 틀리면 더 크게 내려가서 확실히 이해할 때까지 못 넘어가게 한다.
   function getLrExamLevel(exam) {
-    if (typeof exam.level === 'number') return exam.level;
+    if (typeof exam.level === 'number') return Math.min(4, exam.level);
     // 예전 방식(회차 완료 체크) 데이터는 완료된 회차 수 기준으로 초기 레벨을 잡아준다
     const done = (exam.schedule || []).filter(s=>s.done).length;
-    exam.level = Math.min(7, 1 + done);
+    exam.level = Math.min(4, 1 + done);
     return exam.level;
   }
 
   function syncLrScheduleFromLevel(exam) {
-    const completedStages = exam.level >= 7 ? 7 : Math.max(0, Math.floor(exam.level) - 1);
+    const completedStages = exam.level >= 4 ? 4 : Math.max(0, Math.floor(exam.level) - 1);
     (exam.schedule || []).forEach((s, i) => { s.done = i < completedStages; });
   }
 
   function updateLrLevel(exam, isCorrect) {
     const before = getLrExamLevel(exam);
     let after = before + (isCorrect ? 0.15 : -0.35);
-    after = Math.max(1, Math.min(7, after));
+    after = Math.max(1, Math.min(4, after));
     exam.level = Math.round(after * 100) / 100;
     syncLrScheduleFromLevel(exam);
     return { before, after: exam.level };
@@ -6241,9 +6250,9 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     const totalConcepts = mats.reduce((sum,m) => sum + (m.concepts ? m.concepts.length : 0), 0);
     const matCount = Math.max(1, mats.length);
     const volumeScore = totalConcepts + (matCount - 1) * 5; // 여러 자료가 묶여 있으면 그만큼 가산
-    if (volumeScore <= 6) return { tier:'적음', questionCount: 5, volumeMultiplier: 0.6 };
-    if (volumeScore <= 15) return { tier:'보통', questionCount: 8, volumeMultiplier: 1.0 };
-    return { tier:'많음', questionCount: 12, volumeMultiplier: 1.5 };
+    if (volumeScore <= 6) return { tier:'적음', questionCount: 10, volumeMultiplier: 0.6 };
+    if (volumeScore <= 15) return { tier:'보통', questionCount: 14, volumeMultiplier: 1.0 };
+    return { tier:'많음', questionCount: 18, volumeMultiplier: 1.5 };
   }
 
   // 마스터 달성 시 난이도에 비례해서 포인트를 준다 (인수분해 마스터 ≠ 미적분 마스터)
@@ -6262,7 +6271,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
   // 레벨이 하나씩(2,3,4...) 올라갈 때마다 난이도 비례로 소액 포인트 지급 (마스터 시험 통과 보너스보다는 작게)
   function awardLevelUpPoints(exam) {
     if (!exam.pointsAwardedForLevel) exam.pointsAwardedForLevel = 1; // 시작 레벨 1은 기본, 포인트 대상 아님
-    const currentFloor = Math.min(7, Math.floor(exam.level));
+    const currentFloor = Math.min(4, Math.floor(exam.level));
     if (currentFloor <= exam.pointsAwardedForLevel) return 0;
     const difficulty = getExamDifficulty(exam);
     const volume = getExamVolumeInfo(exam);
@@ -6276,7 +6285,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
   }
 
   // 이미 레벨이 올라있는데 포인트 정산이 안 된 자료들을 한 번에 정산한다.
-  // (레벨 7에 도달하면 "학습 시작" 버튼이 "마스터 도전 시험 보기"로 바뀌면서 일반 채점 경로를
+  // (레벨 4에 도달하면 "학습 시작" 버튼이 "마스터 도전 시험 보기"로 바뀌면서 일반 채점 경로를
   //  더 이상 안 타게 되는데, 레벨업 포인트는 그 경로에서만 지급되던 게 버그였음 — 로그인 때마다 정산)
   function catchUpAllLrLevelPoints(studentId) {
     window._lrExams.filter(e => e.studentId === studentId).forEach(e => awardLevelUpPoints(e));
@@ -6518,7 +6527,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     const levelDelta = Math.round((levelNow - lrLevelBeforeSet) * 100) / 100;
     const gatePct = Math.round((levelNow - 1) / 6 * 100);
     const gatePredict = lrCurrentExam ? Math.min(100, Math.round(lrCurrentExam.targetScore * gatePct/100 * 1.1)) : 0;
-    const gateEligible = levelNow >= 7 || (lrCurrentExam && gatePredict >= lrCurrentExam.targetScore);
+    const gateEligible = levelNow >= 4 || (lrCurrentExam && gatePredict >= lrCurrentExam.targetScore);
     const reachedMasteryGate = lrCurrentExam && gateEligible && !lrCurrentExam.masteryPassed && !lrCurrentExam.masteryExhausted;
 
     // 새로 완료된 단계에는 이번 세트 점수를 기록해둔다 (코치 메시지·선생님 화면 호환용)
@@ -6532,7 +6541,24 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     document.getElementById('lrRoundComplete').style.display='block';
 
     if (reachedMasteryGate) {
-      document.getElementById('lrRoundCompleteTitle').textContent = levelNow >= 7 ? '🎯 레벨 7 도달!' : '🎯 목표 점수 조기 달성!';
+      // 4회차(실전 모의고사) 자체를 이미 90점 이상으로 통과했다면, 그게 곧 마스터 시험이나 다름없으니
+      // 별도로 또 마스터 도전 시험을 보게 하지 않고 바로 마스터를 준다.
+      if (lrCurrentRound === 4 && pct >= 90 && lrCurrentExam) {
+        lrCurrentExam.masteryPassed = true;
+        const points = awardMasteryPoints(lrCurrentExam);
+        saveLrLocal();
+        const diffLabel = getLrDifficultyLabel(getExamDifficulty(lrCurrentExam));
+        document.getElementById('lrRoundCompleteTitle').textContent = '🏆 마스터 달성!';
+        document.getElementById('lrRoundCompleteMsg').textContent =
+          `${lrRoundScore.correct}/${lrRoundScore.total} 정답 (${pct}%)\n\n` +
+          `🏆 4회차 실전 모의고사에서 바로 90점 이상을 받아서, 별도 시험 없이 마스터를 달성했어요! (난이도: ${diffLabel}) +${points}포인트 획득!`;
+        document.getElementById('lrNextRoundBtn').textContent = '🔁 복습하기';
+        document.getElementById('lrNextRoundBtn').onclick = startLrLearning;
+        document.getElementById('lrNextRoundBtn').style.display = 'inline-block';
+        renderSpDashboard(selectedLrPreviewStudent.id);
+        return;
+      }
+      document.getElementById('lrRoundCompleteTitle').textContent = levelNow >= 4 ? '🎯 레벨 4 도달!' : '🎯 목표 점수 조기 달성!';
       document.getElementById('lrRoundCompleteMsg').textContent =
         `${lrRoundScore.correct}/${lrRoundScore.total} 정답 (${pct}%)\n\n마스터 특별 점수를 받으려면 실전 모의고사(${getExamVolumeInfo(lrCurrentExam).questionCount}문제, 시간제한)에서 90점 이상을 받아야 해요.`;
       document.getElementById('lrNextRoundBtn').textContent = '🎯 마스터 도전 시험 보기';
@@ -6571,13 +6597,13 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
     const level = lrCurrentExam ? getLrExamLevel(lrCurrentExam) : 1;
     if (lrCurrentExam && lrCurrentExam.masteryPassed) {
       document.getElementById('lrStartBtn').textContent = '🏆 마스터 완료! (복습하기)';
-    } else if (level >= 7 && lrCurrentExam && lrCurrentExam.masteryExhausted) {
-      document.getElementById('lrStartBtn').textContent = '레벨 7 (특별점수는 놓쳤어요, 복습하기)';
-    } else if (level >= 7) {
+    } else if (level >= 4 && lrCurrentExam && lrCurrentExam.masteryExhausted) {
+      document.getElementById('lrStartBtn').textContent = '레벨 4 (특별점수는 놓쳤어요, 복습하기)';
+    } else if (level >= 4) {
       document.getElementById('lrStartBtn').textContent = '🎯 마스터 도전 시험 보기';
       document.getElementById('lrStartBtn').onclick = startLrMasteryExam;
     } else {
-      document.getElementById('lrStartBtn').textContent = `🚀 학습 시작 (현재 레벨 ${level.toFixed(1)}/7)`;
+      document.getElementById('lrStartBtn').textContent = `🚀 학습 시작 (현재 레벨 ${level.toFixed(1)}/4)`;
       document.getElementById('lrStartBtn').onclick = startLrLearning;
     }
     // 방금 끝낸 회차/마스터 시험 결과가 위쪽 "자료별 진행 상황" 목록에도 바로 반영되도록 새로고침
@@ -6627,7 +6653,7 @@ ${lrCurrentRound >= 6 ? 'short를 2개 이상 포함하세요.' : ''}
 ${allConcepts.length ? '\n[핵심 개념]\n' + allConcepts.join(', ') : ''}
 ${extractedTexts ? '\n[자료 원문]\n' + extractedTexts : ''}
 
-이 학생은 이 범위를 충분히 학습해서 레벨 7(만점)에 도달했습니다. 이제 실제 학교 시험처럼 종합적으로 평가하는 **실전 모의고사 ${qCount}문제**를 내주세요. (이 자료는 다루는 양이 "${volume.tier}"이라 문제 수를 ${qCount}개로 맞췄어요.)
+이 학생은 이 범위를 충분히 학습해서 레벨 4(만점)에 도달했습니다. 이제 실제 학교 시험처럼 종합적으로 평가하는 **실전 모의고사 ${qCount}문제**를 내주세요. (이 자료는 다루는 양이 "${volume.tier}"이라 문제 수를 ${qCount}개로 맞췄어요.)
 - 배운 범위 전체를 골고루 다루세요. 한쪽 개념에만 몰리지 마세요.
 - 난이도는 실제 학교 시험 수준으로, 쉬운 문제부터 변별력 있는 어려운 문제까지 섞으세요.
 - 90점 이상을 받아야 통과하는 시험이니, 억지로 어렵게 꼬지 말고 정직하게 실력을 평가하는 문제로 내주세요.
@@ -7093,7 +7119,7 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
         saveLrLocal();
       }
       const predict = Math.min(100, Math.round(exam.targetScore * pct/100 * 1.1));
-      const eligible = level >= 7 || (level < 7 && predict >= exam.targetScore);
+      const eligible = level >= 4 || (level < 4 && predict >= exam.targetScore);
       if (exam.masteryAwarded) return ` <span style="color:#c5a149; font-weight:700;">🏆 마스터 +${exam.masteryPoints}p</span>`;
       if (eligible && exam.masteryExhausted) return ` <span style="color:#e53e3e; font-weight:700;">😔 특별점수 놓침</span>`;
       if (eligible) return ` <span style="color:#fff; background:#c5a149; border-radius:6px; padding:1px 8px; font-size:11px; font-weight:700;">🎯 마스터 도전 가능!</span>`;
@@ -7112,7 +7138,7 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
       <div style="display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; margin-bottom:6px; background:${isCurrent?'#f0f8f0':'#f8f9fc'}; border:${isCurrent?'1px solid #2f855a':'1px solid transparent'};">
         <div style="flex:1;">
           <div style="font-weight:600; font-size:14px;">${m.scope}${diffBadge}${masteredBadge}${isCurrent?' <span style="color:#2f855a; font-size:11px;">(현재 학습중)</span>':''}</div>
-          <div style="font-size:12px; color:#888; margin-top:2px;">${exam ? `진행률 ${pct}% (레벨 ${level.toFixed(1)}/7) · 목표 ${exam.targetScore}점` : '아직 시작 전'}</div>
+          <div style="font-size:12px; color:#888; margin-top:2px;">${exam ? `진행률 ${pct}% (레벨 ${level.toFixed(1)}/4) · 목표 ${exam.targetScore}점` : '아직 시작 전'}</div>
         </div>
         <button class="btn btn-secondary btn-sm" onclick="selectSpMaterialSession('${m.id}')">학습하기</button>
       </div>`;
@@ -7128,7 +7154,7 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
       <div style="display:flex; align-items:center; gap:10px; padding:10px; border-radius:8px; margin-bottom:6px; background:${isCurrent?'#f0f8f0':'#fff8e6'}; border:${isCurrent?'1px solid #2f855a':'1px solid #e8c96a'};">
         <div style="flex:1;">
           <div style="font-weight:600; font-size:14px;">📋 ${e.name}${masteredBadge}${isCurrent?' <span style="color:#2f855a; font-size:11px;">(현재 학습중)</span>':''}</div>
-          <div style="font-size:12px; color:#888; margin-top:2px;">진행률 ${pct}% (레벨 ${level.toFixed(1)}/7) · 목표 ${e.targetScore}점${matNames.length ? ' · 범위: ' + matNames.join(', ') : ''}</div>
+          <div style="font-size:12px; color:#888; margin-top:2px;">진행률 ${pct}% (레벨 ${level.toFixed(1)}/4) · 목표 ${e.targetScore}점${matNames.length ? ' · 범위: ' + matNames.join(', ') : ''}</div>
         </div>
         <button class="btn btn-secondary btn-sm" onclick="selectSpExamDirect('${e.id}')">학습하기</button>
       </div>`;
@@ -7216,9 +7242,21 @@ ${isMathSubject ? `
 ]
 type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 choices를 빈 배열 []로 두세요.`;
 
-      const rawText = await callGemini(prompt);
-      const text = rawText.replace(/```json|```/g,'').trim();
-      lrCurrentQuestions = JSON.parse(text);
+      let rawText, text;
+      try {
+        rawText = await callGemini(prompt);
+        text = rawText.replace(/```json|```/g,'').trim();
+        const start = text.indexOf('['); const end = text.lastIndexOf(']');
+        if (start !== -1 && end !== -1 && end > start) text = text.slice(start, end + 1);
+        lrCurrentQuestions = JSON.parse(text);
+      } catch (parseErr) {
+        console.log('마스터 시험 문제 생성 1차 실패, 재시도:', parseErr);
+        rawText = await callGemini(prompt);
+        text = rawText.replace(/```json|```/g,'').trim();
+        const start = text.indexOf('['); const end = text.lastIndexOf(']');
+        if (start !== -1 && end !== -1 && end > start) text = text.slice(start, end + 1);
+        lrCurrentQuestions = JSON.parse(text);
+      }
       lrCurrentQIndex = 0;
       lrRoundScore = { correct:0, total: lrCurrentQuestions.length };
 
