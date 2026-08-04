@@ -397,7 +397,6 @@
 
     <div class="card-title" style="margin-top:24px; display:flex; justify-content:space-between; align-items:center;">
       📚 내 학습 자료
-      <button class="btn btn-primary btn-sm" onclick="openSpNewTopicForm()">+ 나만의 학습 만들기</button>
     </div>
     <div id="spMaterialList"></div>
   </div>
@@ -952,6 +951,10 @@
             </div>
             <div id="lrImagePreview" style="display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;"></div>
           </div>
+        </div>
+        <div class="form-group full" style="margin-top:4px;">
+          <label>이 자료를 함께 볼 학생 <span style="font-weight:400; color:#888;">— 왼쪽에서 고른 학생은 자동으로 포함되고, 같이 배울 다른 학생도 추가로 체크하세요</span></label>
+          <div id="lrShareStudentGrid" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;"></div>
         </div>
         <div style="display:flex; gap:8px; margin-top:16px;">
           <button class="btn btn-primary" id="lrSaveMaterialBtn" onclick="saveLrMaterial()">💾 자료 저장</button>
@@ -1668,7 +1671,7 @@
 
 <script>
   // ===== 버전 정보 (콘솔에서 확인: APP_VERSION 또는 페이지 로드시 자동 출력) =====
-  const APP_VERSION = 'v3.0';
+  const APP_VERSION = 'v3.2';
   const APP_VERSION_LOG = [
     'v1.0 — 탭 구조 + UI 껍데기',
     'v1.1 — AI 문제 생성 + 개념 사다리',
@@ -1682,7 +1685,9 @@
     'v1.9 — 블로그 글 제목·소제목 굵게 표시도 없앰 (일반 굵기로 통일)',
     'v2.0 — 출석부에 학생별 정규 수업 예정 시간(예: 예정 16:30~17:30) 표시 추가, 실제 등원/하원 알림 시각과 헷갈리지 않도록 "실제" 라벨 붙임',
     'v2.1 — 출석부 목록을 정규 수업 예정 시각 순서로 정렬(시간 없는 추가 등원 학생은 맨 뒤)',
-    'v3.0 — 블로그 생성 기능 전면 단순화: JSON/구분자 파싱, 서식 있는 HTML 붙여넣기 시도(색깔·굵게·여백)를 전부 버리고, AI가 제목+📌소제목+번호매기기+구분선을 텍스트 안에 직접 넣은 완성된 글을 통째로 반환 → 그대로 화면에 보여주고 그대로 복사(순수 텍스트). 파싱 실패·붙여넣기 서식 문제가 구조적으로 없어짐. 글 품질도 실제 파워블로그 참고 예시 수준으로 프롬프트 강화(감정적 도입부, 번호매기기, 구분선, 직접 초대 CTA)'
+    'v3.0 — 블로그 생성 기능 전면 단순화: JSON/구분자 파싱, 서식 있는 HTML 붙여넣기 시도(색깔·굵게·여백)를 전부 버리고, AI가 제목+📌소제목+번호매기기+구분선을 텍스트 안에 직접 넣은 완성된 글을 통째로 반환 → 그대로 화면에 보여주고 그대로 복사(순수 텍스트). 파싱 실패·붙여넣기 서식 문제가 구조적으로 없어짐. 글 품질도 실제 파워블로그 참고 예시 수준으로 프롬프트 강화(감정적 도입부, 번호매기기, 구분선, 직접 초대 CTA)',
+    'v3.1 — 학습기 자료를 한 번 올려서 여러 학생에게 배정 가능하도록 변경(자료마다 studentIds 목록, 학생별 진행률은 독립적으로 유지). 자료 업로드는 선생님(관리자 화면)만 가능하도록 학생 포털의 "나만의 학습 만들기" 자가 업로드 기능 제거. 학생이 배정 해제해도 다른 학생이 함께 쓰는 자료면 삭제되지 않고 본인 접근만 빠지도록 수정',
+    'v3.2 — 학생 관리 화면을 초등학생/중학생으로 나눠서 표시(학년 앞글자 "초등"/"중학교" 기준)'
   ];
   console.log(`%c글답 학습기 ${APP_VERSION}`, 'font-weight:bold; font-size:14px; color:#0d1b4b;');
   console.log(APP_VERSION_LOG.join('\n'));
@@ -3309,7 +3314,22 @@ ${a.name}`;
       </div>`;
     }
 
-    let html = activeStudents.map(s => studentCardHTML(s, false)).join('');
+    let html = '';
+    const elemStudents = activeStudents.filter(s => (s.grade||'').startsWith('초등'));
+    const middleStudents = activeStudents.filter(s => (s.grade||'').startsWith('중학교'));
+    const otherStudents = activeStudents.filter(s => !(s.grade||'').startsWith('초등') && !(s.grade||'').startsWith('중학교'));
+    if (elemStudents.length) {
+      html += `<div style="grid-column:1/-1; margin-bottom:8px; font-size:14px; font-weight:700; color:#2f855a;">🎒 초등학생 (${elemStudents.length}명)</div>`;
+      html += elemStudents.map(s => studentCardHTML(s, false)).join('');
+    }
+    if (middleStudents.length) {
+      html += `<div style="grid-column:1/-1; margin:${elemStudents.length?'20px':'0'} 0 8px; font-size:14px; font-weight:700; color:#4a5aa8;">🎓 중학생 (${middleStudents.length}명)</div>`;
+      html += middleStudents.map(s => studentCardHTML(s, false)).join('');
+    }
+    if (otherStudents.length) {
+      html += `<div style="grid-column:1/-1; margin:${(elemStudents.length||middleStudents.length)?'20px':'0'} 0 8px; font-size:14px; font-weight:700; color:#888;">기타</div>`;
+      html += otherStudents.map(s => studentCardHTML(s, false)).join('');
+    }
     if (pausedStudents.length) {
       html += `<div style="grid-column:1/-1; margin-top:20px; font-size:13px; font-weight:600; color:#888;">휴원 중인 학생 (${pausedStudents.length}명)</div>`;
       html += pausedStudents.map(s => studentCardHTML(s, true)).join('');
@@ -3442,6 +3462,13 @@ ${a.name}`;
   let editingStudentId = null;
   // 학생의 schedule을 항상 [{day, time, duration}] 형태로 정규화해서 반환.
   // 예전 데이터(요일 문자열 배열 + 학생 전체에 공통 classTime/classDuration)도 그대로 호환된다.
+  // 자료 하나를 여러 학생에게 배정할 수 있게 되면서, "이 자료가 이 학생에게 보이는가"를
+  // studentIds 배열 기준으로 판단한다(예전 자료는 studentId 단일 필드만 있으므로 그걸로 대체 판단).
+  function materialVisibleTo(m, studentId) {
+    if (Array.isArray(m.studentIds)) return m.studentIds.includes(studentId);
+    return m.studentId === studentId;
+  }
+
   function studentScheduleEntries(s) {
     const sch = s.schedule || [];
     return sch.map(e => {
@@ -4546,7 +4573,7 @@ ${a.name}`;
   // 만들어도 세션이 겹치거나 중복되지 않는다. 선생님이 "시험 설정"에서 여러 자료를 묶어 만드는
   // 정식 시험은 별개로 그대로 둔다(그건 실제 시험 범위를 사람이 직접 정하는 경우라 예외로 둠).
   function getStudentSubjects(studentId) {
-    return [...new Set(window._lrMaterials.filter(m=>m.studentId===studentId && m.status==='extracted').map(m=>m.subject))];
+    return [...new Set(window._lrMaterials.filter(m=>materialVisibleTo(m, studentId) && m.status==='extracted').map(m=>m.subject))];
   }
 
   function findMaterialExam(studentId, materialId) {
@@ -4873,7 +4900,7 @@ ${(parsed.concepts || []).join(', ')}
   }
 
   async function autoRetryLrMaterial(material) {
-    const student = _students.find(s => s.id === material.studentId);
+    const student = _students.find(s => s.id === (material.studentId || (material.studentIds && material.studentIds[0])));
     try {
       const tempImages = await Promise.all(material.storedFiles.map(f => window._fetchLrFileAsData(f)));
       const extracted = await extractMaterialContent({
@@ -4922,7 +4949,7 @@ ${(parsed.concepts || []).join(', ')}
       } catch(e) { alert('파일 처리 중 오류: ' + e.message); return; }
     }
 
-    const student = _students.find(s => s.id === material.studentId);
+    const student = _students.find(s => s.id === (material.studentId || (material.studentIds && material.studentIds[0])));
     try {
       const extracted = await extractMaterialContent({
         grade: student ? student.grade : '',
@@ -4995,7 +5022,7 @@ ${(parsed.concepts || []).join(', ')}
     const active = _students.filter(s=>s.active!==false).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
     if(!active.length) { grid.innerHTML='<div class="empty"><div class="empty-icon">👦</div><div>등록된 학생이 없습니다</div></div>'; return; }
     grid.innerHTML = active.map(s => {
-      const cnt = window._lrMaterials.filter(m=>m.studentId===s.id).length;
+      const cnt = window._lrMaterials.filter(m=>materialVisibleTo(m, s.id)).length;
       return `<div class="student-card ${selectedLrStudent&&selectedLrStudent.id===s.id?'selected':''}" onclick="selectLrStudent('${s.id}')">
         <div class="student-avatar">${s.name[0]}</div>
         <div class="student-name">${s.name}</div>
@@ -5013,6 +5040,19 @@ ${(parsed.concepts || []).join(', ')}
     document.getElementById('lrImagePreview').innerHTML = '';
     renderLrStudents();
     renderLrMaterialList();
+    renderLrShareStudentGrid();
+  }
+
+  // 업로드 화면에서 "함께 볼 학생" 체크박스 목록 — 기준으로 고른 학생(selectedLrStudent)은 빼고 나머지만 보여준다.
+  function renderLrShareStudentGrid() {
+    const grid = document.getElementById('lrShareStudentGrid');
+    if (!grid || !selectedLrStudent) return;
+    const others = _students.filter(s => s.active!==false && s.id !== selectedLrStudent.id).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+    if (!others.length) { grid.innerHTML = '<div style="font-size:12px; color:#aaa;">다른 학생이 없어요.</div>'; return; }
+    grid.innerHTML = others.map(s => `
+      <label style="display:flex; align-items:center; gap:5px; border:1px solid #ddd; border-radius:16px; padding:4px 10px; font-size:13px; cursor:pointer;">
+        <input type="checkbox" class="lrShareStudentCheck" value="${s.id}"> ${s.name} · ${s.grade}
+      </label>`).join('');
   }
 
   function previewLrFiles(input, targetArr, targetPreviewId) {
@@ -5095,6 +5135,9 @@ ${(parsed.concepts || []).join(', ')}
     const subject = document.getElementById('lrSubject').value;
     let scope = document.getElementById('lrScope').value;
     if(!scope) { alert('단원/범위를 입력하세요.'); return; }
+    // 선택된 기준 학생 + 체크된 "함께 볼 학생"을 합쳐서 이 자료를 볼 수 있는 학생 목록을 만든다.
+    const shareIds = [...document.querySelectorAll('.lrShareStudentCheck:checked')].map(c => c.value);
+    const studentIds = [...new Set([selectedLrStudent.id, ...shareIds])];
 
     if (lrUploadMode === 'topic') {
       const resolvedScope = resolveLrScopeName(selectedLrStudent.id, subject, scope);
@@ -5106,8 +5149,10 @@ ${(parsed.concepts || []).join(', ')}
       btn.textContent = '🔄 AI가 만드는 중...';
       try {
         const material = await createTopicMaterial({ studentId: selectedLrStudent.id, grade: selectedLrStudent.grade, subject, scope });
+        material.studentIds = studentIds;
         document.getElementById('lrScope').value = '';
         openLrTopicReview(material, (finalMaterial) => {
+          finalMaterial.studentIds = studentIds;
           window._lrMaterials.push(finalMaterial);
           saveLrToFirebase('material', finalMaterial);
           saveLrLocal();
@@ -5138,6 +5183,7 @@ ${(parsed.concepts || []).join(', ')}
         subject, scope, images: _lrImages, uploadedBy: 'teacher'
       });
       material.type = type; // 관리자가 지정한 자료 종류(교과서/활동지/문제집/필기) 반영
+      material.studentIds = studentIds;
       window._lrMaterials.push(material);
       saveLrToFirebase('material', material);
       saveLrLocal();
@@ -5147,7 +5193,8 @@ ${(parsed.concepts || []).join(', ')}
       renderLrStudents();
       renderLrMaterialList();
       if (material.status === 'extracted') {
-        alert('✅ 자료 저장 완료! (' + subject + ' · ' + scope + ')\n\nAI가 추출한 핵심 개념: ' + material.concepts.join(', ') + '\n\n👉 학생 화면 "자료별 진행 상황"에 이 자료가 새 학습 항목으로 바로 추가됩니다. 별도의 "시험 설정"을 만들지 않아도, 이 자료 하나만으로 학생이 바로 학습을 시작할 수 있어요.');
+        const shareNote = studentIds.length > 1 ? `\n\n👥 이 자료는 ${studentIds.length}명(${studentIds.map(id=>{const s=_students.find(x=>x.id===id); return s?s.name:'';}).join(', ')})이 각자 따로 학습할 수 있어요. 각자 진행률·레벨은 서로 영향 없이 독립적으로 쌓입니다.` : '';
+        alert('✅ 자료 저장 완료! (' + subject + ' · ' + scope + ')\n\nAI가 추출한 핵심 개념: ' + material.concepts.join(', ') + '\n\n👉 학생 화면 "자료별 진행 상황"에 이 자료가 새 학습 항목으로 바로 추가됩니다. 별도의 "시험 설정"을 만들지 않아도, 이 자료 하나만으로 학생이 바로 학습을 시작할 수 있어요.' + shareNote);
       } else {
         alert('⚠️ 자료는 저장했지만 AI 분석에 실패했어요.\n"등록된 자료 목록"에서 재시도 버튼을 눌러보세요.');
       }
@@ -5161,13 +5208,16 @@ ${(parsed.concepts || []).join(', ')}
 
   function renderLrMaterialList() {
     if(!selectedLrStudent) return;
-    const list = window._lrMaterials.filter(m=>m.studentId===selectedLrStudent.id);
+    const list = window._lrMaterials.filter(m=>materialVisibleTo(m, selectedLrStudent.id));
     const body = document.getElementById('lrMaterialListBody');
     if(!list.length) { body.innerHTML='<div style="text-align:center;color:#aaa;padding:20px;">등록된 자료가 없습니다</div>'; return; }
     const typeLabels = { textbook:'교과서', worksheet:'활동지', workbook:'문제집', notes:'필기', topic:'AI생성' };
     const typeBadges = { textbook:'lr-badge-textbook', worksheet:'lr-badge-worksheet', workbook:'lr-badge-workbook', notes:'lr-badge-notes' };
-    body.innerHTML = list.map(m => `
-      <div class="lr-material-item">
+    body.innerHTML = list.map(m => {
+      const assignedIds = Array.isArray(m.studentIds) ? m.studentIds : (m.studentId ? [m.studentId] : []);
+      const assignedNames = assignedIds.map(id => { const s = _students.find(x=>x.id===id); return s ? s.name : '(삭제된 학생)'; });
+      return `
+      <div class="lr-material-item" style="flex-wrap:wrap;">
         <input type="checkbox" class="lr-mat-check" value="${m.id}" checked onchange="updateLrMatSelectAll()" style="margin-right:6px;">
         <span class="lr-material-badge ${typeBadges[m.type]}">${typeLabels[m.type]}</span>
         <div style="flex:1;">
@@ -5175,11 +5225,47 @@ ${(parsed.concepts || []).join(', ')}
           <div style="font-size:12px; color:#888;">${m.createdAt} · 파일 ${m.imageCount}개 · ${m.status==='extracted'?'<span style="color:#2f855a;">✅ AI 분석 완료</span>':'<span style="color:#c5a149;">📎 업로드만</span>'}</div>
           ${m.concepts && m.concepts.length ? '<div style="font-size:11px; color:#555; margin-top:3px;">핵심 개념: '+m.concepts.slice(0,5).join(', ')+(m.concepts.length>5?' 외 '+(m.concepts.length-5)+'개':'')+'</div>' : ''}
           ${m.summary ? '<div style="font-size:11px; color:#888; margin-top:2px;">'+m.summary.slice(0,80)+(m.summary.length>80?'...':'')+'</div>' : ''}
+          <div style="font-size:12px; color:#4a5aa8; margin-top:4px;">👥 배정: ${assignedNames.join(', ')||'(없음)'} <button onclick="toggleLrAssignEditor('${m.id}')" style="border:none; background:none; color:#4a5aa8; text-decoration:underline; cursor:pointer; font-size:11px; padding:0; margin-left:4px;">학생 관리</button></div>
+          <div id="lrAssignEditor-${m.id}" style="display:none; margin-top:6px; padding:8px; background:#f8f9fc; border-radius:8px;"></div>
         </div>
         ${m.status!=='extracted' ? `<button class="btn btn-secondary btn-sm" onclick="openLrRetry('${m.id}')" style="margin-right:6px;">${m.storedFiles&&m.storedFiles.length?'🔄 재시도':'🔄 재시도 (파일 다시 올리기)'}</button>` : ''}
         <button class="btn btn-danger btn-sm" onclick="deleteLrMaterial('${m.id}')">삭제</button>
       </div>
-    `).join('');
+    `; }).join('');
+  }
+
+  // 자료 하나에 배정된 학생을 나중에 추가/삭제할 수 있게 하는 인라인 편집기.
+  function toggleLrAssignEditor(materialId) {
+    const box = document.getElementById('lrAssignEditor-' + materialId);
+    if (!box) return;
+    if (box.style.display === 'block') { box.style.display = 'none'; return; }
+    const m = window._lrMaterials.find(x=>x.id===materialId);
+    if (!m) return;
+    const assignedIds = new Set(Array.isArray(m.studentIds) ? m.studentIds : (m.studentId ? [m.studentId] : []));
+    const active = _students.filter(s=>s.active!==false).sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+    box.innerHTML = `
+      <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px;">
+        ${active.map(s => `
+          <label style="display:flex; align-items:center; gap:5px; border:1px solid #ddd; border-radius:16px; padding:3px 9px; font-size:12px; cursor:pointer; background:#fff;">
+            <input type="checkbox" class="lrAssignCheck-${materialId}" value="${s.id}" ${assignedIds.has(s.id)?'checked':''}> ${s.name}
+          </label>`).join('')}
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="saveLrAssignEditor('${materialId}')">저장</button>
+    `;
+    box.style.display = 'block';
+  }
+  function saveLrAssignEditor(materialId) {
+    const m = window._lrMaterials.find(x=>x.id===materialId);
+    if (!m) return;
+    const checked = [...document.querySelectorAll(`.lrAssignCheck-${materialId}:checked`)].map(c=>c.value);
+    if (!checked.length) { alert('최소 한 명은 배정돼있어야 해요.'); return; }
+    m.studentIds = checked;
+    updateLrMaterialInFirebase(m);
+    saveLrLocal();
+    document.getElementById('lrAssignEditor-' + materialId).style.display = 'none';
+    renderLrMaterialList();
+    renderLrStudents();
+    alert('배정 학생을 업데이트했어요.');
   }
 
   function toggleAllLrMaterials(checked) {
@@ -5222,8 +5308,10 @@ ${(parsed.concepts || []).join(', ')}
   }
 
   function deleteLrMaterial(id) {
-    if(!confirm('이 자료를 삭제할까요?')) return;
     const material = window._lrMaterials.find(m=>m.id===id);
+    const assignedCount = material && Array.isArray(material.studentIds) ? material.studentIds.length : 1;
+    const warnMsg = assignedCount > 1 ? `이 자료는 ${assignedCount}명의 학생에게 배정돼있어요. 삭제하면 전원에게서 사라집니다. 정말 삭제할까요?` : '이 자료를 삭제할까요?';
+    if(!confirm(warnMsg)) return;
     if (material && material.storedFiles && material.storedFiles.length) window._deleteLrFiles(material.storedFiles);
     window._lrMaterials = window._lrMaterials.filter(m=>m.id!==id);
     deleteLrFromFirebase('material', id);
@@ -5260,7 +5348,7 @@ ${(parsed.concepts || []).join(', ')}
 
   function renderLrExamMaterials() {
     if(!selectedLrExamStudent) return;
-    const mats = window._lrMaterials.filter(m=>m.studentId===selectedLrExamStudent.id);
+    const mats = window._lrMaterials.filter(m=>materialVisibleTo(m, selectedLrExamStudent.id));
     const div = document.getElementById('lrExamMaterials');
     if(!mats.length) { div.innerHTML='<div style="color:#e53e3e; font-size:13px;">⚠️ 이 학생에게 등록된 자료가 없습니다. "자료 업로드" 탭에서 먼저 자료를 등록하세요.</div>'; return; }
     const checkedIds = getCheckedLrMaterialIds();
@@ -5575,7 +5663,7 @@ ${(parsed.concepts || []).join(', ')}
     }
 
     selectAllRow.style.display = 'flex';
-    const allMats = window._lrMaterials.filter(m=>m.studentId===selectedLrPreviewStudent.id && m.subject===exam.subject && m.status==='extracted');
+    const allMats = window._lrMaterials.filter(m=>materialVisibleTo(m, selectedLrPreviewStudent.id) && m.subject===exam.subject && m.status==='extracted');
     if(!allMats.length) { div.innerHTML='<div style="color:#aaa;">등록된 자료가 없습니다.</div>'; return; }
     // 과목별 그룹핑 (이제 exam.subject 하나뿐이지만, 구조는 유지)
     const grouped = {};
@@ -6902,7 +6990,7 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
   function renderSpSessionList(studentId, subject) {
     const listCard = document.getElementById('spSessionListCard');
     const body = document.getElementById('spSessionListBody');
-    const mats = window._lrMaterials.filter(m=>m.studentId===studentId && m.subject===subject && m.status==='extracted');
+    const mats = window._lrMaterials.filter(m=>materialVisibleTo(m, studentId) && m.subject===subject && m.status==='extracted');
     // 선생님이 "시험 설정"에서 여러 자료를 묶어 만든 정식 시험(자료 1개짜리 자동세션이 아닌 것)도 같이 보여준다
     const multiMatExams = window._lrExams.filter(e => e.studentId===studentId && e.subject===subject && (!e.materialIds || e.materialIds.length !== 1));
     if (!mats.length && !multiMatExams.length) { listCard.style.display = 'none'; return; }
@@ -7182,7 +7270,7 @@ type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 c
   }
 
   function renderSpMaterialList() {
-    const mats = window._lrMaterials.filter(m=>m.studentId===window._spStudent.id);
+    const mats = window._lrMaterials.filter(m=>materialVisibleTo(m, window._spStudent.id));
     const div = document.getElementById('spMaterialList');
     if (!mats.length) { div.innerHTML = '<div style="color:#aaa; font-size:13px;">아직 등록된 자료가 없어요. 선생님께 문의해보세요.</div>'; return; }
     const grouped = {};
@@ -7215,7 +7303,17 @@ type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 c
   function spDeleteMaterial(id) {
     if (!confirm('이 자료를 삭제할까요? 만들어둔 개념카드·요약노트·플래시카드도 함께 사라져요.')) return;
     const material = window._lrMaterials.find(m=>m.id===id);
-    if (material && material.storedFiles && material.storedFiles.length) window._deleteLrFiles(material.storedFiles);
+    if (!material) return;
+    const sharedWithOthers = Array.isArray(material.studentIds) && material.studentIds.filter(sid=>sid!==window._spStudent.id).length > 0;
+    if (sharedWithOthers) {
+      // 다른 학생도 같이 쓰는 자료라, 자료 자체는 남기고 내 접근만 뺀다(다른 학생 진행률에 영향 없음).
+      material.studentIds = material.studentIds.filter(sid=>sid!==window._spStudent.id);
+      updateLrMaterialInFirebase(material);
+      saveLrLocal();
+      renderSpMaterialList();
+      return;
+    }
+    if (material.storedFiles && material.storedFiles.length) window._deleteLrFiles(material.storedFiles);
     window._lrMaterials = window._lrMaterials.filter(m=>m.id!==id);
     deleteLrFromFirebase('material', id);
     cleanupExamMaterialRef(id);
@@ -7225,15 +7323,23 @@ type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 c
 
   function spDeleteSubject(subject) {
     if (!window._spStudent) return;
-    const targets = window._lrMaterials.filter(m=>m.studentId===window._spStudent.id && m.subject===subject);
+    const targets = window._lrMaterials.filter(m=>materialVisibleTo(m, window._spStudent.id) && m.subject===subject);
     if (!targets.length) return;
     if (!confirm(`"${subject}" 과목의 자료 ${targets.length}개를 모두 삭제할까요?`)) return;
+    const fullyDeletedIds = new Set();
     targets.forEach(m => {
+      const sharedWithOthers = Array.isArray(m.studentIds) && m.studentIds.filter(sid=>sid!==window._spStudent.id).length > 0;
+      if (sharedWithOthers) {
+        m.studentIds = m.studentIds.filter(sid=>sid!==window._spStudent.id);
+        updateLrMaterialInFirebase(m);
+        return;
+      }
       if (m.storedFiles && m.storedFiles.length) window._deleteLrFiles(m.storedFiles);
       deleteLrFromFirebase('material', m.id);
       cleanupExamMaterialRef(m.id);
+      fullyDeletedIds.add(m.id);
     });
-    window._lrMaterials = window._lrMaterials.filter(m=>!(m.studentId===window._spStudent.id && m.subject===subject));
+    window._lrMaterials = window._lrMaterials.filter(m=>!fullyDeletedIds.has(m.id));
     saveLrLocal();
     renderSpMaterialList();
   }
