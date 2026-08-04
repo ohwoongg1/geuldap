@@ -1134,7 +1134,7 @@
     </div>
 
     <div class="card">
-      <div class="card-title">⑤ 톤 · 길이</div>
+      <div class="card-title">⑤ 톤 · 길이 · 이번 글의 대상</div>
       <div class="form-grid">
         <div class="form-group">
           <label>톤</label>
@@ -1150,6 +1150,14 @@
             <option value="짧게">짧게</option>
             <option value="보통">보통</option>
             <option value="길게" selected>길게</option>
+          </select>
+        </div>
+        <div class="form-group full" id="blogGenTargetGradeGroup">
+          <label>이번 글의 대상 학년 <span style="font-weight:400; color:#888;">— 블로그 전체가 초등 위주로 쏠리지 않도록, 이번 글은 누구를 겨냥할지 매번 골라주세요</span></label>
+          <select id="blogGenTargetGrade">
+            <option value="전체">초등+중등 전체 대상</option>
+            <option value="초등">초등학생 학부모 대상</option>
+            <option value="중등">중학생 학부모 대상</option>
           </select>
         </div>
       </div>
@@ -1671,7 +1679,7 @@
 
 <script>
   // ===== 버전 정보 (콘솔에서 확인: APP_VERSION 또는 페이지 로드시 자동 출력) =====
-  const APP_VERSION = 'v3.2';
+  const APP_VERSION = 'v3.3';
   const APP_VERSION_LOG = [
     'v1.0 — 탭 구조 + UI 껍데기',
     'v1.1 — AI 문제 생성 + 개념 사다리',
@@ -1687,7 +1695,8 @@
     'v2.1 — 출석부 목록을 정규 수업 예정 시각 순서로 정렬(시간 없는 추가 등원 학생은 맨 뒤)',
     'v3.0 — 블로그 생성 기능 전면 단순화: JSON/구분자 파싱, 서식 있는 HTML 붙여넣기 시도(색깔·굵게·여백)를 전부 버리고, AI가 제목+📌소제목+번호매기기+구분선을 텍스트 안에 직접 넣은 완성된 글을 통째로 반환 → 그대로 화면에 보여주고 그대로 복사(순수 텍스트). 파싱 실패·붙여넣기 서식 문제가 구조적으로 없어짐. 글 품질도 실제 파워블로그 참고 예시 수준으로 프롬프트 강화(감정적 도입부, 번호매기기, 구분선, 직접 초대 CTA)',
     'v3.1 — 학습기 자료를 한 번 올려서 여러 학생에게 배정 가능하도록 변경(자료마다 studentIds 목록, 학생별 진행률은 독립적으로 유지). 자료 업로드는 선생님(관리자 화면)만 가능하도록 학생 포털의 "나만의 학습 만들기" 자가 업로드 기능 제거. 학생이 배정 해제해도 다른 학생이 함께 쓰는 자료면 삭제되지 않고 본인 접근만 빠지도록 수정',
-    'v3.2 — 학생 관리 화면을 초등학생/중학생으로 나눠서 표시(학년 앞글자 "초등"/"중학교" 기준)'
+    'v3.2 — 학생 관리 화면을 초등학생/중학생으로 나눠서 표시(학년 앞글자 "초등"/"중학교" 기준)',
+    'v3.3 — 블로그 생성 화면에 "이번 글의 대상 학년"(초등/중등/전체) 선택 추가 — 블로그가 계속 초등 위주로만 쓰이는 걸 막기 위해, 학생 사례형이 아닌 글은 매번 대상을 직접 고르게 함(중등 선택 시 초등 예시·표현 안 섞이도록 프롬프트에 명시)'
   ];
   console.log(`%c글답 학습기 ${APP_VERSION}`, 'font-weight:bold; font-size:14px; color:#0d1b4b;');
   console.log(APP_VERSION_LOG.join('\n'));
@@ -2831,6 +2840,8 @@
     const needsStudent = BLOG_TYPES.find(t=>t.id===id).needsStudent;
     document.getElementById('blogGenStudentCard').style.display = needsStudent ? 'block' : 'none';
     if (!needsStudent) selectedBlogGenStudentId = null;
+    const gradeGroup = document.getElementById('blogGenTargetGradeGroup');
+    if (gradeGroup) gradeGroup.style.display = needsStudent ? 'none' : 'block';
   }
   function renderBlogGenStudentGrid() {
     const grid = document.getElementById('blogGenStudentGrid');
@@ -2892,15 +2903,20 @@
   // 그냥 완성된 "복사해서 바로 붙여넣을 텍스트" 자체를 잘 쓰는 데 집중하는 방식으로 단순화함.
   // AI가 첫 줄에 제목만 쓰고, 그 다음부터는 소제목(📌)·번호매기기·구분선(─────) 등을 텍스트 안에 직접 넣어서
   // 완성된 글 형태로 통째로 써주면, 그걸 그대로 화면에 보여주고 그대로 복사한다(파싱·서식 변환 없음).
-  function buildBlogPrompt(typeInfo, student, topic, checkedRefs, tone, length, blog, a, recentTitles, angleHint, styleExample) {
+  function buildBlogPrompt(typeInfo, student, topic, checkedRefs, tone, length, blog, a, recentTitles, angleHint, styleExample, targetGradeOverride) {
     const refBlock = checkedRefs.length
       ? checkedRefs.map(r => `- ${r}`).join('\n')
       : '(선택된 참고자료 없음)';
     const lengthTarget = BLOG_LENGTH_SPECS[length] || BLOG_LENGTH_SPECS['보통'];
+    const gradeLine = student
+      ? `대상학년: ${student.grade}`
+      : (targetGradeOverride === '초등' ? '대상학년: 초등학생 학부모 (초등 관련 예시·표현만 쓸 것, 중등 얘기는 넣지 않는다)'
+        : targetGradeOverride === '중등' ? '대상학년: 중학생 학부모 (내신·수행평가·서술형 등 중등 맥락으로만 쓸 것, 초등 얘기나 유아적인 예시는 넣지 않는다)'
+        : `대상학년: ${blog.targetGrade || '초등~중등 전체'} (특정 학년으로 치우치지 않게 균형 있게 쓴다)`);
     return `당신은 네이버 파워블로그를 오래 운영해온, 글 잘 쓰기로 소문난 학원 원장입니다. 학부모의 마음을 정확히 건드리면서도 담백하고 신뢰가 가는 글을 씁니다.
 
 [학원 정보]
-학원명: ${a.name || ''} | 주소: ${a.address || ''} | 과목: ${blog.subjectType || ''} | 대상학년: ${blog.targetGrade || ''}
+학원명: ${a.name || ''} | 주소: ${a.address || ''} | 과목: ${blog.subjectType || ''} | ${gradeLine}
 이 학원의 차별점(이번 글과 자연스럽게 연결되는 것만 1~2개 골라 녹여 쓸 것, 억지로 다 넣지 말 것): ${(blog.differentiators||[]).join(', ') || '(없음)'}
 ${styleExample ? `\n[이 학원이 최근에 실제로 쓴 글의 일부 — 이 정도 톤·문체·리듬을 참고해서 써줘. 내용·주제는 겹치지 않게]\n${styleExample}\n` : ''}
 [글 구성 — 이렇게 써줘]
@@ -2913,6 +2929,7 @@ ${styleExample ? `\n[이 학원이 최근에 실제로 쓴 글의 일부 — 이
 - 글 맨 마지막 줄에 해시태그 5~8개를 띄어쓰기로 구분해서 한 줄로 쓴다(브랜드형 2개, 검색형 2~3개, 주제형 2~3개를 섞어서).
 - 마크다운 기호(#, *, - 같은 것. 단, 위에서 지정한 번호매기기 "1." 이나 "📌", "─────"는 예외)는 쓰지 않는다.
 - 문단은 짧게: 한 문단에 1~4문장 정도로 자주 끊어서, 술술 읽히게 쓴다.
+- 위 [학원 정보]의 대상학년을 벗어나는 학년 얘기나 예시는 섞지 않는다(예: 중학생 대상 글에 초등 저학년 이야기를 넣지 않는다).
 
 [분량] 전체 글자 수(공백 포함, 해시태그 제외) 목표: ${lengthTarget}. 짧게 요약하지 말고, 구체적인 장면·이유·예시를 충분히 붙여서 이 정도 분량이 자연스럽게 채워지도록 쓴다. 뻔한 말을 반복해서 억지로 늘리지 않는다.
 
@@ -2956,6 +2973,8 @@ ${student ? buildBlogStudentContext(student) : ''}
     const topic = document.getElementById('blogTopicInput').value.trim();
     const tone = document.getElementById('blogGenTone').value;
     const length = document.getElementById('blogGenLength').value;
+    const targetGradeSel = document.getElementById('blogGenTargetGrade');
+    const targetGradeOverride = targetGradeSel ? targetGradeSel.value : '전체';
     window._blogSessionTitles = window._blogSessionTitles || [];
     const recentTitles = [...(blog.recentPosts || []).map(p => p.title), ...window._blogSessionTitles].slice(-12);
     const angleHint = topic ? null : BLOG_ANGLE_HINTS[Math.floor(Math.random() * BLOG_ANGLE_HINTS.length)];
@@ -2969,7 +2988,7 @@ ${student ? buildBlogStudentContext(student) : ''}
     document.getElementById('blogGenPreviewCard').style.display = 'none';
 
     try {
-      const prompt = buildBlogPrompt(typeInfo, student, topic, checkedRefs, tone, length, blog, a, recentTitles, angleHint, styleExample);
+      const prompt = buildBlogPrompt(typeInfo, student, topic, checkedRefs, tone, length, blog, a, recentTitles, angleHint, styleExample, targetGradeOverride);
       const rawText = await callClaude(prompt);
       await bumpBlogMonthlyUsage(thisMonth, usage.count); // API 호출 자체가 비용이 드므로 성공 즉시 여기서 카운트
       const text = rawText.trim();
