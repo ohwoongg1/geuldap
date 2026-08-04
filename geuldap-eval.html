@@ -140,15 +140,6 @@
 </head>
 <body>
 
-<!-- 모바일 안내 배너 (좁은 화면에서만 보임, 순수 CSS로 항상 표시) -->
-<div id="mobileNotice" style="display:none; background:#fff3cd; color:#7a5c00; text-align:center; padding:8px 14px; font-size:12.5px; line-height:1.5; position:fixed; top:0; left:0; right:0; z-index:10000;">
-  📱 모바일에서는 일부 기능이 불안정할 수 있어요. 가능하면 <b>PC(컴퓨터)</b>로 이용해주세요.
-  <span onclick="document.getElementById('mobileNotice').style.display='none'" style="position:absolute; right:10px; top:6px; cursor:pointer; font-weight:700;">✕</span>
-</div>
-<style>
-  @media (max-width: 768px) { #mobileNotice { display:block !important; } }
-</style>
-
 <!-- 비밀번호 화면 -->
 <div class="pw-screen" id="pwScreen">
   <div class="pw-box">
@@ -1710,7 +1701,7 @@
 
 <script>
   // ===== 버전 정보 (콘솔에서 확인: APP_VERSION 또는 페이지 로드시 자동 출력) =====
-  const APP_VERSION = 'v4.0';
+  const APP_VERSION = 'v4.2';
   const APP_VERSION_LOG = [
     'v1.0 — 탭 구조 + UI 껍데기',
     'v1.1 — AI 문제 생성 + 개념 사다리',
@@ -1734,7 +1725,9 @@
     'v3.7 — [중요] 진짜 원인은 데이터 로딩이 아니었음: 상단 탭바(학생관리~블로그생성, 11개)가 모바일 좁은 화면에서 넘칠 때 가로 스크롤 처리가 아예 없어서, 순서상 뒤쪽에 있는 "학습기"(자료 업로드 포함)와 "블로그 생성" 탭 자체가 화면 밖으로 밀려나 접근 불가능했던 것. tab-nav에 overflow-x:auto 추가로 가로 스와이프해서 닿을 수 있게 하고, 모바일에서는 탭 여백도 줄여서 더 많이 보이게 함',
     'v3.8 — [중요] PC에서 올린 자료가 모바일에 안 보이고 그 반대도 안 되는 문제 대응: 자료 저장(saveLrToFirebase)이 실패해도 조용히 콘솔에만 로그를 남기고 화면엔 "저장된 것처럼" 보였던 게 원인으로 추정됨(로컬 화면엔 바로 반영되지만 서버엔 실제로 안 올라갔을 수 있음) — 저장·수정 요청에도 최대 3회 재시도를 추가하고, 그래도 실패하면 이제 화면에 "저장 실패, 다시 시도해주세요" 경고가 뜨도록 수정',
     'v3.9 — 모바일(좁은 화면)에서 화면 상단에 "PC 이용을 권장합니다" 안내 배너 추가(닫기 가능)',
-    'v4.0 — "저장 실패" 경고가 매번(재현성 있게) 뜬다는 걸 확인함 → 경고 문구에 실제 Firebase 에러 코드·메시지를 그대로 표시하도록 개선(예: permission-denied, unavailable 등) — 이제 정확히 어떤 이유로 실패하는지 알림창 문구만으로 바로 알 수 있음'
+    'v4.0 — "저장 실패" 경고가 매번(재현성 있게) 뜬다는 걸 확인함 → 경고 문구에 실제 Firebase 에러 코드·메시지를 그대로 표시하도록 개선(예: permission-denied, unavailable 등) — 이제 정확히 어떤 이유로 실패하는지 알림창 문구만으로 바로 알 수 있음',
+    'v4.1 — [진짜 원인 해결] Firestore 보안 규칙에 geuldap_lr_materials, geuldap_lr_exams 컬렉션이 아예 빠져있어서 permission-denied가 나던 것이었음(사용자가 Firebase 콘솔 규칙을 확인해줘서 확정) — 규칙에 두 컬렉션 추가로 해결. 저장 성공 시에도 "✅ 저장 완료" 토스트 알림이 잠깐 떴다 사라지도록 추가(예전엔 성공 시 아무 표시도 없어서 "저장됐다"는 확신을 갖기 어려웠음)',
+    'v4.2 — 진짜 원인이 해결됐으므로 "모바일에서는 PC 이용을 권장합니다" 안내 배너 제거'
   ];
   console.log(`%c글답 학습기 ${APP_VERSION}`, 'font-weight:bold; font-size:14px; color:#0d1b4b;');
   console.log(APP_VERSION_LOG.join('\n'));
@@ -5032,11 +5025,26 @@ ${(parsed.concepts || []).join(', ')}
   // "저장된 것처럼" 보이지만 실제로는 서버에 한 번도 안 올라가 있는 자료가 생길 수 있었다.
   // (그래서 PC에서 올린 자료가 모바일엔 안 보이고, 모바일에서 올린 자료가 PC엔 안 보이는 현상이 났었다 —
   //  둘 다 로컬 화면에는 바로 반영되니 "저장은 됐다"고 착각하기 쉽다.)
+  // 저장 성공/실패를 조용히 알려주는 작은 알림(토스트). alert처럼 화면을 막지 않고 잠깐 떴다 사라진다.
+  function showToast(msg, isError) {
+    let el = document.getElementById('gToast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'gToast';
+      el.style.cssText = 'position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#222; color:#fff; padding:10px 18px; border-radius:24px; font-size:13px; z-index:20000; box-shadow:0 4px 14px rgba(0,0,0,0.25); opacity:0; transition:opacity 0.25s; pointer-events:none;';
+      document.body.appendChild(el);
+    }
+    el.textContent = msg;
+    el.style.background = isError ? '#c0392b' : '#1f7a3f';
+    el.style.opacity = '1';
+    clearTimeout(el._hideTimer);
+    el._hideTimer = setTimeout(() => { el.style.opacity = '0'; }, 2200);
+  }
   async function withWriteRetry(fn, label, attempts) {
     attempts = attempts || 3;
     let lastErr;
     for (let i = 0; i < attempts; i++) {
-      try { await fn(); return true; }
+      try { await fn(); showToast('✅ "' + label + '" 저장 완료'); return true; }
       catch (e) { lastErr = e; if (i < attempts - 1) await new Promise(r => setTimeout(r, 800 * (i + 1))); }
     }
     console.error(label + ' 저장 실패(3번 재시도 다 실패):', lastErr);
