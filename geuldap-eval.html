@@ -140,6 +140,15 @@
 </head>
 <body>
 
+<!-- 모바일 안내 배너 (좁은 화면에서만 보임, 순수 CSS로 항상 표시) -->
+<div id="mobileNotice" style="display:none; background:#fff3cd; color:#7a5c00; text-align:center; padding:8px 14px; font-size:12.5px; line-height:1.5; position:fixed; top:0; left:0; right:0; z-index:10000;">
+  📱 모바일에서는 일부 기능이 불안정할 수 있어요. 가능하면 <b>PC(컴퓨터)</b>로 이용해주세요.
+  <span onclick="document.getElementById('mobileNotice').style.display='none'" style="position:absolute; right:10px; top:6px; cursor:pointer; font-weight:700;">✕</span>
+</div>
+<style>
+  @media (max-width: 768px) { #mobileNotice { display:block !important; } }
+</style>
+
 <!-- 비밀번호 화면 -->
 <div class="pw-screen" id="pwScreen">
   <div class="pw-box">
@@ -1701,7 +1710,7 @@
 
 <script>
   // ===== 버전 정보 (콘솔에서 확인: APP_VERSION 또는 페이지 로드시 자동 출력) =====
-  const APP_VERSION = 'v3.8';
+  const APP_VERSION = 'v4.0';
   const APP_VERSION_LOG = [
     'v1.0 — 탭 구조 + UI 껍데기',
     'v1.1 — AI 문제 생성 + 개념 사다리',
@@ -1723,7 +1732,9 @@
     'v3.5 — v3.4 이후에도 아이폰에서 계속 자료가 안 보인다는 재보고를 받았으나 콘솔 확인이 어려워, "자료 없음" 화면 하단에 작은 회색 글씨로 진단 정보(데이터로딩 완료여부·전체자료개수·내 학생ID)를 직접 표시하도록 추가 — 화면 캡처만으로 원인 파악 가능. 데이터 로딩이 늦게 끝나는 경우를 대비해 로딩 완료 시 학생이 이미 보고 있는 화면을 자동으로 다시 그려주는 자가복구 로직도 추가',
     'v3.6 — [중요] 진단 정보로 진짜 원인 확정: "데이터로딩 완료·전체자료 0개"로 나와서 v3.4의 Promise.all(병렬 로딩)이 원인이었음이 드러남 — 신호 약한 모바일에서 9개 중 하나만 실패해도 Promise.all은 성공한 나머지까지 전부 버려버려서 자료뿐 아니라 전체 데이터가 다 사라지는 부작용이 있었음. Promise.allSettled로 교체(하나 실패해도 나머지는 살림) + 각 컬렉션 로딩에 최대 3회 재시도(0.8초 간격) 추가, 그래도 실패하면 디버그 문구에 "실패:컬렉션명"으로 표시',
     'v3.7 — [중요] 진짜 원인은 데이터 로딩이 아니었음: 상단 탭바(학생관리~블로그생성, 11개)가 모바일 좁은 화면에서 넘칠 때 가로 스크롤 처리가 아예 없어서, 순서상 뒤쪽에 있는 "학습기"(자료 업로드 포함)와 "블로그 생성" 탭 자체가 화면 밖으로 밀려나 접근 불가능했던 것. tab-nav에 overflow-x:auto 추가로 가로 스와이프해서 닿을 수 있게 하고, 모바일에서는 탭 여백도 줄여서 더 많이 보이게 함',
-    'v3.8 — [중요] PC에서 올린 자료가 모바일에 안 보이고 그 반대도 안 되는 문제 대응: 자료 저장(saveLrToFirebase)이 실패해도 조용히 콘솔에만 로그를 남기고 화면엔 "저장된 것처럼" 보였던 게 원인으로 추정됨(로컬 화면엔 바로 반영되지만 서버엔 실제로 안 올라갔을 수 있음) — 저장·수정 요청에도 최대 3회 재시도를 추가하고, 그래도 실패하면 이제 화면에 "저장 실패, 다시 시도해주세요" 경고가 뜨도록 수정'
+    'v3.8 — [중요] PC에서 올린 자료가 모바일에 안 보이고 그 반대도 안 되는 문제 대응: 자료 저장(saveLrToFirebase)이 실패해도 조용히 콘솔에만 로그를 남기고 화면엔 "저장된 것처럼" 보였던 게 원인으로 추정됨(로컬 화면엔 바로 반영되지만 서버엔 실제로 안 올라갔을 수 있음) — 저장·수정 요청에도 최대 3회 재시도를 추가하고, 그래도 실패하면 이제 화면에 "저장 실패, 다시 시도해주세요" 경고가 뜨도록 수정',
+    'v3.9 — 모바일(좁은 화면)에서 화면 상단에 "PC 이용을 권장합니다" 안내 배너 추가(닫기 가능)',
+    'v4.0 — "저장 실패" 경고가 매번(재현성 있게) 뜬다는 걸 확인함 → 경고 문구에 실제 Firebase 에러 코드·메시지를 그대로 표시하도록 개선(예: permission-denied, unavailable 등) — 이제 정확히 어떤 이유로 실패하는지 알림창 문구만으로 바로 알 수 있음'
   ];
   console.log(`%c글답 학습기 ${APP_VERSION}`, 'font-weight:bold; font-size:14px; color:#0d1b4b;');
   console.log(APP_VERSION_LOG.join('\n'));
@@ -5029,7 +5040,8 @@ ${(parsed.concepts || []).join(', ')}
       catch (e) { lastErr = e; if (i < attempts - 1) await new Promise(r => setTimeout(r, 800 * (i + 1))); }
     }
     console.error(label + ' 저장 실패(3번 재시도 다 실패):', lastErr);
-    alert('⚠️ "' + label + '" 저장에 실패했어요. 인터넷 연결을 확인하고 다시 시도해주세요. (이 화면에는 보여도 서버엔 저장 안 됐을 수 있어요)');
+    const detail = (lastErr && (lastErr.code || lastErr.message)) ? ('\n\n[상세] ' + (lastErr.code || '') + ' ' + (lastErr.message || '')) : '';
+    alert('⚠️ "' + label + '" 저장에 실패했어요. (이 화면에는 보여도 서버엔 저장 안 됐을 수 있어요)' + detail);
     return false;
   }
   async function saveLrToFirebase(type, item) {
