@@ -1635,33 +1635,41 @@
     const idx = localArr.findIndex(x=>x.id===doc.id);
     if (idx > -1) localArr[idx] = doc; else localArr.push(doc);
   }
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+  // 모바일(특히 신호 약할 때)은 네트워크 요청 하나가 그냥 실패하는 경우가 흔하다.
+  // 최대 3번까지 재시도해서 일시적인 끊김을 버텨낸다.
+  async function getDocsWithRetry(collName, attempts) {
+    attempts = attempts || 3;
+    let lastErr;
+    for (let i = 0; i < attempts; i++) {
+      try { return await getDocs(collection(db, collName)); }
+      catch (e) { lastErr = e; if (i < attempts - 1) await sleep(800 * (i + 1)); }
+    }
+    throw lastErr;
+  }
+  window._fbLoadFailedCollections = [];
   try {
-    // 예전엔 이 9개 컬렉션을 하나씩 순서대로 await(직렬)로 불러와서, 느린 모바일 네트워크에서는
-    // 전체 로딩이 꽤 오래 걸렸다. 그 사이에 학생이 로그인해버리면, 아직 안 불러와진 컬렉션
-    // (특히 순서상 뒤쪽인 geuldap_lr_materials)은 "자료 없음"으로 잘못 보이는 문제가 있었다.
-    // 서로 독립적인 컬렉션들이라 병렬로 한 번에 불러오도록 바꿔서 전체 로딩 시간을 크게 줄인다.
-    const [ss, rs, qs, as_, ls_, ps_, rd_, lrm_, lre_, lrw_] = await Promise.all([
-      getDocs(collection(db, 'geuldap_students')),
-      getDocs(collection(db, 'geuldap_records')),
-      getDocs(collection(db, 'geuldap_quizzes')),
-      getDocs(collection(db, 'geuldap_attendance')),
-      getDocs(collection(db, 'geuldap_leads')),
-      getDocs(collection(db, 'geuldap_payments')),
-      getDocs(collection(db, 'geuldap_readings')),
-      getDocs(collection(db, 'geuldap_lr_materials')),
-      getDocs(collection(db, 'geuldap_lr_exams')),
-      getDocs(collection(db, 'geuldap_lr_wrong')),
-    ]);
-    ss.forEach(d => mergeFromServer(window._students, d.data()));
-    rs.forEach(d => mergeFromServer(window._records, d.data()));
-    qs.forEach(d => mergeFromServer(window._quizzes, d.data()));
-    as_.forEach(d => mergeFromServer(window._attendance, d.data()));
-    ls_.forEach(d => mergeFromServer(window._leads, d.data()));
-    ps_.forEach(d => mergeFromServer(window._payments, d.data()));
-    rd_.forEach(d => mergeFromServer(window._readings, d.data()));
-    lrm_.forEach(d => mergeFromServer(window._lrMaterials, d.data()));
-    lre_.forEach(d => mergeFromServer(window._lrExams, d.data()));
-    lrw_.forEach(d => mergeFromServer(window._lrWrong, d.data()));
+    // 예전엔 이 9개 컬렉션을 하나씩 순서대로 await(직렬)로 불러와서 느린 모바일 네트워크에선
+    // 로딩이 오래 걸렸고, 그다음엔 전부 Promise.all(병렬)로 바꿨는데 — 이번엔 다른 문제가 있었다.
+    // Promise.all은 그중 하나라도 실패하면 나머지 성공한 것까지 전부 버려버려서, 신호 약한
+    // 모바일에서 요청 하나만 실패해도 자료·시험 등 모든 데이터가 통째로 안 불러와지는 상태가 됐다.
+    // allSettled로 바꿔서 "하나 실패해도 나머지는 살리기" + 재시도까지 추가한다.
+    const names = ['geuldap_students','geuldap_records','geuldap_quizzes','geuldap_attendance','geuldap_leads','geuldap_payments','geuldap_readings','geuldap_lr_materials','geuldap_lr_exams','geuldap_lr_wrong'];
+    const results = await Promise.allSettled(names.map(n => getDocsWithRetry(n)));
+    const [ss, rs, qs, as_, ls_, ps_, rd_, lrm_, lre_, lrw_] = results;
+    const targets = [
+      [ss, window._students], [rs, window._records], [qs, window._quizzes],
+      [as_, window._attendance], [ls_, window._leads], [ps_, window._payments],
+      [rd_, window._readings], [lrm_, window._lrMaterials], [lre_, window._lrExams], [lrw_, window._lrWrong]
+    ];
+    targets.forEach(([result, arr], i) => {
+      if (result.status === 'fulfilled') {
+        result.value.forEach(d => mergeFromServer(arr, d.data()));
+      } else {
+        window._fbLoadFailedCollections.push(names[i]);
+        console.error(names[i] + ' 로드 실패(재시도 3번 다 실패, 로컬 캐시로 대체됨):', result.reason);
+      }
+    });
     try {
       const asDoc = await getDoc(doc(db, 'geuldap_settings', 'academy'));
       if (asDoc.exists()) window._academySettings = asDoc.data();
@@ -1691,7 +1699,7 @@
 
 <script>
   // ===== 버전 정보 (콘솔에서 확인: APP_VERSION 또는 페이지 로드시 자동 출력) =====
-  const APP_VERSION = 'v3.5';
+  const APP_VERSION = 'v3.6';
   const APP_VERSION_LOG = [
     'v1.0 — 탭 구조 + UI 껍데기',
     'v1.1 — AI 문제 생성 + 개념 사다리',
@@ -1710,7 +1718,8 @@
     'v3.2 — 학생 관리 화면을 초등학생/중학생으로 나눠서 표시(학년 앞글자 "초등"/"중학교" 기준)',
     'v3.3 — 블로그 생성 화면에 "이번 글의 대상 학년"(초등/중등/전체) 선택 추가 — 블로그가 계속 초등 위주로만 쓰이는 걸 막기 위해, 학생 사례형이 아닌 글은 매번 대상을 직접 고르게 함(중등 선택 시 초등 예시·표현 안 섞이도록 프롬프트에 명시)',
     'v3.4 — [중요] 모바일(특히 느린 네트워크)에서 학생 로그인 시 자료가 안 보이던 버그 수정: 로그인 시 9개 Firestore 컬렉션을 하나씩 순서대로(직렬) 불러오던 걸 한번에(병렬) 불러오도록 바꿔 전체 로딩 시간을 크게 줄이고, 데이터 로딩이 채 안 끝난 상태에서 학생이 로그인 시도하면 "데이터를 불러오는 중" 안내와 함께 막도록 이중 안전장치 추가',
-    'v3.5 — v3.4 이후에도 아이폰에서 계속 자료가 안 보인다는 재보고를 받았으나 콘솔 확인이 어려워, "자료 없음" 화면 하단에 작은 회색 글씨로 진단 정보(데이터로딩 완료여부·전체자료개수·내 학생ID)를 직접 표시하도록 추가 — 화면 캡처만으로 원인 파악 가능. 데이터 로딩이 늦게 끝나는 경우를 대비해 로딩 완료 시 학생이 이미 보고 있는 화면을 자동으로 다시 그려주는 자가복구 로직도 추가'
+    'v3.5 — v3.4 이후에도 아이폰에서 계속 자료가 안 보인다는 재보고를 받았으나 콘솔 확인이 어려워, "자료 없음" 화면 하단에 작은 회색 글씨로 진단 정보(데이터로딩 완료여부·전체자료개수·내 학생ID)를 직접 표시하도록 추가 — 화면 캡처만으로 원인 파악 가능. 데이터 로딩이 늦게 끝나는 경우를 대비해 로딩 완료 시 학생이 이미 보고 있는 화면을 자동으로 다시 그려주는 자가복구 로직도 추가',
+    'v3.6 — [중요] 진단 정보로 진짜 원인 확정: "데이터로딩 완료·전체자료 0개"로 나와서 v3.4의 Promise.all(병렬 로딩)이 원인이었음이 드러남 — 신호 약한 모바일에서 9개 중 하나만 실패해도 Promise.all은 성공한 나머지까지 전부 버려버려서 자료뿐 아니라 전체 데이터가 다 사라지는 부작용이 있었음. Promise.allSettled로 교체(하나 실패해도 나머지는 살림) + 각 컬렉션 로딩에 최대 3회 재시도(0.8초 간격) 추가, 그래도 실패하면 디버그 문구에 "실패:컬렉션명"으로 표시'
   ];
   console.log(`%c글답 학습기 ${APP_VERSION}`, 'font-weight:bold; font-size:14px; color:#0d1b4b;');
   console.log(APP_VERSION_LOG.join('\n'));
@@ -7004,7 +7013,8 @@ ${isMathSubject ? '- 수학/과학은 실제 계산이 필요한 문제로 내�
     const subjects = getStudentSubjects(studentId);
     const tabsDiv = document.getElementById('spSubjectTabs');
     if (!subjects.length) {
-      const debugInfo = `디버그 — 데이터로딩:${window._fbReady?'완료':'아직 안됨'} · 전체자료:${window._lrMaterials.length}개 · 내ID:${studentId}`;
+      const failInfo = (window._fbLoadFailedCollections && window._fbLoadFailedCollections.length) ? (' · 실패:'+window._fbLoadFailedCollections.join(',')) : '';
+      const debugInfo = `디버그 — 데이터로딩:${window._fbReady?'완료':'아직 안됨'} · 전체자료:${window._lrMaterials.length}개 · 내ID:${studentId}${failInfo}`;
       tabsDiv.innerHTML = `<div style="color:#aaa; font-size:13px;">등록된 자료가 없어요.</div>
         <div style="color:#ddd; font-size:10px; margin-top:6px; word-break:break-all;">${debugInfo}</div>`;
       document.getElementById('spSessionListCard').style.display = 'none';
@@ -7315,7 +7325,8 @@ type은 "choice" 또는 "short"로 섞어주세요. 단답형(short)일 때는 c
     const div = document.getElementById('spMaterialList');
     if (!mats.length) {
       // 모바일에서 콘솔을 보기 어려우니, 화면에 직접 진단 정보를 남겨서 스크린샷만으로 원인 파악이 되게 한다.
-      const debugInfo = `디버그 — 데이터로딩:${window._fbReady?'완료':'아직 안됨'} · 전체자료:${window._lrMaterials.length}개 · 내ID:${window._spStudent.id}`;
+      const failInfo2 = (window._fbLoadFailedCollections && window._fbLoadFailedCollections.length) ? (' · 실패:'+window._fbLoadFailedCollections.join(',')) : '';
+      const debugInfo = `디버그 — 데이터로딩:${window._fbReady?'완료':'아직 안됨'} · 전체자료:${window._lrMaterials.length}개 · 내ID:${window._spStudent.id}${failInfo2}`;
       div.innerHTML = `<div style="color:#aaa; font-size:13px;">아직 등록된 자료가 없어요. 선생님께 문의해보세요.</div>
         <div style="color:#ddd; font-size:10px; margin-top:8px; word-break:break-all;">${debugInfo}</div>`;
       return;
