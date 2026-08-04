@@ -51,8 +51,8 @@
     .header-title { font-family: 'Noto Serif KR', serif; font-size: 20px; font-weight: 700; color: #fff; }
     .header-title span { color: #e8c96a; }
     .header-sub { font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 2px; }
-    .tab-nav { background: #fff; border-bottom: 1px solid #e0e0e0; display: flex; padding: 0 32px; }
-    .tab { padding: 14px 20px; font-size: 14px; font-weight: 600; color: #888; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+    .tab-nav { background: #fff; border-bottom: 1px solid #e0e0e0; display: flex; padding: 0 32px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+    .tab { padding: 14px 20px; font-size: 14px; font-weight: 600; color: #888; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; flex-shrink: 0; }
     .tab.active { color: #0d1b4b; border-bottom-color: #c5a149; }
     .tab.tab-frequent { color: #a66; }
     .tab.tab-frequent.active { color: #0d1b4b; }
@@ -133,6 +133,8 @@
       .score-grid { grid-template-columns: repeat(2, 1fr); }
       .compare-grid { grid-template-columns: 1fr; }
       .form-grid { grid-template-columns: 1fr; }
+      .tab-nav { padding: 0 10px; }
+      .tab { padding: 12px 12px; font-size: 13px; }
     }
   </style>
 </head>
@@ -1699,7 +1701,7 @@
 
 <script>
   // ===== 버전 정보 (콘솔에서 확인: APP_VERSION 또는 페이지 로드시 자동 출력) =====
-  const APP_VERSION = 'v3.6';
+  const APP_VERSION = 'v3.7';
   const APP_VERSION_LOG = [
     'v1.0 — 탭 구조 + UI 껍데기',
     'v1.1 — AI 문제 생성 + 개념 사다리',
@@ -1719,7 +1721,8 @@
     'v3.3 — 블로그 생성 화면에 "이번 글의 대상 학년"(초등/중등/전체) 선택 추가 — 블로그가 계속 초등 위주로만 쓰이는 걸 막기 위해, 학생 사례형이 아닌 글은 매번 대상을 직접 고르게 함(중등 선택 시 초등 예시·표현 안 섞이도록 프롬프트에 명시)',
     'v3.4 — [중요] 모바일(특히 느린 네트워크)에서 학생 로그인 시 자료가 안 보이던 버그 수정: 로그인 시 9개 Firestore 컬렉션을 하나씩 순서대로(직렬) 불러오던 걸 한번에(병렬) 불러오도록 바꿔 전체 로딩 시간을 크게 줄이고, 데이터 로딩이 채 안 끝난 상태에서 학생이 로그인 시도하면 "데이터를 불러오는 중" 안내와 함께 막도록 이중 안전장치 추가',
     'v3.5 — v3.4 이후에도 아이폰에서 계속 자료가 안 보인다는 재보고를 받았으나 콘솔 확인이 어려워, "자료 없음" 화면 하단에 작은 회색 글씨로 진단 정보(데이터로딩 완료여부·전체자료개수·내 학생ID)를 직접 표시하도록 추가 — 화면 캡처만으로 원인 파악 가능. 데이터 로딩이 늦게 끝나는 경우를 대비해 로딩 완료 시 학생이 이미 보고 있는 화면을 자동으로 다시 그려주는 자가복구 로직도 추가',
-    'v3.6 — [중요] 진단 정보로 진짜 원인 확정: "데이터로딩 완료·전체자료 0개"로 나와서 v3.4의 Promise.all(병렬 로딩)이 원인이었음이 드러남 — 신호 약한 모바일에서 9개 중 하나만 실패해도 Promise.all은 성공한 나머지까지 전부 버려버려서 자료뿐 아니라 전체 데이터가 다 사라지는 부작용이 있었음. Promise.allSettled로 교체(하나 실패해도 나머지는 살림) + 각 컬렉션 로딩에 최대 3회 재시도(0.8초 간격) 추가, 그래도 실패하면 디버그 문구에 "실패:컬렉션명"으로 표시'
+    'v3.6 — [중요] 진단 정보로 진짜 원인 확정: "데이터로딩 완료·전체자료 0개"로 나와서 v3.4의 Promise.all(병렬 로딩)이 원인이었음이 드러남 — 신호 약한 모바일에서 9개 중 하나만 실패해도 Promise.all은 성공한 나머지까지 전부 버려버려서 자료뿐 아니라 전체 데이터가 다 사라지는 부작용이 있었음. Promise.allSettled로 교체(하나 실패해도 나머지는 살림) + 각 컬렉션 로딩에 최대 3회 재시도(0.8초 간격) 추가, 그래도 실패하면 디버그 문구에 "실패:컬렉션명"으로 표시',
+    'v3.7 — [중요] 진짜 원인은 데이터 로딩이 아니었음: 상단 탭바(학생관리~블로그생성, 11개)가 모바일 좁은 화면에서 넘칠 때 가로 스크롤 처리가 아예 없어서, 순서상 뒤쪽에 있는 "학습기"(자료 업로드 포함)와 "블로그 생성" 탭 자체가 화면 밖으로 밀려나 접근 불가능했던 것. tab-nav에 overflow-x:auto 추가로 가로 스와이프해서 닿을 수 있게 하고, 모바일에서는 탭 여백도 줄여서 더 많이 보이게 함'
   ];
   console.log(`%c글답 학습기 ${APP_VERSION}`, 'font-weight:bold; font-size:14px; color:#0d1b4b;');
   console.log(APP_VERSION_LOG.join('\n'));
