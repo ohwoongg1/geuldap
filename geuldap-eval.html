@@ -1701,7 +1701,7 @@
 
 <script>
   // ===== 버전 정보 (콘솔에서 확인: APP_VERSION 또는 페이지 로드시 자동 출력) =====
-  const APP_VERSION = 'v3.7';
+  const APP_VERSION = 'v3.8';
   const APP_VERSION_LOG = [
     'v1.0 — 탭 구조 + UI 껍데기',
     'v1.1 — AI 문제 생성 + 개념 사다리',
@@ -1722,7 +1722,8 @@
     'v3.4 — [중요] 모바일(특히 느린 네트워크)에서 학생 로그인 시 자료가 안 보이던 버그 수정: 로그인 시 9개 Firestore 컬렉션을 하나씩 순서대로(직렬) 불러오던 걸 한번에(병렬) 불러오도록 바꿔 전체 로딩 시간을 크게 줄이고, 데이터 로딩이 채 안 끝난 상태에서 학생이 로그인 시도하면 "데이터를 불러오는 중" 안내와 함께 막도록 이중 안전장치 추가',
     'v3.5 — v3.4 이후에도 아이폰에서 계속 자료가 안 보인다는 재보고를 받았으나 콘솔 확인이 어려워, "자료 없음" 화면 하단에 작은 회색 글씨로 진단 정보(데이터로딩 완료여부·전체자료개수·내 학생ID)를 직접 표시하도록 추가 — 화면 캡처만으로 원인 파악 가능. 데이터 로딩이 늦게 끝나는 경우를 대비해 로딩 완료 시 학생이 이미 보고 있는 화면을 자동으로 다시 그려주는 자가복구 로직도 추가',
     'v3.6 — [중요] 진단 정보로 진짜 원인 확정: "데이터로딩 완료·전체자료 0개"로 나와서 v3.4의 Promise.all(병렬 로딩)이 원인이었음이 드러남 — 신호 약한 모바일에서 9개 중 하나만 실패해도 Promise.all은 성공한 나머지까지 전부 버려버려서 자료뿐 아니라 전체 데이터가 다 사라지는 부작용이 있었음. Promise.allSettled로 교체(하나 실패해도 나머지는 살림) + 각 컬렉션 로딩에 최대 3회 재시도(0.8초 간격) 추가, 그래도 실패하면 디버그 문구에 "실패:컬렉션명"으로 표시',
-    'v3.7 — [중요] 진짜 원인은 데이터 로딩이 아니었음: 상단 탭바(학생관리~블로그생성, 11개)가 모바일 좁은 화면에서 넘칠 때 가로 스크롤 처리가 아예 없어서, 순서상 뒤쪽에 있는 "학습기"(자료 업로드 포함)와 "블로그 생성" 탭 자체가 화면 밖으로 밀려나 접근 불가능했던 것. tab-nav에 overflow-x:auto 추가로 가로 스와이프해서 닿을 수 있게 하고, 모바일에서는 탭 여백도 줄여서 더 많이 보이게 함'
+    'v3.7 — [중요] 진짜 원인은 데이터 로딩이 아니었음: 상단 탭바(학생관리~블로그생성, 11개)가 모바일 좁은 화면에서 넘칠 때 가로 스크롤 처리가 아예 없어서, 순서상 뒤쪽에 있는 "학습기"(자료 업로드 포함)와 "블로그 생성" 탭 자체가 화면 밖으로 밀려나 접근 불가능했던 것. tab-nav에 overflow-x:auto 추가로 가로 스와이프해서 닿을 수 있게 하고, 모바일에서는 탭 여백도 줄여서 더 많이 보이게 함',
+    'v3.8 — [중요] PC에서 올린 자료가 모바일에 안 보이고 그 반대도 안 되는 문제 대응: 자료 저장(saveLrToFirebase)이 실패해도 조용히 콘솔에만 로그를 남기고 화면엔 "저장된 것처럼" 보였던 게 원인으로 추정됨(로컬 화면엔 바로 반영되지만 서버엔 실제로 안 올라갔을 수 있음) — 저장·수정 요청에도 최대 3회 재시도를 추가하고, 그래도 실패하면 이제 화면에 "저장 실패, 다시 시도해주세요" 경고가 뜨도록 수정'
   ];
   console.log(`%c글답 학습기 ${APP_VERSION}`, 'font-weight:bold; font-size:14px; color:#0d1b4b;');
   console.log(APP_VERSION_LOG.join('\n'));
@@ -5015,11 +5016,26 @@ ${(parsed.concepts || []).join(', ')}
   }
 
 
+  // 저장(쓰기) 요청도 읽기와 마찬가지로 신호 약한 곳에서 조용히 실패할 수 있다.
+  // 예전엔 실패해도 콘솔에만 로그를 남기고 사용자에게 전혀 알리지 않아서, 화면상으로는
+  // "저장된 것처럼" 보이지만 실제로는 서버에 한 번도 안 올라가 있는 자료가 생길 수 있었다.
+  // (그래서 PC에서 올린 자료가 모바일엔 안 보이고, 모바일에서 올린 자료가 PC엔 안 보이는 현상이 났었다 —
+  //  둘 다 로컬 화면에는 바로 반영되니 "저장은 됐다"고 착각하기 쉽다.)
+  async function withWriteRetry(fn, label, attempts) {
+    attempts = attempts || 3;
+    let lastErr;
+    for (let i = 0; i < attempts; i++) {
+      try { await fn(); return true; }
+      catch (e) { lastErr = e; if (i < attempts - 1) await new Promise(r => setTimeout(r, 800 * (i + 1))); }
+    }
+    console.error(label + ' 저장 실패(3번 재시도 다 실패):', lastErr);
+    alert('⚠️ "' + label + '" 저장에 실패했어요. 인터넷 연결을 확인하고 다시 시도해주세요. (이 화면에는 보여도 서버엔 저장 안 됐을 수 있어요)');
+    return false;
+  }
   async function saveLrToFirebase(type, item) {
-    try {
-      const col = type==='material' ? 'geuldap_lr_materials' : type==='exam' ? 'geuldap_lr_exams' : 'geuldap_lr_wrong';
-      await window._add(window._col(window._db, col), item);
-    } catch(e) { console.log('학습기 Firebase 저장:', e); }
+    const col = type==='material' ? 'geuldap_lr_materials' : type==='exam' ? 'geuldap_lr_exams' : 'geuldap_lr_wrong';
+    const label = type==='material' ? '자료' : type==='exam' ? '시험' : '오답';
+    await withWriteRetry(() => window._add(window._col(window._db, col), item), label);
   }
   async function deleteLrFromFirebase(type, id) {
     try {
@@ -5032,9 +5048,7 @@ ${(parsed.concepts || []).join(', ')}
     } catch(e) { console.log('학습기 Firebase 업데이트:', e); }
   }
   async function updateLrMaterialInFirebase(material) {
-    try {
-      await window._updateByFieldId('geuldap_lr_materials', material.id, material);
-    } catch(e) { console.log('학습기 자료 업데이트:', e); }
+    await withWriteRetry(() => window._updateByFieldId('geuldap_lr_materials', material.id, material), '자료 수정');
   }
   async function updateLrWrongInFirebase(wrongItem) {
     try {
