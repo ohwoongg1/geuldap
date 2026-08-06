@@ -673,11 +673,16 @@
       <div class="eval-header" id="quizResultHeader"></div>
       <div class="card"><div class="card-title">문항별 채점</div><div id="quizItemList"></div></div>
       <div class="card"><div class="card-title">총평</div><div id="quizOverallComment" class="eval-text"></div></div>
+      <div style="text-align:right; font-size:12px; color:#2f855a; margin-bottom:8px;">✅ 자동으로 저장됐어요 — 아래 "채점 기록"에서 언제든 다시 볼 수 있어요</div>
       <div style="display:flex;gap:10px;justify-content:flex-end;margin-bottom:20px;">
         <button class="btn btn-secondary" onclick="resetQuizUpload()">새 채점</button>
-        <button class="btn btn-secondary" onclick="printQuizResultA4(currentQuizEval)">🖨️ A4로 인쇄</button>
-        <button class="btn btn-primary" onclick="saveQuizRecord()">💾 채점 기록 저장</button>
+        <button class="btn btn-primary" onclick="printQuizResultA4(currentQuizEval)">🖨️ A4로 인쇄</button>
       </div>
+    </div>
+    <div class="card" id="quizRecordListSection" style="display:none;">
+      <div class="card-title">📋 채점 기록</div>
+      <div style="font-size:12px; color:#888; margin-bottom:10px;">날짜별로 쌓여요. 클릭하면 그 결과를 다시 열어볼 수 있어요.</div>
+      <div id="quizRecordListBody"></div>
     </div>
     <div class="card" id="quizAnalysisSection" style="display:none;">
       <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
@@ -1719,7 +1724,7 @@
 
 <script>
   // ===== 버전 정보 (콘솔에서 확인: APP_VERSION 또는 페이지 로드시 자동 출력) =====
-  const APP_VERSION = 'v6.0';
+  const APP_VERSION = 'v6.2';
   const APP_VERSION_LOG = [
     'v1.0 — 탭 구조 + UI 껍데기',
     'v1.1 — AI 문제 생성 + 개념 사다리',
@@ -1757,7 +1762,9 @@
     'v5.7 — 1회차(이해 단계) 문제를 같은 자료를 쓰는 여러 학생끼리 공유하도록 추가 — 한 학생이 1회차를 처음 만들면 그 자료에 저장해두고, 다음 학생부터는 AI 호출 없이 바로 그 문제로 시작(로딩 없음). 2회차부터는 기존처럼 학생별 개인 맞춤 생성 유지(난이도가 갈리는 게 더 중요해서)',
     'v5.8 — 시간표의 "한 시간대 정원"이 6명으로 고정돼있던 것을 직접 입력해서 바꿀 수 있게 변경(학원 정보에 저장, 시간표 화면 상단에 입력칸 추가)',
     'v5.9 — 문제 채점 기능 확장: ①채점 결과를 A4 인쇄 형식으로 뽑는 버튼 추가(문항별 해설+총평 포함, 분량 많으면 자동으로 다음 장까지 이어짐) ②학생 포털에 "문제집 채점 결과" 카드 신설 — 선생님이 채점해준 결과와 틀린 문제 해설을 학생이 직접 볼 수 있게 함(기존 AI 학습기 오답노트와는 별개 목록). 문항별 해설·총평 자체는 이미 있던 기능이었음(새로 만든 게 아니라 인쇄/학생공개 형태로 노출만 확장)',
-    'v6.0 — 학생용 "문제집 채점 결과" 화면을 틀린 문제만 보여주던 것에서, 관리자 화면과 동일하게 전체 문항(맞은 것 포함)을 다 보여주도록 확장. A4 인쇄 시 왼쪽이 잘려 보이던 문제 대응: 인쇄 CSS에 box-sizing/너비 명시 강화 + 새 창이 완전히 그려지기 전에 인쇄가 실행되던 것을 살짝 늦춰서(0.3초) 방지'
+    'v6.0 — 학생용 "문제집 채점 결과" 화면을 틀린 문제만 보여주던 것에서, 관리자 화면과 동일하게 전체 문항(맞은 것 포함)을 다 보여주도록 확장. A4 인쇄 시 왼쪽이 잘려 보이던 문제 대응: 인쇄 CSS에 box-sizing/너비 명시 강화 + 새 창이 완전히 그려지기 전에 인쇄가 실행되던 것을 살짝 늦춰서(0.3초) 방지',
+    'v6.1 — 실제 인쇄물 사진으로 확인됨: "학생 답"이 "생 답"으로, "해설"이 "설"로 매 줄 첫 글자가 잘려 나감 — 크롬 인쇄창의 "여백" 설정이 코드의 @page 여백을 무시하고 0으로 인쇄하면, 프린터 자체가 인쇄 못 하는 가장자리에 글자가 걸려 잘리는 것으로 확인. body 자체에도 안전 여백(padding)을 확실히 넣어서 인쇄창 여백 설정과 무관하게 항상 여백이 생기도록 수정',
+    'v6.2 — [중요] 문제 채점 결과가 "채점 기록 저장" 버튼을 안 누르면 다음 채점 시 그냥 사라지던 문제 수정 — 이제 채점되는 즉시 자동으로 저장됨(별도 저장 버튼 없앰). 학생별로 "📋 채점 기록" 목록을 새로 추가해서 날짜·제목·점수로 쌓이고, 클릭하면 그 결과를 다시 열어볼 수 있음(재인쇄도 가능)'
   ];
   console.log(`%c글답 학습기 ${APP_VERSION}`, 'font-weight:bold; font-size:14px; color:#0d1b4b;');
   console.log(APP_VERSION_LOG.join('\n'));
@@ -4541,6 +4548,7 @@ ${a.name}`;
     document.getElementById('quizDate').value = todayLocalDateStr();
     renderQuizAnalysis();
     renderQuizReview();
+    renderQuizRecordList();
   }
 
   function previewQuizImage(input) {
@@ -4593,6 +4601,9 @@ ${a.name}`;
       const dv = document.getElementById('quizDate').value;
       currentQuizEval.date = dv ? new Date(dv).toLocaleDateString('ko-KR') : new Date().toLocaleDateString('ko-KR');
       renderQuizResultView();
+      // 예전엔 "채점 기록 저장" 버튼을 따로 눌러야만 저장돼서, 안 누르고 다음 학생을 채점하면
+      // 방금 결과가 그냥 사라져버렸다. 이제 채점되는 즉시 자동으로 저장해서 그런 일이 없게 한다.
+      await autoSaveQuizRecord();
     } catch(e) { alert('채점 오류: '+e.message); }
     document.getElementById('quizLoadingSection').classList.remove('show');
   }
@@ -4629,9 +4640,12 @@ ${a.name}`;
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(q.studentName)} 채점 결과</title>
 <style>
   * { box-sizing: border-box; }
-  @page { size: A4; margin: 16mm 15mm; }
-  html, body { width: 100%; margin: 0; padding: 0; }
-  body { font-family: 'Malgun Gothic', 'Noto Sans KR', sans-serif; color:#222; }
+  @page { size: A4; margin: 14mm; }
+  html, body { width: 100%; margin: 0; }
+  /* 크롬 인쇄창의 "여백" 설정이 위 @page 여백을 무시하고 0으로 인쇄하는 경우가 있어서,
+     실제 프린터가 인쇄 못 하는 가장자리에 글자가 걸려 잘리는 사고가 났었다.
+     그래서 body 자체에도 안전 여백을 확실히 넣어서, 인쇄창 설정과 무관하게 항상 여백이 생기게 한다. */
+  body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; color:#222; padding: 12mm 14mm; }
   .header { text-align:center; margin-bottom:18px; }
   .header h1 { font-size:19px; margin:0 0 4px; }
   .header .sub { font-size:13px; color:#666; }
@@ -4666,16 +4680,41 @@ ${a.name}`;
     window.scrollTo(0,0);
   }
 
-  async function saveQuizRecord() {
+  // 채점되는 즉시 자동으로 저장한다(사용자가 따로 "저장" 버튼을 안 눌러도 안전하게 기록이 남도록).
+  async function autoSaveQuizRecord() {
     if (!currentQuizEval) return;
     const r = {...currentQuizEval, id: Date.now().toString()};
+    currentQuizEval.id = r.id; // 방금 채점한 결과에도 id를 남겨서, 인쇄 등에서 같은 레코드로 이어서 쓸 수 있게
     _quizzes.push(r);
     localStorage.setItem('gq', JSON.stringify(_quizzes));
-    if (window._fbReady) await window._add(window._col(window._db,'geuldap_quizzes'), r).catch(console.error);
-    alert('채점 기록이 저장되었습니다!');
-    resetQuizUpload();
+    if (window._fbReady) { try { await window._add(window._col(window._db,'geuldap_quizzes'), r); } catch(e) { console.error('채점 기록 저장 오류', e); } }
     renderQuizAnalysis();
     renderQuizReview();
+    renderQuizRecordList();
+  }
+
+  // 학생별로 지금까지 채점한 기록을 날짜·제목·점수로 목록에 보여준다. 클릭하면 그 결과를 다시 열어볼 수 있다.
+  function renderQuizRecordList() {
+    const section = document.getElementById('quizRecordListSection');
+    if (!section) return;
+    if (!selectedQuizStudent) { section.style.display='none'; return; }
+    const recs = _quizzes.filter(q=>q.studentId===selectedQuizStudent.id).slice().reverse();
+    if (!recs.length) { section.style.display='none'; return; }
+    section.style.display = 'block';
+    document.getElementById('quizRecordListBody').innerHTML = recs.map(r => `
+      <div class="record-item" onclick='reopenQuizRecord(${JSON.stringify(r.id)})' style="cursor:pointer;">
+        <div style="flex:1;">
+          <div style="font-weight:600;">${r.date}${r.topic ? ' · ' + r.topic : ''}</div>
+        </div>
+        <div style="font-weight:700; color:${r.correctCount===r.totalQuestions?'#2f855a':'#0d1b4b'};">${r.correctCount}/${r.totalQuestions}</div>
+      </div>`).join('');
+  }
+  function reopenQuizRecord(id) {
+    const r = _quizzes.find(q => q.id === id);
+    if (!r) return;
+    currentQuizEval = r;
+    renderQuizResultView();
+    document.getElementById('quizResult').scrollIntoView({behavior:'smooth'});
   }
 
   // ===== 약점/강점 분석 (문제 유형별 정답률 누적) =====
