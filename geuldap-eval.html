@@ -805,8 +805,15 @@
   <!-- 시간표 -->
   <div class="page" id="page-timetable">
     <div class="card">
-      <div class="card-title">전체 시간표</div>
-      <div style="font-size:12px; color:#888; margin-bottom:12px;">학생 등록/수정에서 입력한 수업 요일·시각을 기준으로 자동 정리됩니다. 시각을 입력하지 않은 학생은 표 아래에 따로 모아 보여드려요. 각 시각 칸 위에 그 순간 실제로 겹치는 인원수(정원 6명 기준)가 함께 표시돼요 — 시작 시각이 달라도 시간이 겹치면 포함됩니다.</div>
+      <div class="card-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <span>전체 시간표</span>
+        <span style="font-size:13px; font-weight:400; display:flex; align-items:center; gap:6px;">
+          한 시간대 정원
+          <input type="number" id="ttCapacityInput" min="1" max="99" style="width:56px; padding:4px 6px; text-align:center;" onchange="saveTimetableCapacity()">
+          명
+        </span>
+      </div>
+      <div style="font-size:12px; color:#888; margin-bottom:12px;">학생 등록/수정에서 입력한 수업 요일·시각을 기준으로 자동 정리됩니다. 시각을 입력하지 않은 학생은 표 아래에 따로 모아 보여드려요. 각 시각 칸 위에 그 순간 실제로 겹치는 인원수(위에서 정하신 정원 기준)가 함께 표시돼요 — 시작 시각이 달라도 시간이 겹치면 포함됩니다.</div>
       <div style="overflow-x:auto;">
         <table id="timetableGrid" style="border-collapse:collapse; width:100%; font-size:13px;"></table>
       </div>
@@ -1703,7 +1710,7 @@
 
 <script>
   // ===== 버전 정보 (콘솔에서 확인: APP_VERSION 또는 페이지 로드시 자동 출력) =====
-  const APP_VERSION = 'v5.7';
+  const APP_VERSION = 'v5.8';
   const APP_VERSION_LOG = [
     'v1.0 — 탭 구조 + UI 껍데기',
     'v1.1 — AI 문제 생성 + 개념 사다리',
@@ -1738,7 +1745,8 @@
     'v5.4 — [중요] "재발급 안 눌렀는데 학습코드가 자동으로 바뀐다" 버그 발견 및 수정: 학생 정보 수정 화면을 열 때, 그 시점에 코드 값이 비어있으면(일시적 데이터 지연 등) 조용히 새 랜덤 코드를 만들어 채워놓고 있었음 — 그 상태에서 아무 정보나 고치고 저장만 해도 기존 진짜 코드가 다른 숫자로 조용히 덮어써졌음. 이제 코드가 비어있으면 랜덤 생성 대신 "미발급" 표시만 하고, 새 코드는 반드시 "재발급" 버튼을 눌러야만 만들어지도록 수정',
     'v5.5 — 학생 로그인 자동 유지(새로고침해도 로그인 안 풀리던 기능) 비활성화 — 학원 컴퓨터를 여러 학생이 같이 쓸 수 있어서, 이전 학생이 로그아웃을 깜빡하면 다음 학생이 그 화면을 그대로 보게 되는 위험이 있었음. 이제 새로고침하면 항상 로그인 화면부터 다시 시작함',
     'v5.6 — 문제 생성 로딩 화면 개선: 진행률 바(서서히 채워짐)와 맞춤법·학습 팁이 3초마다 바뀌며 뜨도록 추가해서, 기다리는 동안 덜 지루하게 함(회차 문제·마스터 시험·취약유형 집중학습 문제 생성 전부 적용)',
-    'v5.7 — 1회차(이해 단계) 문제를 같은 자료를 쓰는 여러 학생끼리 공유하도록 추가 — 한 학생이 1회차를 처음 만들면 그 자료에 저장해두고, 다음 학생부터는 AI 호출 없이 바로 그 문제로 시작(로딩 없음). 2회차부터는 기존처럼 학생별 개인 맞춤 생성 유지(난이도가 갈리는 게 더 중요해서)'
+    'v5.7 — 1회차(이해 단계) 문제를 같은 자료를 쓰는 여러 학생끼리 공유하도록 추가 — 한 학생이 1회차를 처음 만들면 그 자료에 저장해두고, 다음 학생부터는 AI 호출 없이 바로 그 문제로 시작(로딩 없음). 2회차부터는 기존처럼 학생별 개인 맞춤 생성 유지(난이도가 갈리는 게 더 중요해서)',
+    'v5.8 — 시간표의 "한 시간대 정원"이 6명으로 고정돼있던 것을 직접 입력해서 바꿀 수 있게 변경(학원 정보에 저장, 시간표 화면 상단에 입력칸 추가)'
   ];
   console.log(`%c글답 학습기 ${APP_VERSION}`, 'font-weight:bold; font-size:14px; color:#0d1b4b;');
   console.log(APP_VERSION_LOG.join('\n'));
@@ -2298,7 +2306,30 @@
 
   // ===== 전체 시간표 =====
   const TIMETABLE_DAYS = ['월','화','수','목','금','토','일'];
-  const TIMETABLE_CAPACITY = 6; // 겹치는 시간대 최대 정원
+  // 예전엔 고정값 6이었는데, 학원마다 반 크기가 다를 수 있어서 설정 가능하게 바꿈.
+  // 학원 정보(academySettings)에 저장해두고, 없으면 기존 기본값 6을 그대로 쓴다.
+  function getTimetableCapacity() {
+    const v = window._academySettings && window._academySettings.classCapacity;
+    return (typeof v === 'number' && v > 0) ? v : 6;
+  }
+  function renderTimetableCapacityInput() {
+    const el = document.getElementById('ttCapacityInput');
+    if (el) el.value = getTimetableCapacity();
+  }
+  async function saveTimetableCapacity() {
+    const el = document.getElementById('ttCapacityInput');
+    let val = parseInt(el.value, 10);
+    if (!val || val < 1) { val = 6; }
+    el.value = val;
+    const data = { ...(window._academySettings || {}), classCapacity: val };
+    window._academySettings = data;
+    localStorage.setItem('gas', JSON.stringify(data));
+    if (window._fbReady) {
+      try { await window._setDoc(window._doc(window._db, 'geuldap_settings', 'academy'), data); }
+      catch(e) { console.error('정원 설정 저장 오류', e); alert('⚠️ 저장 실패: ' + e.message); return; }
+    }
+    renderTimetable(); // 정원이 바뀌었으니 표도 다시 그려서 바로 반영
+  }
 
   function addMinutesToTime(timeStr, minutes) {
     const [h, m] = timeStr.split(':').map(Number);
@@ -2337,6 +2368,7 @@
   }
 
   function renderTimetable() {
+    renderTimetableCapacityInput();
     const { withTimeEntries, withoutTimeEntries } = getTimetableEntries();
 
     const times = Array.from(new Set(withTimeEntries.map(e=>e.time))).sort();
@@ -2354,10 +2386,10 @@
           const count = concurrentCountAt(withTimeEntries, d, tMin);
           let capacityBadge = '';
           if (count > 0) {
-            const over = count > TIMETABLE_CAPACITY;
-            const full = count === TIMETABLE_CAPACITY;
+            const over = count > getTimetableCapacity();
+            const full = count === getTimetableCapacity();
             const color = over ? '#c0392b' : (full ? '#a66' : '#888');
-            const label = over ? `초과 ${count}/${TIMETABLE_CAPACITY}` : (full ? `정원 마감 ${count}/${TIMETABLE_CAPACITY}` : `${count}/${TIMETABLE_CAPACITY} · ${TIMETABLE_CAPACITY-count}자리 여유`);
+            const label = over ? `초과 ${count}/${getTimetableCapacity()}` : (full ? `정원 마감 ${count}/${getTimetableCapacity()}` : `${count}/${getTimetableCapacity()} · ${getTimetableCapacity()-count}자리 여유`);
             capacityBadge = `<div style="font-size:11px; color:${color}; font-weight:600; margin-bottom:4px;">${label}</div>`;
           }
           row += `<td style="border:1px solid #eee; padding:6px; vertical-align:top;">${capacityBadge}${matched.map(e=>{
@@ -2412,13 +2444,13 @@
       if (count > maxCount) { maxCount = count; maxAt = pt; }
     });
 
-    const remaining = TIMETABLE_CAPACITY - maxCount;
+    const remaining = getTimetableCapacity() - maxCount;
     const endTimeStr = addMinutesToTime(time, duration);
     if (remaining > 0) {
       resultBox.innerHTML = `<div style="color:#2e7d32; font-weight:600;">✅ 가능합니다. ${day}요일 ${time}~${endTimeStr} 구간 중 가장 붐빌 때가 ${maxCount}명이라, ${remaining}자리 더 받을 수 있어요.</div>`;
     } else {
       const maxAtStr = String(Math.floor(maxAt/60)).padStart(2,'0')+':'+String(maxAt%60).padStart(2,'0');
-      resultBox.innerHTML = `<div style="color:#c0392b; font-weight:600;">❌ 어렵습니다. ${day}요일 ${maxAtStr}에 이미 ${maxCount}명이라 정원(${TIMETABLE_CAPACITY}명)이 꽉 차요. 시작 시각이나 수업 시간을 조정해보세요.</div>`;
+      resultBox.innerHTML = `<div style="color:#c0392b; font-weight:600;">❌ 어렵습니다. ${day}요일 ${maxAtStr}에 이미 ${maxCount}명이라 정원(${getTimetableCapacity()}명)이 꽉 차요. 시작 시각이나 수업 시간을 조정해보세요.</div>`;
     }
   }
 
